@@ -31,6 +31,9 @@ Defaults live in `kernel/config.py`. Overrides: `config.yaml` < environment (`SP
 | `brain.vram_guard_mb` | `1024` | min free VRAM to use Tier 1 |
 | `brain.health_ttl` | `30.0` |  |
 | `brain.daily_budget_usd` | `5.0` | daily remote-tier spend cap (veto) |
+| `brain.cache_responses` | `False` |  |
+| `brain.cache_entries` | `256` |  |
+| `brain.cache_ttl` | `900.0` |  |
 
 ## `memory`
 
