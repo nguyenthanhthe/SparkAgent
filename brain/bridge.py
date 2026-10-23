@@ -1,0 +1,184 @@
+"""Dual-tier brain: local Nemotron first, remote GLM fallback.
+
+Routing rules:
+  - If ``force`` is set, only that tier is tried.
+  - Otherwise tiers are tried in order [local, remote] (skipping disabled ones).
+  - A tier that fails ``fallback_after_failures`` times in a row enters a
+    60-second cooldown and is skipped (unless forced) so the agent does not
+    stall on a dead Ollama daemon.
+  - An optional ``resource_guard`` async callable (wired by the daemon to a
+    VRAM check) can veto the local tier before each request.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Awaitable, Callable
+
+from brain.local import OllamaClient
+from brain.remote import OpenAICompatClient
+from kernel.bus import EventBus
+from kernel.logging import get_logger
+from kernel.config import Config
+from openshell.vault import SecretVault
+
+logger = get_logger("brain")
+
+
+class Tier(str, Enum):
+    LOCAL = "local"
+    REMOTE = "remote"
+
+
+class BrainUnavailable(Exception):
+    def __init__(self, errors: dict[str, str]):
+        self.errors = errors
+        detail = "; ".join(f"{tier}: {err}" for tier, err in errors.items())
+        super().__init__(f"all LLM tiers failed — {detail}")
+
+
+@dataclass
+class BrainResponse:
+    text: str
+    tier: Tier
+    model: str
+    elapsed: float
+
+
+@dataclass
+class _TierState:
+    consecutive_failures: int = 0
+    cooldown_until: float = 0.0
+    requests: int = 0
+    failures: int = 0
+    last_error: str | None = None
+
+
+@dataclass
+class Brain:
+    cfg: Config
+    vault: SecretVault
+    bus: EventBus
+    resource_guard: Callable[[], Awaitable[bool]] | None = field(default=None)
+
+    def __post_init__(self) -> None:
+        local_cfg = self.cfg.section("brain.local")
+        remote_cfg = self.cfg.section("brain.remote")
+        self.local_enabled = bool(local_cfg.get("enabled", True))
+        self.remote_enabled = bool(remote_cfg.get("enabled", True))
+        self.local = OllamaClient(
+            base_url=local_cfg.get("base_url") or "http://127.0.0.1:11434",
+            model=local_cfg.get("model") or "nemotron-mini",
+            timeout=float(local_cfg.get("timeout") or 180),
+            num_ctx=int(local_cfg.get("num_ctx") or 8192),
+            temperature=float(local_cfg.get("temperature", 0.4)))
+        self.remote = OpenAICompatClient(
+            chat_url=remote_cfg.get("chat_url")
+            or "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+            api_key_provider=lambda: self.vault.get("GLM_API_KEY"),
+            model=remote_cfg.get("model") or "glm-5.3",
+            timeout=float(remote_cfg.get("timeout") or 120),
+            temperature=float(remote_cfg.get("temperature", 0.4)))
+        self._fallback_after = int(self.cfg.get("brain.fallback_after_failures", 2))
+        self._cooldown_seconds = 60.0
+        self._state: dict[Tier, _TierState] = {Tier.LOCAL: _TierState(),
+                                               Tier.REMOTE: _TierState()}
+
+    # ------------------------------------------------------------------- chat
+    async def chat(self, messages: list[dict[str, str]],
+                   force: Tier | None = None) -> BrainResponse:
+        order = [force] if force else [Tier.LOCAL, Tier.REMOTE]
+        now = time.monotonic()
+        errors: dict[str, str] = {}
+        for tier in order:
+            if not self._tier_available(tier):
+                errors[tier.value] = "tier disabled"
+                continue
+            state = self._state[tier]
+            if force is None and state.cooldown_until > now:
+                errors[tier.value] = (f"in cooldown after {state.consecutive_failures} "
+                                      f"failures (last: {state.last_error})")
+                continue
+            if tier is Tier.LOCAL and self.resource_guard is not None:
+                try:
+                    guard_ok = await self.resource_guard()
+                except Exception as exc:  # noqa: BLE001 — guard must never kill chat
+                    guard_ok = True
+                    logger.warning("resource guard errored (ignoring): %s", exc)
+                if not guard_ok:
+                    errors[tier.value] = "resource guard: not enough free VRAM"
+                    logger.info("local tier skipped: low VRAM")
+                    continue
+            try:
+                started = time.monotonic()
+                if tier is Tier.LOCAL:
+                    text = await self.local.chat(messages)
+                else:
+                    text = await self.remote.chat(messages)
+                state.requests += 1
+                state.consecutive_failures = 0
+                state.cooldown_until = 0.0
+                return BrainResponse(text=text, tier=tier,
+                                     model=self.local.model if tier is Tier.LOCAL
+                                     else self.remote.model,
+                                     elapsed=time.monotonic() - started)
+            except Exception as exc:  # noqa: BLE001 — any tier error fails over
+                state.failures += 1
+                state.consecutive_failures += 1
+                state.last_error = f"{type(exc).__name__}: {exc}"
+                errors[tier.value] = state.last_error
+                logger.warning("tier %s failed (%d in a row): %s",
+                               tier.value, state.consecutive_failures, exc)
+                if state.consecutive_failures >= self._fallback_after:
+                    state.cooldown_until = time.monotonic() + self._cooldown_seconds
+                    logger.warning("tier %s entering %.0fs cooldown",
+                                   tier.value, self._cooldown_seconds)
+                if force is not None:
+                    raise
+        raise BrainUnavailable(errors)
+
+    # ----------------------------------------------------------------- health
+    async def health(self) -> dict:
+        local_ok, detail = (False, "disabled") if not self.local_enabled \
+            else await self.local.healthy()
+        remote_configured = bool(self.vault.get("GLM_API_KEY")) and self.remote_enabled
+        return {
+            "local": {"ok": local_ok, "detail": detail,
+                      "model": self.local.model if self.local_enabled else None},
+            "remote": {"ok": remote_configured, "detail":
+                       "ok" if remote_configured else "GLM_API_KEY not set or disabled",
+                       "model": self.remote.model if self.remote_enabled else None},
+            "stats": {tier.value: {
+                "requests": st.requests, "failures": st.failures,
+                "consecutive_failures": st.consecutive_failures,
+                "cooldown_active": st.cooldown_until > time.monotonic(),
+            } for tier, st in self._state.items()},
+        }
+
+    # ------------------------------------------------------------------ stats
+    def stats(self) -> dict[str, dict]:
+        return {tier.value: {"requests": st.requests, "failures": st.failures}
+                for tier, st in self._state.items()}
+
+    def _tier_available(self, tier: Tier) -> bool:
+        return {Tier.LOCAL: self.local_enabled,
+                Tier.REMOTE: self.remote_enabled}[tier]
+
+    # -------------------------------------------------------------- embedding
+    async def embed(self, text: str) -> list[float] | None:
+        """Best-effort embedding via Ollama; None lets memory fall back."""
+        if not self.local_enabled:
+            return None
+        try:
+            return await self.local.embed(
+                text, model=self.cfg.get("memory.embedding_model"))
+        except OllamaError as exc:
+            logger.debug("embedding fell back to hashing embedder: %s", exc)
+            return None
+
+    async def close(self) -> None:
+        await asyncio.gather(self.local.close(), self.remote.close(),
+                             return_exceptions=True)
