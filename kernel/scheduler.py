@@ -78,17 +78,37 @@ class Scheduler:
                 agent: ReactAgent = self._agent_factory()
                 result = await agent.run(goal, source=source)
                 success = result.status == "done"
+                transient = (not success
+                             and "all LLM tiers failed" in result.answer)
                 if success:
                     self.stats["episodes_done"] += 1
                 else:
                     self.stats["episodes_failed"] += 1
                 await self.memory.finish_task(task_id, success)
+                if transient:
+                    self.stats["retries"] = self.stats.get("retries", 0) + 1
+                    backoff = min(300, 30 * 2 ** min(
+                        int(task.get("consecutive_failures", 0)), 4))
+                    logger.info("task %s transient failure — requeued in %ds",
+                                task_id, backoff)
+                    await self._memory_shift_next_run(task_id, backoff)
                 logger.info("task %s %s in %.1fs", task_id, result.status,
                             time.monotonic() - started)
             except Exception as exc:  # noqa: BLE001 — record and reschedule
                 logger.exception("task %s crashed", task_id)
                 self.stats["episodes_failed"] += 1
                 await self.memory.finish_task(task_id, success=False)
+
+    async def _memory_shift_next_run(self, task_id: int,
+                                     delay_seconds: float) -> None:
+        """Push a one-shot task's next run out for a retry."""
+        rows = await self.memory.list_tasks(task_id=task_id)
+        if not rows:
+            return
+        row = rows[0]
+        if row.get("interval_seconds") or row.get("daily_at"):
+            return   # recurring tasks already reschedule via finish_task
+        await self.memory.retry_one_shot(task_id, time.time() + delay_seconds)
 
     # ---------------------------------------------------------------- control
     def stop(self) -> None:

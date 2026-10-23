@@ -373,11 +373,19 @@ class Memory:
                         and row and row.get("interval_seconds")) else 1
 
         def op(conn: sqlite3.Connection) -> None:
+            recurring = bool(row and (row.get("interval_seconds")
+                                      or row.get("daily_at")))
+            # recurring tasks re-arm as pending (next_run_at drives them);
+            # one-shots settle to done/failed (retry_one_shot can re-arm)
+            status = "pending" if recurring else \
+                ("done" if success else "failed")
             conn.execute(
                 "UPDATE tasks SET next_run_at = ?, consecutive_failures = ?, "
-                "last_status = ?, enabled = ?, updated_at = ? WHERE id = ?",
+                "last_status = ?, enabled = ?, status = ?, updated_at = ? "
+                "WHERE id = ?",
                 (next_run if next_run is not None else time.time(), failures,
-                 "done" if success else "failed", enabled, _now_iso(), task_id))
+                 "done" if success else "failed", enabled, status,
+                 _now_iso(), task_id))
             conn.commit()
         await self._run(op)
 
@@ -402,6 +410,19 @@ class Memory:
                     "SELECT * FROM tasks ORDER BY enabled DESC, priority ASC, "
                     "id DESC LIMIT ?", (limit,)).fetchall()
             return [dict(row) for row in rows]
+        return await self._run(op)
+
+    async def retry_one_shot(self, task_id: int, next_run_at: float) -> bool:
+        """Re-arm a one-shot task for a retry (status back to pending)."""
+        def op(conn: sqlite3.Connection) -> bool:
+            cursor = conn.execute(
+                "UPDATE tasks SET status = 'pending', next_run_at = ?, "
+                "updated_at = ? WHERE id = ? AND status IN "
+                "('done', 'failed') AND interval_seconds IS NULL "
+                "AND daily_at IS NULL",
+                (next_run_at, _now_iso(), task_id))
+            conn.commit()
+            return cursor.rowcount > 0
         return await self._run(op)
 
     async def cancel_task(self, task_id: int) -> bool:
