@@ -1,0 +1,88 @@
+import unittest
+
+from kernel.clock import FakeClock
+from kernel.errors import ApprovalRequired
+from security.approval import (APPROVED, DENIED, EXPIRED, PENDING,
+                               ApprovalQueue, request_to_dict)
+
+
+class ApprovalQueueTests(unittest.TestCase):
+    def setUp(self):
+        self.clock = FakeClock()
+        self.queue = ApprovalQueue(ttl_seconds=60, clock=self.clock)
+
+    def test_submit_creates_pending(self):
+        request = self.queue.submit("skill", "word_counter tool",
+                                    {"code_lines": 8})
+        self.assertEqual(request.status, PENDING)
+        self.assertEqual(self.queue.pending()[0].id, request.id)
+
+    def test_approve_flow(self):
+        request = self.queue.submit("command", "git push")
+        decided = self.queue.approve(request.id, decided_by="alice")
+        self.assertEqual(decided.status, APPROVED)
+        self.assertEqual(decided.decided_by, "alice")
+        self.assertEqual(self.queue.pending(), [])
+
+    def test_deny_flow(self):
+        request = self.queue.submit("spend", "$50 API budget")
+        self.queue.deny(request.id)
+        self.assertEqual(self.queue.get(request.id).status, DENIED)
+
+    def test_unknown_id_raises(self):
+        with self.assertRaises(KeyError):
+            self.queue.approve("nope")
+
+    def test_expiry_after_ttl(self):
+        request = self.queue.submit("skill", "x")
+        self.clock.advance(61)
+        self.assertEqual(self.queue.get(request.id).status, EXPIRED)
+        self.assertEqual(self.queue.pending(), [])
+
+    def test_decision_after_expiry_is_rejected(self):
+        request = self.queue.submit("skill", "x")
+        self.clock.advance(61)
+        with self.assertRaises(ValueError) as ctx:
+            self.queue.approve(request.id)
+        self.assertIn("expired", str(ctx.exception))
+
+    def test_require_approval_error_carries_id(self):
+        err = self.queue.require_approval("skill", "needs review")
+        self.assertIsInstance(err, ApprovalRequired)
+        self.assertIn(err.approval_id, self.queue._requests)
+
+    def test_observer_notified(self):
+        events = []
+        queue = ApprovalQueue(clock=self.clock, on_change=events.append)
+        queue.submit("skill", "x")
+        self.assertEqual(len(events), 1)
+        queue.approve(events[0].id)
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1].status, APPROVED)
+
+    def test_observer_failure_isolated(self):
+        def broken(_request):
+            raise RuntimeError("observer bug")
+
+        queue = ApprovalQueue(clock=self.clock, on_change=broken)
+        request = queue.submit("skill", "x")  # must not raise
+        self.assertEqual(request.status, PENDING)
+
+    def test_recent_listing(self):
+        for i in range(5):
+            self.queue.submit("generic", f"item {i}")
+        recent = self.queue.recent(limit=3)
+        self.assertEqual(len(recent), 3)
+        # newest first
+        self.assertEqual(recent[0].summary, "item 4")
+
+    def test_to_dict_roundtrip_shape(self):
+        request = self.queue.submit("skill", "s", {"a": 1})
+        payload = request_to_dict(request)
+        self.assertEqual(payload["kind"], "skill")
+        self.assertEqual(payload["detail"], {"a": 1})
+        self.assertEqual(payload["status"], PENDING)
+
+
+if __name__ == "__main__":
+    unittest.main()
