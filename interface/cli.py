@@ -146,7 +146,9 @@ class SparkCli:
                   f"pending")
 
     def _cmd_tasks(self) -> None:
-        tasks = self._call("/api/tasks")
+        payload = self._call("/api/tasks")
+        tasks = payload.get("items", payload) if isinstance(payload, dict) \
+            else payload
         if not tasks:
             self._out("(no tasks)")
             return

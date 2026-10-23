@@ -133,7 +133,8 @@ async function refreshStatus(){try{const s=await api('/api/status');
     +kv('tools',s.tools?s.tools.length:0)
     +kv('skills pending',(s.skills_pending||[]).length);
 }catch(e){$('uptime').textContent='· offline'}}
-async function refreshTasks(){try{const tasks=await api('/api/tasks');
+async function refreshTasks(){try{const payload=await api('/api/tasks');
+  const tasks=payload.items||[];
   $('tasks').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th></th></tr>'+
    tasks.map(t=>`<tr><td>${t.id}</td><td>${t.goal.slice(0,80)}</td>
     <td>${t.enabled?t.status:badge('b-dim',t.status)}</td>
@@ -210,8 +211,14 @@ def build_web_app(daemon) -> web.Application:
     async def api_status(_request: web.Request) -> web.Response:
         return web.json_response(daemon.status())
 
-    async def api_tasks(_request: web.Request) -> web.Response:
-        return web.json_response(await daemon.memory.list_tasks(limit=50))
+    async def api_tasks(request: web.Request) -> web.Response:
+        from kernel.pagination import paginate, parse_paging_params
+        try:
+            offset, limit = parse_paging_params(dict(request.query))
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        tasks = await daemon.memory.list_tasks(limit=offset + limit + 1)
+        return web.json_response(paginate(tasks, offset, limit).envelope())
 
     async def api_tasks_create(request: web.Request) -> web.Response:
         body = await request.json()
@@ -245,8 +252,14 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response({"ok": True})
 
     async def api_episodes(request: web.Request) -> web.Response:
-        limit = min(int(request.query.get("limit", 20)), 100)
-        return web.json_response(await daemon.memory.recent_episodes(limit=limit))
+        from kernel.pagination import paginate, parse_paging_params
+        try:
+            offset, limit = parse_paging_params(dict(request.query))
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        episodes = await daemon.memory.recent_episodes(
+            limit=offset + limit + 1)
+        return web.json_response(paginate(episodes, offset, limit).envelope())
 
     async def api_episode_detail(request: web.Request) -> web.Response:
         try:
