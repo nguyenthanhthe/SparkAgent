@@ -1,0 +1,97 @@
+"""LLM response cache.
+
+Identical (model, messages, params) requests hit an in-process LRU with
+TTL. Big win for repeated tool-schema-heavy prompts and idempotent queries;
+always bypassable per call. Hit rate and token savings feed the dashboard.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import threading
+import time
+from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any
+
+from kernel.clock import Clock
+
+
+def cache_key(model: str, messages: list[dict], **params: Any) -> str:
+    payload = json.dumps({"model": model, "messages": messages,
+                          "params": params}, sort_keys=True,
+                         ensure_ascii=False, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@dataclass
+class CacheEntry:
+    text: str
+    usage: dict[str, Any]
+    stored_at: float
+
+
+class ResponseCache:
+    def __init__(self, max_entries: int = 256, ttl_seconds: float = 900.0,
+                 clock: Clock | None = None):
+        self.max_entries = max_entries
+        self.ttl = ttl_seconds
+        self.clock = clock or Clock()
+        self._lock = threading.Lock()
+        self._entries: OrderedDict[str, CacheEntry] = OrderedDict()
+        self.stats = {"hits": 0, "misses": 0, "stored": 0,
+                      "evictions": 0, "expired": 0,
+                      "saved_tokens": 0}
+
+    # ------------------------------------------------------------------- api
+    def get(self, key: str) -> CacheEntry | None:
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None:
+                self.stats["misses"] += 1
+                return None
+            if self.clock.now() - entry.stored_at > self.ttl:
+                del self._entries[key]
+                self.stats["expired"] += 1
+                self.stats["misses"] += 1
+                return None
+            self._entries.move_to_end(key)
+            self.stats["hits"] += 1
+            self.stats["saved_tokens"] += int(
+                entry.usage.get("total_tokens") or 0)
+            return entry
+
+    def put(self, key: str, text: str, usage: dict[str, Any] | None = None) \
+            -> None:
+        with self._lock:
+            self._entries[key] = CacheEntry(text, dict(usage or {}),
+                                            self.clock.now())
+            self._entries.move_to_end(key)
+            self.stats["stored"] += 1
+            while len(self._entries) > self.max_entries:
+                self._entries.popitem(last=False)
+                self.stats["evictions"] += 1
+
+    def invalidate(self, key: str) -> bool:
+        with self._lock:
+            return self._entries.pop(key, None) is not None
+
+    def clear(self) -> int:
+        with self._lock:
+            count = len(self._entries)
+            self._entries.clear()
+            return count
+
+    @property
+    def size(self) -> int:
+        with self._lock:
+            return len(self._entries)
+
+    def hit_rate(self) -> float:
+        total = self.stats["hits"] + self.stats["misses"]
+        return self.stats["hits"] / total if total else 0.0
+
+    def snapshot(self) -> dict:
+        return {**self.stats, "size": self.size,
+                "hit_rate": round(self.hit_rate(), 3)}
