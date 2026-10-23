@@ -32,6 +32,21 @@ class BackendWiringTests(unittest.IsolatedAsyncioTestCase):
         for expected in ("system_status", "calculate", "swarm_delegate"):
             self.assertIn(expected, names)
 
+    async def test_status_reports_backend(self):
+        daemon = AgentDaemon(Config.load())
+        status = daemon.status()
+        self.assertEqual(status["sandbox_backend"]["backend"],
+                         "policy-fallback")   # no runtime on this machine
+        policy_daemon = AgentDaemon(Config({"openshell":
+                                            {"backend": "policy"}}))
+        self.assertEqual(policy_daemon.status()["sandbox_backend"],
+                         {"backend": "policy"})
+
+    async def test_status_counts_through_backend(self):
+        daemon = AgentDaemon(Config.load())
+        status = daemon.status()
+        self.assertIn("completed", status["executor"])
+
 
 if __name__ == "__main__":
     unittest.main()

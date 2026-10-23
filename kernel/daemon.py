@@ -46,6 +46,11 @@ from swarm.delegate import register_swarm_tools
 logger = get_logger("daemon")
 
 
+def _is_sandbox_executor(executor) -> bool:
+    """True for executors that can describe an OpenShell backend."""
+    return hasattr(executor, "describe_backend")
+
+
 class AgentDaemon:
     def __init__(self, config: Config):
         self.cfg = config
@@ -417,6 +422,9 @@ class AgentDaemon:
                                   self.approvals.pending()],
             "guard_stats": dict(self.fetcher.guard_stats),
             "executor": self.executor.registry.stats(),
+            "sandbox_backend": self.executor.describe_backend()
+            if _is_sandbox_executor(self.executor) else
+            {"backend": "policy"},
             "sandbox_profile": self.cfg.get("openshell.profile", "standard"),
             "vault_unlocked": self.vault.unlocked,
         }
