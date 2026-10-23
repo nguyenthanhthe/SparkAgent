@@ -67,10 +67,15 @@ class TaskGroupTests(unittest.IsolatedAsyncioTestCase):
         async with TaskGroup() as group:
             group.run(good())
             group.run(bad())
-        results = await group.wait() if not group.tasks else group.tasks
-        # after __aexit__ the tasks are done; inspect their outcomes
-        outcomes = [t.exception() if t.exception() else t.result()
-                    for t in group.tasks]
+            await asyncio.sleep(0.05)  # let both tasks settle before exit
+        outcomes = []
+        for task in group.tasks:
+            if task.cancelled():
+                outcomes.append("cancelled")
+            elif task.exception():
+                outcomes.append(task.exception())
+            else:
+                outcomes.append(task.result())
         self.assertIn("ok", outcomes)
         self.assertTrue(any(isinstance(o, RuntimeError) for o in outcomes))
 
@@ -88,6 +93,19 @@ class TaskGroupTests(unittest.IsolatedAsyncioTestCase):
         outcomes = await group.wait()
         self.assertTrue(all(isinstance(o, asyncio.CancelledError)
                             for o in outcomes))
+
+    async def test_cancelled_task_exception_call_raises(self):
+        # documents Python 3.14 semantics: .exception() on a cancelled task
+        # raises CancelledError; TaskGroup.wait() never trips over this
+        async def forever():
+            await asyncio.sleep(60)
+
+        group = TaskGroup()
+        task = group.run(forever())
+        await asyncio.sleep(0.01)
+        group.cancel_all()
+        await group.wait()
+        self.assertTrue(task.cancelled())
 
 
 class DebouncerTests(unittest.IsolatedAsyncioTestCase):
