@@ -33,6 +33,12 @@ class FakeDaemon:
         self.memory = FakeMemory()
         self.approvals = ApprovalQueue(clock=FakeClock())
 
+        class FakeHealth:
+            async def check_all(self):
+                return {"status": "ok", "checks": []}
+
+        self.health = FakeHealth()
+
         class Vault:
             def redact(self, text):
                 return text
@@ -61,6 +67,11 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(TelegramGateway, "_send") as send:
             await gateway._handle({"chat": {"id": 42}, "text": text})
             return send.call_args[0][1]
+
+    async def test_health_reports_subsystems(self):
+        gateway = make_gateway()
+        reply = await self._command("/health", gateway)
+        self.assertIn("overall: ok", reply)
 
     async def test_status(self):
         reply = await self._command("/status")

@@ -115,6 +115,7 @@ class TelegramGateway:
         if command == "/help":
             return ("SparkAgent commands:\n"
                     "/status — daemon health\n"
+                    "/health — subsystem checks\n"
                     "/tasks — recent tasks\n"
                     "/task <goal> — submit a task\n"
                     "/mem <query> — search memory\n"
@@ -123,6 +124,14 @@ class TelegramGateway:
                     "/approve <skill or id> — approve\n"
                     "/deny <id> — deny an approval request\n"
                     "plain text — submit a task")
+        if command == "/health":
+            report = await daemon.health.check_all()
+            lines = [f"overall: {report['status']}"]
+            for check in report.get("checks", []):
+                detail = f" — {check['detail'][:40]}" if check["detail"] \
+                    else ""
+                lines.append(f"{check['name']}: {check['status']}{detail}")
+            return "\n".join(lines)
         if command == "/status":
             status = daemon.status()
             brain = status.get("brain", {})
