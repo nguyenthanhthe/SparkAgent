@@ -1,25 +1,16 @@
-# SparkAgent
+# ⚡ SparkAgent
 
-> An autonomous 24/7 local AI agent kernel inspired by the **Nous Hermes Agent** and **NVIDIA OpenShell** sandbox architecture — optimized for RTX hardware (local Nemotron via Ollama/CUDA, with remote GLM fallback).
+> An autonomous **24/7 local AI agent kernel** inspired by the **Nous Hermes Agent** and the **NVIDIA OpenShell** sandbox architecture — optimized for RTX hardware (local NVIDIA Nemotron via Ollama/CUDA, with a remote GLM fallback tier).
 
-## Overview
+[![CI](https://github.com/nguyenthanhthe/SparkAgent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
-SparkAgent is a personal autonomous agent runtime that runs continuously in the
-background on Windows. It combines:
+SparkAgent runs continuously in the background on your Windows machine: it
+schedules goals, reasons over them with a ReAct loop, executes work through
+a policy-guarded sandbox, remembers everything in SQLite + a vector store,
+writes **new tools for itself**, and can be driven from a local web
+dashboard or Telegram.
 
-- **Kernel** (`kernel/`) — a 24/7 asyncio daemon hosting a ReAct state machine,
-  a persistent task scheduler, and SQLite + vector long-term memory.
-- **OpenShell sandbox** (`openshell/`) — a safe process executor with program
-  allowlists, a dangerous-command denylist, path confinement, and an encrypted
-  secret vault with log redaction.
-- **Brain** (`brain/`) — a dual-tier LLM bridge: Tier 1 runs NVIDIA Nemotron
-  locally through Ollama on the GPU; Tier 2 falls back to a remote GLM
-  (OpenAI-compatible) endpoint when the local tier is unhealthy or out of VRAM.
-- **Tools** (`tools/`) — system monitor (NVIDIA-SMI / VRAM), a hard SSRF-guarded
-  web fetcher, and **SkillForge**: the agent can write, sandbox-check, and
-  register *new tools for itself* at runtime.
-- **Interface** (`interface/`) — a minimal local web dashboard (live logs,
-  task submission, memory search) and a Telegram gateway for remote control.
+---
 
 ## Architecture
 
@@ -28,7 +19,7 @@ background on Windows. It combines:
         Telegram ───────▶│       interface/             │◀──── Web dashboard
         gateway          │  (aiohttp server + bot)      │      127.0.0.1:8788
                          └──────────────┬───────────────┘
-                                        │ submit / query
+                                        │ submit / query / approve
                                         ▼
    config.yaml + env    ┌───────────────────────────────────────────┐
    ┌───────────────┐    │               kernel/                     │
@@ -42,10 +33,10 @@ background on Windows. It combines:
                                ▼                          ▼
                      ┌──────────────────┐      ┌───────────────────────┐
                      │     brain/       │      │      tools/           │
-                     │ Tier1: Ollama    │      │ registry + sysmon +   │
-                     │  Nemotron/CUDA   │      │ webfetch + skillforge │
-                     │ Tier2: GLM API   │      └──────────┬────────────┘
-                     └──────────────────┘                 │ spawn
+                     │ Tier 1: Ollama   │      │ registry · sysmon     │
+                     │  Nemotron/CUDA   │      │ webfetch · skillforge │
+                     │ Tier 2: GLM API  │      └──────────┬────────────┘
+                     └──────────────────┘                 │ spawn / fetch
                                                           ▼
                                                 ┌───────────────────────┐
                                                 │     openshell/        │
@@ -54,55 +45,106 @@ background on Windows. It combines:
                                                 └───────────────────────┘
 ```
 
-## Status
+| Package | Responsibility |
+|---|---|
+| `kernel/` | 24/7 asyncio daemon, ReAct state machine, task scheduler, SQLite + vector memory, event bus, config |
+| `openshell/` | Safe subprocess execution: program allowlist, denylist guard, path confinement, encrypted secret vault, log redaction |
+| `brain/` | Dual-tier LLM bridge — Tier 1 local (Ollama/Nemotron on the GPU), Tier 2 remote (GLM, OpenAI-compatible) |
+| `tools/` | Tool registry, GPU/system monitor, SSRF-guarded web fetcher, SkillForge (agent-authored tools) |
+| `interface/` | Local web dashboard (SSE live logs) and Telegram gateway (chat-ID allowlist) |
+| `main.py` | Single entry point: `--check`, `--once "goal"`, or the full daemon |
 
-*Under active autonomous development.* Build order: scaffold → openshell →
-brain → tools → kernel → interface → entrypoint. See git history for progress.
+---
 
-## Safety model (summary)
+## Quickstart
 
-1. **Program allowlist** — only bare, pre-approved executable names may spawn.
-2. **Denylist guard** — destructive patterns (`format`, `del /f /q`,
-   `shutdown`, `reg add`, fork bombs, `curl | sh`, encoded PowerShell, …)
-   are rejected before spawn.
-3. **Path confinement** — any path-like argument must resolve inside the
-   sandbox or the project root; UNC paths rejected.
-4. **No shell** — processes are spawned with `create_subprocess_exec`,
-   never through `cmd /c` / PowerShell string interpretation.
-5. **SSRF guard** — the web fetcher only speaks http(s), validates ports,
-   and refuses hosts resolving to loopback/private/reserved/CGNAT ranges,
-   re-validating on every redirect hop.
-6. **Secret vault** — credentials come from env vars or an encrypted local
-   vault file; a redaction layer masks secret values in all logs and tool
-   output.
-7. **Skill sandbox** — agent-written tools pass AST static analysis (no
-   imports, no dunder access, no eval/exec/open), run with restricted
-   builtins, and only touch the outside world through guarded helpers
-   (`fetch`, `read_file`, `write_file`, `run_command`). By default new
-   skills require operator approval.
+Requirements: **Python 3.10+**, an NVIDIA GPU with recent drivers (optional
+but recommended), [Ollama](https://ollama.com) for the local tier.
+
+```powershell
+git clone https://github.com/nguyenthanhthe/SparkAgent
+cd SparkAgent
+pip install -r requirements.txt
+
+# local tier (optional — without it everything routes to the remote tier)
+ollama pull nemotron-mini
+ollama pull nomic-embed-text        # better semantic memory (optional)
+
+# credentials — environment only, never in files
+copy .env.example .env              # then edit: GLM_API_KEY=...
+# (or set them as real environment variables)
+
+python main.py --check              # offline self-test
+python main.py                      # start the 24/7 daemon
+```
+
+Dashboard: **http://127.0.0.1:8788**
+
+### Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `GLM_API_KEY` | remote tier API key (required for Tier 2) |
+| `TELEGRAM_BOT_TOKEN` | Telegram gateway (optional; enable in config) |
+| `SPARKAGENT_VAULT_KEY` | master key for the encrypted vault store (optional) |
+| `SPARKAGENT_WEB_TOKEN` | if set, the dashboard API requires this Bearer token |
+| `SPARKAGENT_<SECTION>__<KEY>` | override any config value (e.g. `SPARKAGENT_BRAIN__LOCAL__MODEL=llama3`) |
+
+Secrets can also be stored encrypted: `python -m openshell.vault set GLM_API_KEY`.
+
+### Usage
+
+```powershell
+python main.py                        # 24/7 daemon (scheduler + web + telegram)
+python main.py --once "check GPU temperature and report"   # single episode
+python main.py --check                # offline self-test
+python -m unittest discover -s tests -t .                  # test suite
+python -m openshell.vault set TELEGRAM_BOT_TOKEN           # encrypted secret
+```
+
+Dashboard & Telegram:
+
+- Submit one-shot or recurring goals (`every 5 min / hourly / daily`)
+- Watch live logs (SSE), GPU/VRAM/brain-tier status, task history
+- Search long-term memory semantically
+- Approve or hand-craft skills (operator actions)
+- Telegram: `/status`, `/tasks`, `/task <goal>`, `/mem <query>`, `/skills`, `/approve <name>` — plain text becomes a task
+
+---
 
 ## How the kernel works
 
 - **ReAct protocol** — each turn the model must reply with exactly one JSON
-  object: either `{"thought", "action": {"name", "args"}}` or
+  object: `{"thought", "action": {"name", "args"}}` or
   `{"thought", "final_answer"}`. Malformed replies become corrective
   observations (3 strikes → episode fails). Every thought/action/observation
-  is persisted to SQLite as episode steps.
-- **Scheduler** — SQLite-backed task queue. One-shot, `interval_seconds`
+  is persisted as episode steps.
+- **Scheduler** — SQLite-backed queue. One-shot, `interval_seconds`
   recurring, and `daily_at HH:MM` tasks; atomic claim via conditional
   UPDATE; concurrency-limited episodes; recurring tasks auto-disable after
-  3 consecutive failures; stale `running` tasks are recovered on boot.
+  3 consecutive failures; stale `running` tasks recovered on boot.
 - **Memory** — episodes, steps, audit trail, and a vector store. Recall is
-  cosine similarity over embeddings (Ollama `nomic-embed-text` when local is
-  up, deterministic hashing embedder otherwise), injected into the system
-  prompt of new episodes. Finished episodes summarize themselves into memory.
-- **Daemon supervision** — every loop (scheduler, heartbeat, audit persist,
-  housekeeping, web, telegram) runs under a supervisor that restarts it with
-  exponential backoff. A 24/7 daemon must survive its own bugs.
+  cosine similarity over embeddings (Ollama `nomic-embed-text` when the
+  local tier is up, a deterministic hashing embedder otherwise), injected
+  into the system prompt of new episodes. Finished episodes summarize
+  themselves into memory. Retention pruned via housekeeping.
+- **Daemon supervision** — every loop (scheduler, heartbeat, audit
+  persistence, housekeeping, web, telegram) runs under a supervisor that
+  restarts it with exponential backoff. A 24/7 daemon must survive its own
+  bugs.
 
-## Usage
+### Brain: dual-tier routing
 
-*Being filled in as modules land — see sections below (Work in progress).*
+1. **Tier 1 (local)** — Nemotron on your RTX GPU via Ollama. Free,
+   private, fast enough for most episodes.
+2. **Tier 2 (remote)** — GLM through an OpenAI-compatible endpoint
+   (needs `GLM_API_KEY`).
+
+Routing details: a tier that fails twice in a row enters a 60 s cooldown so
+episodes don't stall on a dead Ollama daemon; a VRAM guard skips the local
+tier when free GPU memory drops below `brain.vram_guard_mb` (mid-generation
+spikes on laptop GPUs); any tier exception fails over instead of crashing.
+Stats per tier are exposed on the dashboard and `/api/status`.
 
 ### Built-in tools
 
@@ -113,31 +155,121 @@ brain → tools → kernel → interface → entrypoint. See git history for pro
 | `skill_create` | The agent writes a new tool for itself (see below) |
 | `skill_list` / `skill_approve` | List skills; approve pending ones (operator-only) |
 
-**SkillForge sandbox** — agent-written tools may not import anything and may
-not use `open`/`eval`/`exec`/dunders (enforced by AST inspection before
-load). They execute in a namespace seeded with safe builtins, selected
-stdlib modules (`json, re, math, statistics, datetime, itertools,
-collections, textwrap, string, uuid, random`), and guarded helpers:
+### SkillForge — the agent improves itself
+
+The model proposes `{name, description, parameters, code}`. SkillForge
+validates it (AST: no imports, no `eval`/`exec`/`open`/dunder access),
+loads it into a pre-seeded restricted namespace (safe builtins +
+`json, re, math, statistics, datetime, itertools, collections, textwrap,
+string, uuid, random` + guarded I/O helpers), and registers it as a real
+tool under a timeout. The only I/O channels are:
 
 - `fetch(url)` — the same SSRF-guarded fetcher as `web_fetch`
-- `read_file(path)` / `list_dir(path)` — reads confined to sandbox + project
-- `write_file(path, content)` — sandbox-only writes, 64 KB cap
+- `read_file(path)` / `list_dir(path)` — confined to sandbox + project
+- `write_file(path, content)` — sandbox-only, 64 KB cap
 - `run_command(program, *args)` — the OpenShell executor (full policy)
 - `log(msg)` — a line in the daemon log stream
 
-Every skill call runs under a timeout. New skills stay **pending** until an
-operator approves them (dashboard/Telegram), unless
-`tools.skillforge.autonomous: true`.
+New skills stay **pending** until an operator approves them via the
+dashboard or Telegram, unless `tools.skillforge.autonomous: true`.
+Approved skills persist under `skills/` and reload on boot.
+
+---
+
+## Safety & sandbox policy (OpenShell)
+
+1. **Program allowlist** — only bare, pre-approved executable names may
+   spawn (`python`, `git`, `pip`, `nvidia-smi`, …; configurable). No
+   `cmd`, no `powershell`, no path-like program names.
+2. **Denylist guard** — destructive/obfuscated patterns are rejected before
+   spawn: `format/rd/del` of system paths, `shutdown`, registry edits,
+   `schtasks`, fork bombs, encoded PowerShell, `curl | sh`,
+   defense-tampering, and more (defense in depth behind the allowlist).
+3. **Path confinement** — path-like arguments must resolve (after `..`
+   normalization) inside the sandbox (`data/sandbox`) or the project root;
+   UNC paths are rejected; skill writes are sandbox-only.
+4. **No shell** — processes spawn via `create_subprocess_exec`; arguments
+   are never interpreted by a shell. Metacharacter checks apply only when
+   shell mode is explicitly enabled.
+5. **Kill trees & limits** — timeouts kill the whole process tree
+   (`taskkill /T /F`); output capture is size-capped.
+6. **SSRF guard** — the web fetcher only speaks http(s) on configured
+   ports, resolves the host immediately before connecting, rejects
+   loopback/private/link-local (incl. cloud metadata)/reserved/CGNAT
+   ranges, unwraps IPv4-mapped IPv6, and re-validates every redirect hop.
+7. **Secret vault & redaction** — credentials come only from environment
+   variables or an encrypted store (stdlib authenticated encryption:
+   HMAC-SHA256-derived keys, PRF stream cipher, constant-time tag).
+   Known secret values and common key patterns are masked in every log
+   line and tool output.
+8. **Skill sandbox** — see SkillForge above: static AST validation,
+   restricted namespace, guarded helpers, timeouts, operator approval.
+9. **Audit trail** — every execution, tool call, skill proposal/approval,
+   and task submission is written to the `audit` table.
+
+> ⚠️ **Honest limits** — this is a *policy sandbox, not a VM*. A allowlisted
+> `python` process still runs with your user account's normal privileges.
+> Run SparkAgent under a regular (non-admin) account, keep the allowlist
+> minimal, and use the approval gate for skills. Residual DNS-rebinding
+> risk in the fetcher is mitigated (resolve-then-connect on the same tick)
+> but not eliminated; for hostile environments put it behind an egress
+> proxy.
+
+---
+
+## Configuration
+
+Defaults live in `kernel/config.py`; `config.yaml` overrides them;
+`SPARKAGENT_*` environment variables override everything. See
+[config.example.yaml](config.example.yaml) for the annotated reference.
+Key knobs:
+
+| Path | Default | Meaning |
+|---|---|---|
+| `agent.max_steps` | 12 | ReAct iterations per episode |
+| `agent.concurrency` | 2 | simultaneous episodes |
+| `brain.local.model` | `nemotron-mini` | Ollama model (Tier 1) |
+| `brain.remote.model` | `glm-5.3` | remote model (Tier 2) |
+| `brain.vram_guard_mb` | 1024 | min free VRAM to use Tier 1 |
+| `openshell.allowed_programs` | … | executable allowlist |
+| `tools.skillforge.autonomous` | false | skills activate without approval |
+| `tools.webfetch.allowed_ports` | 80/443/8080/8443 | fetchable ports |
+| `interface.web.port` | 8788 | dashboard port (localhost bind) |
+| `interface.telegram.allowed_chat_ids` | [] | who may talk to the bot |
+
+## Repository layout
+
+```
+SparkAgent/
+├── main.py                 # entry point (--check / --once / daemon)
+├── config.example.yaml     # annotated configuration
+├── kernel/                 # daemon, react, scheduler, memory, bus, config, logging
+├── openshell/              # policy, vault (+CLI), executor
+├── brain/                  # local, remote, bridge
+├── tools/                  # registry, sysmon, webfetch, skillforge
+├── interface/              # web, telegram
+├── tests/                  # 81 unit tests (offline, no network/LLM)
+└── data/                   # runtime: db, logs, sandbox  (gitignored)
+└── skills/                 # agent-authored skills       (gitignored)
+```
 
 ## Experimental ideas
 
-- Agent-authored skills with a self-review loop (write → static check →
-  smoke-test → optional operator approval → register).
-- VRAM-aware routing: skip the local tier when free VRAM drops below a
-  threshold (mid-generation spikes on small laptop GPUs).
-- Hashing-embedder fallback so semantic memory works with zero extra
-  downloads, upgradeable to Ollama embeddings for quality.
+- ✅ Agent-authored skills with static sandbox analysis + approval gate
+- ✅ VRAM-aware tier routing for small laptop GPUs
+- ✅ Zero-dependency hashing embedder with transparent Ollama upgrade path
+- 🔭 Self-review loop: agent smoke-tests its own new skill before proposing
+- 🔭 Episode reflection: periodic memory consolidation into distilled notes
+- 🔭 Multi-tenant goals with per-source quotas (web vs telegram vs scheduler)
+- 🔭 MicroVM/WSL isolation tier for genuinely untrusted code
+
+## Status
+
+Built autonomously, module by module (see git history — one feature commit
+per module). Test suite: `python -m unittest discover -s tests -t .`
+(81 tests, all offline). CI runs on push for Python 3.10/3.12 ×
+Ubuntu/Windows.
 
 ---
 *SparkAgent is experimental software. The OpenShell policy layer is a
-guardrail, not a VM: run it under a regular (non-admin) user account.*
+guardrail, not a VM — run it under a non-admin user account.*
