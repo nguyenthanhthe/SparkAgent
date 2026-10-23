@@ -32,8 +32,10 @@ from kernel.scheduler import Scheduler
 from openshell import SecretVault, SecurityPolicy
 from openshell.executor import SafeExecutor
 from openshell.profiles import build_policy
+from memory_search.graph_store import GraphStore
 from security.approval import ApprovalQueue, request_to_dict
 from security.quarantine import QuarantineStore
+from tools.graph_tools import register_tools as register_graph_tools
 from tools.registry import ToolRegistry
 from tools import sysmon as sysmon_tools
 from tools import skillforge as skillforge_tools
@@ -114,6 +116,12 @@ class AgentDaemon:
         webfetch_tools.register_tools(self.registry, self.fetcher)
         stdlib_tools.register_tools(self.registry, self.approvals)
         register_swarm_tools(self.registry, self.brain)
+        self.entity_graph = GraphStore()
+        loaded_edges = self.entity_graph.load(self.cfg.root / "data" /
+                                              "graph.json")
+        if loaded_edges:
+            logger.info("entity graph restored: %d edges", loaded_edges)
+        register_graph_tools(self.registry, self.entity_graph)
         self.forge = skillforge_tools.SkillForge(
             self.cfg.skills_dir, self.registry, self.policy, self.executor,
             self.bus, self.fetcher,
@@ -268,6 +276,9 @@ class AgentDaemon:
                 pruned = await self.memory.housekeeping()
                 if any(pruned.values()):
                     logger.info("housekeeping pruned: %s", pruned)
+                saved = self.entity_graph.save(self.cfg.root / "data" /
+                                               "graph.json")
+                logger.debug("entity graph persisted: %d edges", saved)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("housekeeping failed: %s", exc)
 
@@ -326,6 +337,10 @@ class AgentDaemon:
             return
         self._stopping = True
         logger.info("daemon shutting down…")
+        try:
+            self.entity_graph.save(self.cfg.root / "data" / "graph.json")
+        except OSError as exc:
+            logger.warning("entity graph save failed: %s", exc)
         self.scheduler.stop()
         for task in self._tasks:
             task.cancel()

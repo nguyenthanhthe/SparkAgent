@@ -12,7 +12,8 @@ class DaemonV2WiringTests(unittest.IsolatedAsyncioTestCase):
                          "csv_analyze", "statistics", "remember",
                          "recall_memory", "ask_human", "system_status",
                          "web_fetch", "skill_create", "swarm_delegate",
-                         "debate", "consensus"):
+                         "debate", "consensus", "extract_entities",
+                         "graph_query"):
             self.assertIn(expected, tools, f"missing tool {expected}")
         self.assertIsNotNone(daemon.approvals)
         self.assertIsNotNone(daemon.quarantine)
