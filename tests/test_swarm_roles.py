@@ -115,6 +115,39 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
         json.dumps(payload)  # must not raise
 
 
+class SwarmBudgetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_budget_enforced_gracefully(self):
+        calls = {"count": 0}
+
+        async def counting(goal, context):
+            calls["count"] += 1
+            return '["a step that is long enough", "another step here"]'
+
+        async def worker(goal, context):
+            return "did work"
+
+        async def synth(goal, context):
+            return "final"
+
+        from swarm.orchestrator import Orchestrator
+        orch = Orchestrator(counting, worker, counting, synth,
+                            worker_count=4, max_role_calls=4)
+        report = await orch.run("goal")
+        self.assertTrue(report.budget_exceeded)
+        self.assertFalse(report.success)
+        self.assertIn("stopped early", report.answer)
+        # total invocations never exceeded the budget
+        self.assertLessEqual(calls["count"], 4)
+        self.assertEqual(report.role_calls, 4)
+
+    async def test_default_budget_allows_normal_run(self):
+        orch = make_orchestrator()
+        report = await orch.run("normal goal")
+        self.assertFalse(report.budget_exceeded)
+        self.assertTrue(report.success)
+        self.assertEqual(report.role_calls, 5)  # 1+2+1+1
+
+
 class ConsensusTests(unittest.TestCase):
     def test_majority_wins(self):
         result = vote([("YES", 1), ("yes.", 1), ("no", 1)], quorum=0.5)

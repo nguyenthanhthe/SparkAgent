@@ -29,6 +29,10 @@ BrainFn = Callable[[str, str], Awaitable[str]]
 _JSON_ARRAY_RE = re.compile(r"\[.*\]", re.DOTALL)
 
 
+class BudgetExceeded(Exception):
+    pass
+
+
 @dataclass
 class SwarmReport:
     goal: str
@@ -39,6 +43,8 @@ class SwarmReport:
     answer: str = ""
     success: bool = False
     steps: int = 0
+    role_calls: int = 0
+    budget_exceeded: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {**vars(self), "steps": self.steps}
@@ -75,67 +81,95 @@ class Orchestrator:
     def __init__(self, planner: BrainFn, worker: BrainFn, critic: BrainFn,
                  synthesizer: BrainFn, *, worker_count: int = 2,
                  max_steps: int = 6, mailbox: Mailbox | None = None,
-                 blackboard: Blackboard | None = None):
+                 blackboard: Blackboard | None = None,
+                 max_role_calls: int = 12):
         self.planner = planner
         self.worker = worker
         self.critic = critic
         self.synthesizer = synthesizer
         self.worker_count = max(1, worker_count)
         self.max_steps = max_steps
+        self.max_role_calls = max(4, max_role_calls)
         self.mailbox = mailbox or Mailbox()
         self.blackboard = blackboard or Blackboard()
+
+    def _budgeted(self, report: SwarmReport, fn: BrainFn) -> BrainFn:
+        """Wrap a role function with the per-run call budget."""
+        async def wrapper(goal: str, context: str) -> str:
+            if report.role_calls >= self.max_role_calls:
+                report.budget_exceeded = True
+                raise BudgetExceeded(
+                    f"swarm budget of {self.max_role_calls} role calls "
+                    "exhausted")
+            report.role_calls += 1
+            return await fn(goal, context)
+        return wrapper
 
     # ------------------------------------------------------------------ run
     async def run(self, goal: str) -> SwarmReport:
         report = SwarmReport(goal=goal, trace_id=new_id())
+        planner = self._budgeted(report, self.planner)
+        worker = self._budgeted(report, self.worker)
+        critic = self._budgeted(report, self.critic)
+        synthesizer = self._budgeted(report, self.synthesizer)
         with trace("swarm.episode", trace_id=report.trace_id) as span:
             span.attributes["goal"] = goal[:200]
+            try:
+                # 1. plan
+                plan_raw = await planner(goal, "")
+                report.plan = _parse_plan(plan_raw, self.max_steps)
+                report.steps += 1
+                self.blackboard.put("plan", "steps",
+                                    json.dumps(report.plan),
+                                    author="planner")
+                self._emit("planner", MessageKind.RESULT,
+                           {"plan": report.plan})
+                if not report.plan:
+                    report.answer = "planner produced no actionable steps"
+                    return report
 
-            # 1. plan
-            plan_raw = await self.planner(goal, "")
-            report.plan = _parse_plan(plan_raw, self.max_steps)
-            report.steps += 1
-            self.blackboard.put("plan", "steps",
-                                json.dumps(report.plan), author="planner")
-            self._emit("planner", MessageKind.RESULT,
-                       {"plan": report.plan})
-            if not report.plan:
-                report.answer = "planner produced no actionable steps"
-                return report
+                # 2. workers execute steps in parallel
+                steps = report.plan
+                assignments = [steps[index % len(steps)]
+                               for index in range(self.worker_count)]
 
-            # 2. workers execute steps in parallel
-            steps = report.plan
-            assignments = [steps[index % len(steps)]
-                           for index in range(self.worker_count)]
-            async def work(index: int, assignment: str) -> tuple[str, str]:
-                context = self._worker_context(report)
-                try:
-                    result = await self.worker(assignment, context)
-                except Exception as exc:  # noqa: BLE001 — one bad worker ≠ failed swarm
-                    result = f"(worker failed: {exc})"
-                return f"worker-{index}", result
+                async def work(index: int, assignment: str) -> tuple[str, str]:
+                    context = self._worker_context(report)
+                    try:
+                        result = await worker(assignment, context)
+                    except BudgetExceeded:
+                        raise
+                    except Exception as exc:  # noqa: BLE001
+                        result = f"(worker failed: {exc})"
+                    return f"worker-{index}", result
 
-            pairs = await gather_limit(
-                [work(i, a) for i, a in enumerate(assignments)],
-                limit=self.worker_count)
-            for name, result in pairs:
-                report.worker_results[name] = result
-                self.blackboard.put("results", name, result, author=name)
-            report.steps += 1
+                pairs = await gather_limit(
+                    [work(i, a) for i, a in enumerate(assignments)],
+                    limit=self.worker_count)
+                for name, result in pairs:
+                    report.worker_results[name] = result
+                    self.blackboard.put("results", name, result, author=name)
+                report.steps += 1
 
-            # 3. critic reviews
-            critique_input = self._critique_input(report)
-            report.critique = await self.critic(goal, critique_input)
-            report.steps += 1
-            self.blackboard.put("review", "critique", report.critique,
-                                author="critic")
+                # 3. critic reviews
+                report.critique = await critic(goal,
+                                               self._critique_input(report))
+                report.steps += 1
+                self.blackboard.put("review", "critique", report.critique,
+                                    author="critic")
 
-            # 4. synthesize final answer
-            report.answer = await self.synthesizer(goal, self._final_input(
-                report))
-            report.steps += 1
-            report.success = bool(report.answer.strip()) and \
-                "synthesizer failed" not in report.answer.lower()
+                # 4. synthesize final answer
+                report.answer = await synthesizer(
+                    goal, self._final_input(report))
+                report.steps += 1
+                report.success = bool(report.answer.strip()) and \
+                    "synthesizer failed" not in report.answer.lower()
+            except BudgetExceeded as exc:
+                report.answer = (f"swarm stopped early: {exc}. Partial "
+                                 "results are on the blackboard.")
+                report.success = False
+                self._emit("orchestrator", MessageKind.CONTROL,
+                           {"budget": "exceeded"})
         return report
 
     # -------------------------------------------------------------- contexts
