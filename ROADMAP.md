@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[118/500]** commits · **613 tests green** after every wave.
+Progress counter: **[125/500]** commits · **621 tests green** after every wave.
 
 ## Wave L status
 
@@ -35,18 +35,31 @@ pagination (97) · CI coverage (98).
 9. ✅ generated config reference + staleness test (114)
 10. ✅ graph build-from-text example (118)
 
-## Wave N backlog (next)
+## Wave N status
 
-1. dashboard: cost + brain panels wired to /api/brain
-2. scheduler: task retries with exponential backoff on transient failure
-3. react: context budget applied to long scratchpads (wire brain.context)
-4. brain: response cache wired into Brain.chat (bridge router upgrade)
-5. telegram: markdown replies + /audit command
-6. openshell: working-directory allowlist per program
-7. swarm: debate streaming to /ws (agent-visible progress)
-8. security: promptguard score in web_fetch observations (visible)
-9. docs: architecture diagrams as mermaid in docs
-10. examples: cron scheduling walkthrough
+1. ✅ dashboard spend panel wired to /api/brain (122)
+2. ✅ task retries with exponential backoff (121)
+3. ✅ react adaptive context budgeting (120)
+4. ⬜ response cache wired into Brain.chat
+5. ✅ telegram /audit (123)
+6. ⬜ per-program working-directory allowlist
+7. ⬜ swarm debate progress on /ws
+8. ⬜ visible promptguard scores in observations
+9. ⬜ mermaid architecture diagrams
+10. ✅ cron walkthrough example (124)
+
+## Wave O backlog (next)
+
+1. response cache + router stats inside Brain.bridge (adapter upgrade)
+2. openshell per-program cwd allowlist
+3. swarm debate progress over /ws
+4. promptguard score surfaced in web_fetch tool results
+5. docs: mermaid diagrams for architecture + data flow
+6. kernel: spawn a periodic 'nightly digest' scheduled task by default
+7. interface: /api/tools endpoint listing tool specs
+8. security: rate-limit login attempts on /api when token set
+9. tests: golden-file prompts for the ReAct system contract
+10. ops: log rotation config + data/ disk quota check
 
 ## Wave L backlog (next)
 
