@@ -59,6 +59,8 @@ DEFAULTS: dict[str, Any] = {
         "timeout": 60.0,
         "max_output_bytes": 131072,
         "allow_shell": False,
+        "execs_per_minute": 30.0,
+        "profile": "standard",
         "allowed_programs": [
             "python", "py", "pip", "git", "node", "npm",
             "nvidia-smi", "where", "tasklist", "systeminfo",

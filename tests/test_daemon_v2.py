@@ -27,6 +27,12 @@ class DaemonV2WiringTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status["version"], "0.2.0")
         self.assertEqual(status["sandbox_profile"], "standard")
 
+    async def test_rate_limit_wired_from_config(self):
+        daemon = AgentDaemon(Config.load())
+        self.assertIsNotNone(daemon.executor._limiters)  # default 30/min
+        limited = AgentDaemon(Config({"openshell": {"execs_per_minute": 0}}))
+        self.assertIsNone(limited.executor._limiters)
+
     async def test_health_checks_registered_and_run(self):
         daemon = AgentDaemon(Config.load())
         await daemon.memory.connect()

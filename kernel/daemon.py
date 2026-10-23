@@ -68,7 +68,9 @@ class AgentDaemon:
             self.policy, self.vault, self.bus,
             timeout=float(self.cfg.get("openshell.timeout", 60)),
             max_output_bytes=int(self.cfg.get("openshell.max_output_bytes",
-                                              131072)))
+                                              131072)),
+            execs_per_minute=float(self.cfg.get("openshell.execs_per_minute",
+                                                0.0)))
 
         # Security services
         self.approvals = ApprovalQueue(
