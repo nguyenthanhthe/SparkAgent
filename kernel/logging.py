@@ -39,16 +39,26 @@ class BusHandler(logging.Handler):
 def setup_logging(level: str = "INFO", logfile: Path | None = None,
                   bus: EventBus | None = None,
                   redactor: Callable[[str], str] | None = None) -> logging.Logger:
-    """Configure the ``sparkagent`` logger tree and return its root."""
+    """Configure the ``sparkagent`` logger tree and return its root.
+
+    Pass ``level="json"`` to emit JSON lines on the console (log-shipped
+    friendly) instead of the default human-readable format.
+    """
     logger = logging.getLogger(ROOT_LOGGER)
-    logger.setLevel(getattr(logging, level.upper(), logging.INFO))
+    json_mode = str(level).lower() == "json"
+    logger.setLevel(logging.INFO if json_mode else
+                    getattr(logging, str(level).upper(), logging.INFO))
     logger.propagate = False
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
 
     console = logging.StreamHandler()
-    console.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s"))
+    console.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s "
+                                           "%(name)s | %(message)s"))
     logger.addHandler(console)
+    if json_mode:
+        from kernel.jsonlog import use_json_logging
+        use_json_logging(logger)
 
     if logfile is not None:
         logfile.parent.mkdir(parents=True, exist_ok=True)
