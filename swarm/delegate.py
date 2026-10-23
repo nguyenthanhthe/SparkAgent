@@ -47,12 +47,30 @@ def _role_fn(brain, role: str):
     return handler
 
 
-def register_swarm_tools(registry: ToolRegistry, brain) -> None:
+def register_swarm_tools(registry: ToolRegistry, brain, bus=None) -> None:
+
+    def _emit(stage: str, detail: str) -> None:
+        if bus is not None:
+            bus.publish("logs", f"[swarm] {stage}: {detail[:160]}")
+
     async def swarm_delegate(ctx: ToolContext, goal: str,
                              workers: int = 2) -> dict:
         goal = require_str(goal, "goal", max_len=MAX_GOAL_CHARS)
         workers = require_int(workers, "workers", minimum=1, maximum=4)
-        orchestrator = Orchestrator(
+        _emit("start", f"pipeline for {goal[:80]} with {workers} workers")
+
+        class EmittingOrchestrator(Orchestrator):
+            async def run(self, goal_text):
+                from swarm.protocols import AgentMessage, MessageKind, Sender
+                _emit("plan", "planner decomposing goal")
+                report = await super().run(goal_text)
+                for name in report.worker_results:
+                    _emit("worker", f"{name} finished")
+                _emit("critic", report.critique[:100])
+                _emit("done", f"success={report.success}")
+                return report
+
+        orchestrator = EmittingOrchestrator(
             planner=_role_fn(brain, "planner"),
             worker=_role_fn(brain, "worker"),
             critic=_role_fn(brain, "critic"),
@@ -79,9 +97,11 @@ def register_swarm_tools(registry: ToolRegistry, brain) -> None:
                      rounds: int = 2) -> dict:
         question = require_str(question, "question", max_len=MAX_GOAL_CHARS)
         rounds = require_int(rounds, "rounds", minimum=1, maximum=3)
+        _emit("debate", f"starting {rounds} rounds on {question[:60]}")
         result = await debate_topology(question,
                                        _role_fn(brain, "debater"),
                                        rounds=rounds)
+        _emit("debate", "settled")
         return {"answer": result.output,
                 "rounds": len(result.stages)}
 

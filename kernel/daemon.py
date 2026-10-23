@@ -115,7 +115,7 @@ class AgentDaemon:
                                             True)))
         webfetch_tools.register_tools(self.registry, self.fetcher)
         stdlib_tools.register_tools(self.registry, self.approvals)
-        register_swarm_tools(self.registry, self.brain)
+        register_swarm_tools(self.registry, self.brain, bus=self.bus)
         self.entity_graph = GraphStore()
         loaded_edges = self.entity_graph.load(self.cfg.root / "data" /
                                               "graph.json")
