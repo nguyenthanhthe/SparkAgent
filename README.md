@@ -85,6 +85,31 @@ brain → tools → kernel → interface → entrypoint. See git history for pro
 
 *Being filled in as modules land — see sections below (Work in progress).*
 
+### Built-in tools
+
+| Tool | What it does |
+|---|---|
+| `system_status` | GPU (nvidia-smi: utilization, VRAM used/free, temp, power), RAM, disk snapshot |
+| `web_fetch` | Fetches a **public** http(s) URL; HTML → readable text; size-capped, redirect-checked, SSRF-guarded |
+| `skill_create` | The agent writes a new tool for itself (see below) |
+| `skill_list` / `skill_approve` | List skills; approve pending ones (operator-only) |
+
+**SkillForge sandbox** — agent-written tools may not import anything and may
+not use `open`/`eval`/`exec`/dunders (enforced by AST inspection before
+load). They execute in a namespace seeded with safe builtins, selected
+stdlib modules (`json, re, math, statistics, datetime, itertools,
+collections, textwrap, string, uuid, random`), and guarded helpers:
+
+- `fetch(url)` — the same SSRF-guarded fetcher as `web_fetch`
+- `read_file(path)` / `list_dir(path)` — reads confined to sandbox + project
+- `write_file(path, content)` — sandbox-only writes, 64 KB cap
+- `run_command(program, *args)` — the OpenShell executor (full policy)
+- `log(msg)` — a line in the daemon log stream
+
+Every skill call runs under a timeout. New skills stay **pending** until an
+operator approves them (dashboard/Telegram), unless
+`tools.skillforge.autonomous: true`.
+
 ## Experimental ideas
 
 - Agent-authored skills with a self-review loop (write → static check →
