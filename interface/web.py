@@ -455,6 +455,16 @@ def build_web_app(daemon) -> web.Application:
 
         })
 
+    async def api_tools(_request: web.Request) -> web.Response:
+        specs = daemon.registry.specs()
+        return web.json_response({
+            "count": len(specs),
+            "tools": [{"name": s["name"], "description": s["description"],
+                       "parameters": s["parameters"],
+                       "dangerous": s["dangerous"],
+                       "source": s["source"]} for s in specs]})
+
+    app.router.add_get("/api/tools", api_tools)
     app.router.add_get("/api/audit", api_audit)
     app.router.add_get("/api/version", api_version)
     app.router.add_get("/api/brain", api_brain)
