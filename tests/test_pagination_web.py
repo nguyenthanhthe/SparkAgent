@@ -60,12 +60,19 @@ class WebEnvelopeTests(unittest.IsolatedAsyncioTestCase):
             response = await client.get("/api/tasks?offset=notanint")
             self.assertEqual(response.status, 400)
 
-            eid = await daemon.memory.start_episode("ep", "test")
+            eid = await daemon.memory.start_episode("ep #tagged-goal", "t")
             await daemon.memory.finish_episode(eid, "done", "a", "l", 1)
             response = await client.get("/api/episodes?limit=1")
             body = await response.json()
             self.assertEqual(body["total"], 1)
-            self.assertEqual(body["items"][0]["goal"], "ep")
+            self.assertEqual(body["items"][0]["goal"], "ep #tagged-goal")
+
+            response = await client.get("/api/episodes?tag=tagged-goal")
+            body = await response.json()
+            self.assertEqual(body["total"], 1)
+            response = await client.get("/api/episodes?tag=missing")
+            body = await response.json()
+            self.assertEqual(body["total"], 0)
         finally:
             await client.close()
             await daemon.memory.close()
