@@ -73,6 +73,9 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   <div class="card"><h2>GPU / System</h2><div id="system"></div></div>
   <div class="card"><h2>Scheduler</h2><div id="sched"></div></div>
 </div>
+<div class="card" style="margin-bottom:12px"><h2>Spend today</h2>
+  <div id="cost"><span style="color:var(--dim)">loading…</span></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>New task</h2>
   <textarea id="goal" placeholder="Describe a goal for the agent…"></textarea>
   <div class="row">
@@ -189,15 +192,28 @@ async function refreshQuarantine(){try{const data=await api('/api/quarantine');
 async function quar(id,action){try{const r=await api(`/api/quarantine/${id}/${action}`,{method:'POST'});
   toast(action+'d');refreshQuarantine()}catch(e){toast(e.message)}}
 
+async function refreshCost(){try{const b=await api('/api/brain');
+  const today=b.budget.today_usd;
+  const byModel=Object.entries(b.costs.by_model||{})
+    .filter(([m,r])=>r.cost_usd>0)
+    .map(([m,r])=>`${m}: $${r.cost_usd.toFixed(4)} (${r.calls})`).join('<br>');
+  $('cost').innerHTML=
+    kv('today','$'+today.toFixed(4))+kv('total','$'+b.costs.total_usd.toFixed(4))+
+    (byModel?'<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+
+      byModel+'</div>':'<div style="color:var(--dim);font-size:12px">'+
+      'no spend recorded yet (local tier is free)</div>');
+}catch(e){}}
+
 const log=$('log');const lines=[];
 const es=new EventSource('/api/stream');
 es.onmessage=ev=>{try{const d=JSON.parse(ev.data);
   if(d.log){lines.push(d.log);if(lines.length>400)lines.shift();
     log.textContent=lines.join('\\n');log.scrollTop=log.scrollHeight}}catch(e){}};
-refreshStatus();refreshTasks();refreshSkills();refreshApprovals();refreshQuarantine();
+refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
+refreshQuarantine();refreshCost();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
 setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
-setInterval(refreshQuarantine,15000);
+setInterval(refreshQuarantine,15000);setInterval(refreshCost,10000);
 </script></body></html>"""
 
 
