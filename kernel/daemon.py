@@ -38,6 +38,7 @@ from tools import sysmon as sysmon_tools
 from tools import skillforge as skillforge_tools
 from tools import stdlib_tools
 from tools import webfetch as webfetch_tools
+from swarm.delegate import register_swarm_tools
 
 logger = get_logger("daemon")
 
@@ -102,6 +103,7 @@ class AgentDaemon:
                                             True)))
         webfetch_tools.register_tools(self.registry, self.fetcher)
         stdlib_tools.register_tools(self.registry, self.approvals)
+        register_swarm_tools(self.registry, self.brain)
         self.forge = skillforge_tools.SkillForge(
             self.cfg.skills_dir, self.registry, self.policy, self.executor,
             self.bus, self.fetcher,
