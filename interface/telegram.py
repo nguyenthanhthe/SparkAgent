@@ -9,7 +9,9 @@ is ignored (and logged). Commands:
     /task <goal>     submit a one-shot task
     /mem <query>     semantic memory recall
     /skills          list skills
-    /approve <name>  approve a pending skill (operator action)
+    /pending         operator approval queue (skills + questions)
+    /approve <id>    approve a pending skill or approval request
+    /deny <id>       deny a pending approval request
     /help            command list
 
 Plain text messages are submitted as one-shot tasks. All outbound messages
@@ -117,7 +119,9 @@ class TelegramGateway:
                     "/task <goal> — submit a task\n"
                     "/mem <query> — search memory\n"
                     "/skills — list skills\n"
-                    "/approve <name> — approve a pending skill\n"
+                    "/pending — operator approval queue\n"
+                    "/approve <skill or id> — approve\n"
+                    "/deny <id> — deny an approval request\n"
                     "plain text — submit a task")
         if command == "/status":
             status = daemon.status()
@@ -160,13 +164,40 @@ class TelegramGateway:
             skills = daemon.forge.list_skills()
             return "\n".join(f"{s['name']} — {s['status']}" for s in skills) \
                 or "(no skills)"
+        if command == "/pending":
+            lines = []
+            for skill in daemon.forge.list_skills():
+                if skill["status"] == "pending_approval":
+                    lines.append(f"[skill] {skill['name']}")
+            for request in daemon.approvals.pending():
+                lines.append(f"[{request.kind}] {request.id[:8]} "
+                             f"{request.summary[:60]}")
+            return "\n".join(lines) or "(nothing pending)"
         if command == "/approve":
-            if not args.strip():
-                return "usage: /approve <skill-name>"
-            try:
-                result = daemon.forge.approve(args.strip(), source="operator")
+            target = args.strip()
+            if not target:
+                return "usage: /approve <skill-name or approval-id>"
+            # skill names are identifiers; approval ids are 12-char tokens
+            skill_names = {s["name"] for s in daemon.forge.list_skills()
+                           if s["status"] == "pending_approval"}
+            if target in skill_names:
+                result = daemon.forge.approve(target, source="operator")
                 return f"skill {result['skill']}: {result['status']}"
-            except Exception as exc:  # noqa: BLE001
+            try:
+                request = daemon.approvals.approve(target,
+                                                   decided_by="telegram")
+                return f"approval {request.id[:8]}: {request.status}"
+            except (KeyError, ValueError) as exc:
+                return f"error: {exc}"
+        if command == "/deny":
+            target = args.strip()
+            if not target:
+                return "usage: /deny <approval-id>"
+            try:
+                request = daemon.approvals.deny(target,
+                                                decided_by="telegram")
+                return f"approval {request.id[:8]}: {request.status}"
+            except (KeyError, ValueError) as exc:
                 return f"error: {exc}"
         return f"unknown command {command} — try /help"
 
