@@ -1,0 +1,35 @@
+[Unit]
+Description=SparkAgent — autonomous 24/7 local AI agent
+Documentation=https://github.com/nguyenthanhthe/SparkAgent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust to your checkout and interpreter
+WorkingDirectory=/opt/sparkagent
+ExecStart=/usr/bin/python3 /opt/sparkagent/main.py
+Restart=always
+RestartSec=5
+
+# Unprivileged runtime user (create once:
+#   sudo useradd --system --home /opt/sparkagent --shell /usr/sbin/nologin sparkagent)
+User=sparkagent
+Group=sparkagent
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sparkagent/data /opt/sparkagent/skills
+# Ollama on the host: allow loopback; remote tier needs egress
+IPAddressAllow=localhost any
+
+# Environment: credentials come from the environment, never files in the repo
+EnvironmentFile=-/etc/sparkagent/env
+StandardOutput=append:/opt/sparkagent/data/logs/service.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
