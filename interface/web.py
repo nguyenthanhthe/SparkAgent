@@ -409,6 +409,27 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/quarantine", api_quarantine)
     app.router.add_post("/api/quarantine/{id}/{action}",
                         api_quarantine_action)
+    async def api_audit(request: web.Request) -> web.Response:
+        from kernel.pagination import paginate, parse_paging_params
+        try:
+            offset, limit = parse_paging_params(dict(request.query))
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        rows = await daemon.memory.recent_audit(limit=offset + limit + 1)
+        for row in rows:
+            if row.get("detail"):
+                row["detail"] = daemon.vault.redact(row["detail"])[:300]
+        return web.json_response(paginate(rows, offset, limit).envelope())
+
+    async def api_version(_request: web.Request) -> web.Response:
+        import kernel
+        return web.json_response({"version": kernel.__version__,
+                                  "api": "v2",
+                                  "python": __import__("platform")
+                                  .python_version()})
+
+    app.router.add_get("/api/audit", api_audit)
+    app.router.add_get("/api/version", api_version)
     app.router.add_get("/api/stream", api_stream)
     return app
 

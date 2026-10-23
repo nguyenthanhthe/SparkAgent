@@ -148,6 +148,16 @@ def build_spec() -> dict[str, Any]:
             "/api/health": {"get": {
                 "summary": "Subsystem health checks", "responses": {
                     "200": _json_response("Health report")}}},
+            "/api/audit": {"get": {
+                "summary": "Audit trail (redacted)",
+                "parameters": [{"name": "offset", "in": "query",
+                                "schema": {"type": "integer"}},
+                               {"name": "limit", "in": "query",
+                                "schema": {"type": "integer"}}],
+                "responses": {"200": _json_response("Audit rows")}}},
+            "/api/version": {"get": {
+                "summary": "Build/version info", "responses": {
+                    "200": _json_response("Version payload")}}},
             "/metrics": {"get": {
                 "summary": "Prometheus metrics", "responses": {
                     "200": {"description": "text/plain exposition"}}}},
