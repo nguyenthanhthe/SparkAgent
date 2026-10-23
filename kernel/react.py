@@ -203,10 +203,32 @@ class ReactAgent:
         system = self.build_system_prompt(goal)
         system = system.replace(
             "(memory unavailable at startup)", await self._memory_block(goal))
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": f"Goal: {goal}"},
-        ]
+        system_message = {"role": "system", "content": system}
+        goal_message = {"role": "user", "content": f"Goal: {goal}"}
+        scratchpad: list[dict[str, str]] = []
+        compressed = {"done": False}
+
+        from brain.context import summarize_scratchpad
+
+        def build_messages() -> list[dict[str, str]]:
+            nonlocal scratchpad
+            window = int(self.cfg.get("brain.local.num_ctx", 8192)) // 2
+            budget = window * 4               # chars ≈ tokens × 4
+            def total_chars() -> int:
+                return (len(system_message["content"])
+                        + len(goal_message["content"])
+                        + sum(len(m["content"]) for m in scratchpad))
+            if total_chars() > budget:
+                scratchpad, _summary = summarize_scratchpad(
+                    scratchpad, keep_last=4)
+                compressed["done"] = True
+                # still over (tiny windows): drop oldest turns until it
+                # fits, always keeping the most recent exchange
+                while len(scratchpad) > 2 and total_chars() > budget:
+                    scratchpad.pop(0)
+            return [system_message, goal_message] + scratchpad
+
+        messages = build_messages()
 
         state = State.THINK
         step = 0
@@ -234,8 +256,9 @@ class ReactAgent:
                         '{"thought": ..., "action"/"final_answer": ...}.')
                     await self.memory.log_step(episode_id, step, "parse_error",
                                                response.text[:2000])
-                    messages.append({"role": "assistant", "content": response.text})
-                    messages.append({"role": "user", "content": f"Observation: {observation}"})
+                    scratchpad.append({"role": "assistant", "content": response.text})
+                    scratchpad.append({"role": "user", "content": f"Observation: {observation}"})
+                    messages = build_messages()
                     continue
 
                 thought = str(parsed.get("thought", ""))[:1500]
@@ -262,7 +285,7 @@ class ReactAgent:
                         json.dumps({"thought": thought, "tool": tool_name,
                                     "args": tool_args}, ensure_ascii=False,
                                    default=str)[:4000])
-                    messages.append({"role": "assistant",
+                    scratchpad.append({"role": "assistant",
                                      "content": json.dumps(parsed, ensure_ascii=False)})
                     ctx = ToolContext(source="agent", episode_id=episode_id,
                                       executor=self.executor, vault=self.vault,
@@ -277,17 +300,21 @@ class ReactAgent:
                     # ---- OBSERVE
                     await self.memory.log_step(episode_id, step, "observation",
                                                observation)
-                    messages.append({"role": "user",
+                    scratchpad.append({"role": "user",
                                      "content": f"Observation: {observation}"})
+                    messages = build_messages()
                     continue
 
                 # ---- Neither final nor action: nudge the model
                 observation = (
                     'ERROR: JSON must contain either "action" '
                     '{"name","args"} or "final_answer".')
-                messages.append({"role": "assistant",
-                                 "content": json.dumps(parsed, ensure_ascii=False)})
-                messages.append({"role": "user", "content": f"Observation: {observation}"})
+                scratchpad.append({"role": "assistant",
+                                   "content": json.dumps(parsed,
+                                                         ensure_ascii=False)})
+                scratchpad.append({"role": "user",
+                                   "content": f"Observation: {observation}"})
+                messages = build_messages()
             else:
                 if result.status != "done":
                     await self._fail(episode_id, result, step,
