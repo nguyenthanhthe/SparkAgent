@@ -61,6 +61,9 @@ DEFAULTS: dict[str, Any] = {
         "allow_shell": False,
         "execs_per_minute": 30.0,
         "profile": "standard",
+        "backend": "auto",
+        "sandbox_name": "sparkagent",
+        "minimum_version": "0.1.0",
         "allowed_programs": [
             "python", "py", "pip", "git", "node", "npm",
             "nvidia-smi", "where", "tasklist", "systeminfo",

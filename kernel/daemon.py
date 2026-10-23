@@ -66,13 +66,7 @@ class AgentDaemon:
         self.policy = build_policy(
             profile, self.cfg.sandbox_root, self.cfg.root,
             allowed_programs=self.cfg.get("openshell.allowed_programs", []))
-        self.executor = SafeExecutor(
-            self.policy, self.vault, self.bus,
-            timeout=float(self.cfg.get("openshell.timeout", 60)),
-            max_output_bytes=int(self.cfg.get("openshell.max_output_bytes",
-                                              131072)),
-            execs_per_minute=float(self.cfg.get("openshell.execs_per_minute",
-                                                0.0)))
+        self.executor = self._build_executor()
 
         # Security services
         self.approvals = ApprovalQueue(
@@ -157,6 +151,29 @@ class AgentDaemon:
     async def _vram_guard(self) -> bool:
         return await sysmon_tools.vram_guard(
             self.executor, float(self.cfg.get("brain.vram_guard_mb", 1024)))
+
+    def _build_executor(self) -> SafeExecutor:
+        """Executor with optional NVIDIA OpenShell sandbox routing."""
+        common = dict(
+            timeout=float(self.cfg.get("openshell.timeout", 60)),
+            max_output_bytes=int(self.cfg.get("openshell.max_output_bytes",
+                                              131072)),
+            execs_per_minute=float(self.cfg.get("openshell.execs_per_minute",
+                                                30.0)))
+        backend = str(self.cfg.get("openshell.backend", "auto")).lower()
+        if backend in ("auto", "openshell"):
+            from openshell.sandbox_backend import OpenShellExecutor
+            executor = OpenShellExecutor(
+                self.policy, self.vault, self.bus,
+                sandbox_name=self.cfg.get("openshell.sandbox_name",
+                                          "sparkagent"),
+                minimum_version=self.cfg.get("openshell.minimum_version",
+                                             "0.1.0"), **common)
+            logger.info("openshell backend: %s (policy fallback if the "
+                        "runtime is absent)", backend)
+            return executor
+        logger.info("openshell backend: policy (host executor)")
+        return SafeExecutor(self.policy, self.vault, self.bus, **common)
 
     def _skill_signing_key(self) -> bytes | None:
         """Sign skills when the vault master key is present (opt-out)."""
