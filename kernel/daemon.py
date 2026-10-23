@@ -20,16 +20,23 @@ from pathlib import Path
 
 from brain.bridge import Brain
 from kernel.bus import EventBus
+from kernel.clock import Clock
 from kernel.config import Config
+from kernel.health import HealthRegistry, HealthStatus, Status
 from kernel.logging import get_logger, setup_logging
 from kernel.memory import Memory
+from kernel.metrics import REGISTRY as metrics
 from kernel.react import ReactAgent
 from kernel.scheduler import Scheduler
 from openshell import SecretVault, SecurityPolicy
 from openshell.executor import SafeExecutor
+from openshell.profiles import build_policy
+from security.approval import ApprovalQueue, request_to_dict
+from security.quarantine import QuarantineStore
 from tools.registry import ToolRegistry
 from tools import sysmon as sysmon_tools
 from tools import skillforge as skillforge_tools
+from tools import stdlib_tools
 from tools import webfetch as webfetch_tools
 
 logger = get_logger("daemon")
@@ -51,16 +58,25 @@ class AgentDaemon:
                       self.cfg.path(self.cfg.get("logging.file",
                                                  "data/logs/sparkagent.log")),
                       bus=self.bus, redactor=self.vault.redact)
-        self.policy = SecurityPolicy(
-            allowed_programs=self.cfg.get("openshell.allowed_programs", []),
-            allowed_roots=[self.cfg.sandbox_root, self.cfg.root],
-            sandbox_root=self.cfg.sandbox_root,
-            allow_shell=bool(self.cfg.get("openshell.allow_shell", False)))
+        profile = self.cfg.get("openshell.profile", "standard")
+        self.policy = build_policy(
+            profile, self.cfg.sandbox_root, self.cfg.root,
+            allowed_programs=self.cfg.get("openshell.allowed_programs", []))
         self.executor = SafeExecutor(
             self.policy, self.vault, self.bus,
             timeout=float(self.cfg.get("openshell.timeout", 60)),
             max_output_bytes=int(self.cfg.get("openshell.max_output_bytes",
                                               131072)))
+
+        # Security services
+        self.approvals = ApprovalQueue(
+            ttl_seconds=float(self.cfg.get("security.approval_ttl", 3600)),
+            clock=Clock(),
+            on_change=lambda request: self.bus.publish(
+                "logs", f"[approval] {request.status} {request.kind}: "
+                        f"{request.summary[:100]}"))
+        self.quarantine = QuarantineStore(self.cfg.root / "data" / "quarantine")
+        self.health = HealthRegistry()
 
         # Brain + memory
         self.brain = Brain(self.cfg, self.vault, self.bus,
@@ -80,8 +96,12 @@ class AgentDaemon:
             max_bytes=int(self.cfg.get("tools.webfetch.max_bytes", 2097152)),
             timeout=float(self.cfg.get("tools.webfetch.timeout", 30)),
             max_chars=int(self.cfg.get("tools.webfetch.max_chars", 6000)),
-            vault=self.vault)
+            vault=self.vault,
+            quarantine=self.quarantine,
+            guard_enabled=bool(self.cfg.get("tools.webfetch.prompt_guard",
+                                            True)))
         webfetch_tools.register_tools(self.registry, self.fetcher)
+        stdlib_tools.register_tools(self.registry, self.approvals)
         self.forge = skillforge_tools.SkillForge(
             self.cfg.skills_dir, self.registry, self.policy, self.executor,
             self.bus, self.fetcher,
@@ -105,6 +125,41 @@ class AgentDaemon:
         return await sysmon_tools.vram_guard(
             self.executor, float(self.cfg.get("brain.vram_guard_mb", 1024)))
 
+    # ---------------------------------------------------------------- health
+    def _register_health_checks(self) -> None:
+        async def memory_check() -> HealthStatus:
+            try:
+                await self.memory.recent_episodes(limit=1)
+                return HealthStatus(Status.OK, "sqlite responsive")
+            except Exception as exc:  # noqa: BLE001
+                return HealthStatus(Status.DOWN, str(exc))
+
+        async def brain_check() -> HealthStatus:
+            health = await self.brain.health()
+            tiers_up = [name for name, info in
+                        (("local", health.get("local")),
+                         ("remote", health.get("remote")))
+                        if info and info.get("ok")]
+            if tiers_up:
+                return HealthStatus(Status.OK,
+                                    f"tiers up: {', '.join(tiers_up)}")
+            return HealthStatus(Status.DEGRADED, "no LLM tier available")
+
+        async def executor_check() -> HealthStatus:
+            stats = self.executor.registry.stats()
+            failed = stats.get("failed", 0)
+            completed = stats.get("completed", 0)
+            if completed and failed / completed > 0.5:
+                return HealthStatus(Status.DEGRADED,
+                                    f"{failed}/{completed} runs failed")
+            return HealthStatus(Status.OK,
+                                f"{stats.get('live', 0)} live / "
+                                f"{completed} completed")
+
+        self.health.register("memory", memory_check)
+        self.health.register("brain", brain_check)
+        self.health.register("executor", executor_check)
+
     # ----------------------------------------------------------------- start
     async def start(self) -> None:
         self.bus.bind_loop(asyncio.get_running_loop())
@@ -112,6 +167,7 @@ class AgentDaemon:
         loaded = self.forge.load_persisted()
         logger.info("skills loaded: %s", loaded)
         await self.memory.audit("daemon", "boot", self.cfg.get("agent.name"))
+        self._register_health_checks()
 
         self._spawn("scheduler", self.scheduler.run_forever)
         self._spawn("heartbeat", self._heartbeat_loop)
@@ -153,6 +209,17 @@ class AgentDaemon:
         while not self._stopping:
             try:
                 self._snapshot = await sysmon_tools.system_snapshot(self.executor)
+                gpu = self._snapshot.get("gpu", {})
+                if gpu.get("available") and gpu.get("gpus"):
+                    for index, card in enumerate(gpu["gpus"]):
+                        metrics.gauge(f"gpu_{index}_utilization_pct",
+                                      card.get("utilization_pct") or 0)
+                        metrics.gauge(f"gpu_{index}_vram_free_mb",
+                                      card.get("vram_free_mb") or 0)
+                metrics.gauge("tasks_done", self.scheduler.stats["episodes_done"])
+                metrics.gauge("tasks_failed",
+                              self.scheduler.stats["episodes_failed"])
+                metrics.incr("heartbeat_total")
                 try:
                     self._brain_health = await self.brain.health()
                 except Exception as exc:  # noqa: BLE001
@@ -226,13 +293,18 @@ class AgentDaemon:
     def status(self) -> dict:
         return {
             "agent": self.cfg.get("agent.name"),
-            "version": "0.1.0",
+            "version": "0.2.0",
             "uptime_s": int(time.time() - self.started_at),
             "system": self._snapshot,
             "brain": self._brain_health or self.brain.stats(),
             "scheduler": dict(self.scheduler.stats),
             "tools": self.registry.names(),
             "skills_pending": sorted(self.forge.pending),
+            "approvals_pending": [request_to_dict(r) for r in
+                                  self.approvals.pending()],
+            "guard_stats": dict(self.fetcher.guard_stats),
+            "executor": self.executor.registry.stats(),
+            "sandbox_profile": self.cfg.get("openshell.profile", "standard"),
             "vault_unlocked": self.vault.unlocked,
         }
 
