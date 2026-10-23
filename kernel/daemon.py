@@ -144,6 +144,16 @@ class AgentDaemon:
         self._brain_health: dict = {}
 
     # ------------------------------------------------------------------ guard
+    def _sweep_expired_approvals(self) -> int:
+        """Trigger lazy expiry (the queue announces each transition via
+        its on_change observer onto the logs bus) and report the count."""
+        before = self.approvals.counters["expired"]
+        self.approvals.pending()               # runs _expire_all internally
+        expired = self.approvals.counters["expired"] - before
+        if expired:
+            logger.info("%d approval(s) expired without a decision", expired)
+        return expired
+
     async def _vram_guard(self) -> bool:
         return await sysmon_tools.vram_guard(
             self.executor, float(self.cfg.get("brain.vram_guard_mb", 1024)))
@@ -242,6 +252,7 @@ class AgentDaemon:
         interval = float(self.cfg.get("agent.heartbeat_seconds", 30))
         while not self._stopping:
             try:
+                self._sweep_expired_approvals()
                 self._snapshot = await sysmon_tools.system_snapshot(self.executor)
                 gpu = self._snapshot.get("gpu", {})
                 if gpu.get("available") and gpu.get("gpus"):

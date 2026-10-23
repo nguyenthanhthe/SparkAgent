@@ -44,6 +44,8 @@ class ApprovalQueue:
         self.clock = clock or Clock()
         self._requests: dict[str, Request] = {}
         self._observers: list[Observer] = ([on_change] if on_change else [])
+        self.counters = {"submitted": 0, "approved": 0, "denied": 0,
+                         "expired": 0}
 
     # ------------------------------------------------------------------ state
     def submit(self, kind: str, summary: str, detail: dict | None = None,
@@ -52,6 +54,7 @@ class ApprovalQueue:
                           detail=detail or {}, requested_by=requested_by,
                           expires_at=self.clock.now() + (ttl or self.ttl))
         self._requests[request.id] = request
+        self.counters["submitted"] += 1
         self._notify(request)
         return request
 
@@ -68,6 +71,7 @@ class ApprovalQueue:
                 f"approval request {request_id!r} is already "
                 f"{request.status}; only pending requests can be decided")
         request.status = status
+        self.counters["approved" if status == APPROVED else "denied"] += 1
         request.decided_by = decided_by
         request.decided_at = self.clock.now()
         self._notify(request)
@@ -83,6 +87,7 @@ class ApprovalQueue:
         if (request.status == PENDING and request.expires_at is not None
                 and self.clock.now() > request.expires_at):
             request.status = EXPIRED
+            self.counters["expired"] += 1
             self._notify(request)
         return request
 
@@ -103,6 +108,7 @@ class ApprovalQueue:
             if (request.status == PENDING and request.expires_at is not None
                     and now > request.expires_at):
                 request.status = EXPIRED
+                self.counters["expired"] += 1
                 self._notify(request)
 
     # --------------------------------------------------------------- helpers
