@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from kernel.bus import EventBus
+from kernel.limits import RateLimiterSet
 from kernel.logging import get_logger
 from openshell.env_guard import sanitize_env
 from openshell.policy import SecurityError, SecurityPolicy
@@ -65,7 +66,8 @@ class SafeExecutor:
                  bus: EventBus, timeout: float = 60.0,
                  max_output_bytes: int = 131072,
                  registry: ProcessRegistry | None = None,
-                 sanitize_child_env: bool = True):
+                 sanitize_child_env: bool = True,
+                 execs_per_minute: float = 0.0):
         self.policy = policy
         self.vault = vault
         self.bus = bus
@@ -73,6 +75,12 @@ class SafeExecutor:
         self.max_output_bytes = max_output_bytes
         self.registry = registry or ProcessRegistry()
         self.sanitize_child_env = sanitize_child_env
+        # 0 disables limiting; capacity 1 token with continuous refill
+        # means at most execs_per_minute spawns per program per minute.
+        self._limiters = RateLimiterSet(
+            capacity=max(1.0, execs_per_minute),
+            refill_per_second=execs_per_minute / 60.0) \
+            if execs_per_minute > 0 else None
         self.policy.sandbox_root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ public
@@ -92,6 +100,17 @@ class SafeExecutor:
                                        "detail": f"{program} {args!r}: {exc}"})
             return ExecResult(program=program, args=tuple(args),
                               exit_code=None, blocked_reason=str(exc))
+
+        if self._limiters is not None and \
+                not self._limiters.try_take(program.lower()):
+            reason = (f"rate limit: {program!r} exceeded its per-minute "
+                      "execution budget")
+            logger.warning(reason)
+            self.bus.publish("audit", {"actor": "executor",
+                                       "action": "exec.ratelimited",
+                                       "detail": program})
+            return ExecResult(program=program, args=tuple(args),
+                              exit_code=None, blocked_reason=reason)
 
         exe = shutil.which(program)
         if exe is None:
