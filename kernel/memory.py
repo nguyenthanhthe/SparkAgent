@@ -229,6 +229,23 @@ class Memory:
             return [dict(row) for row in rows]
         return await self._run(op)
 
+    async def episode_detail(self, episode_id: int) -> dict | None:
+        """Full episode record plus its ordered step replay."""
+        def op(conn: sqlite3.Connection) -> dict | None:
+            row = conn.execute(
+                "SELECT id, created_at, source, goal, status, final_answer, "
+                "model_tier, steps FROM episodes WHERE id = ?",
+                (episode_id,)).fetchone()
+            if row is None:
+                return None
+            detail = dict(row)
+            steps = conn.execute(
+                "SELECT idx, kind, content, created_at FROM steps "
+                "WHERE episode_id = ? ORDER BY idx", (episode_id,)).fetchall()
+            detail["step_log"] = [dict(step) for step in steps]
+            return detail
+        return await self._run(op)
+
     # --------------------------------------------------------------- memories
     async def embed(self, text: str) -> list[float]:
         if self._embedder_fn is not None:

@@ -248,6 +248,19 @@ def build_web_app(daemon) -> web.Application:
         limit = min(int(request.query.get("limit", 20)), 100)
         return web.json_response(await daemon.memory.recent_episodes(limit=limit))
 
+    async def api_episode_detail(request: web.Request) -> web.Response:
+        try:
+            episode_id = int(request.match_info["id"])
+        except ValueError:
+            raise web.HTTPBadRequest(text="episode id must be an integer")
+        detail = await daemon.memory.episode_detail(episode_id)
+        if detail is None:
+            raise web.HTTPNotFound(text=f"no episode {episode_id}")
+        detail["final_answer"] = daemon.vault.redact(
+            detail.get("final_answer") or "")
+        detail["goal"] = daemon.vault.redact(detail.get("goal") or "")
+        return web.json_response(detail)
+
     async def api_memories(request: web.Request) -> web.Response:
         query = request.query.get("q", "").strip()
         if not query:
@@ -307,6 +320,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_post("/api/tasks", api_tasks_create)
     app.router.add_post("/api/tasks/{id}/{action}", api_task_action)
     app.router.add_get("/api/episodes", api_episodes)
+    app.router.add_get("/api/episodes/{id}", api_episode_detail)
     app.router.add_get("/api/memories", api_memories)
     app.router.add_get("/api/skills", api_skills)
     app.router.add_post("/api/skills", api_skills_create)
