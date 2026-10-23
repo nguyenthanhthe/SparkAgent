@@ -24,6 +24,7 @@ import json
 import time
 from typing import Any
 
+import aiohttp
 from aiohttp import web
 from kernel.logging import get_logger
 
@@ -441,7 +442,38 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/audit", api_audit)
     app.router.add_get("/api/version", api_version)
     app.router.add_get("/api/brain", api_brain)
+    async def api_websocket(request: web.Request) -> web.WebSocketResponse:
+        ws = web.WebSocketResponse(heartbeat=15)
+        await ws.prepare(request)
+        queue = daemon.bus.subscribe("logs")
+
+        async def forward_logs() -> None:
+            while True:
+                line = await queue.get()
+                await ws.send_json({"log": daemon.vault.redact(str(line))})
+
+        sender = asyncio.create_task(forward_logs())
+        try:
+            async for msg in ws:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    if msg.data == "ping":
+                        await ws.send_json({"type": "pong"})
+                    elif msg.data == "snapshot":
+                        await ws.send_json({"type": "status",
+                                            "data": daemon.status()})
+                elif msg.type in (aiohttp.WSMsgType.ERROR,
+                                  aiohttp.WSMsgType.CLOSE):
+                    break
+        finally:
+            sender.cancel()
+            daemon.bus.unsubscribe("logs", queue)
+            if not ws.closed:
+                await ws.close()
+        return ws
+
     app.router.add_get("/api/stream", api_stream)
+    import aiohttp as _aiohttp_mod  # noqa: F401 — aiohttp imported above
+    app.router.add_get("/ws", api_websocket)
     return app
 
 
