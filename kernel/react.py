@@ -63,6 +63,25 @@ MAX_OBSERVATION_CHARS = 4000
 MAX_PARSE_ERRORS = 3
 
 
+def guard_observation(text: str) -> str:
+    """Fence tool observations that carry injection-shaped content.
+
+    Observations enter the model's prompt unmodified by default; a
+    compromised tool or hostile page could smuggle instructions. Moderate
+    risk gets the data fence; quarantine-grade risk is truncated to a
+    notice (the full text is already in the audit/memory trail).
+    """
+    from security.promptguard import scan, wrap_as_data
+    verdict = scan(text)
+    if verdict.verdict == "sanitize":
+        return wrap_as_data(text, source="tool-observation")
+    if verdict.verdict == "quarantine":
+        return ("[observation withheld: prompt-injection risk "
+                f"score {verdict.score}] ask the operator to review the "
+                "audit log")
+    return text
+
+
 class State(str, Enum):
     THINK = "think"
     ACT = "act"
@@ -254,6 +273,7 @@ class ReactAgent:
                         observation = f"OK: {observation}"[:MAX_OBSERVATION_CHARS]
                     except ToolError as exc:
                         observation = f"TOOL ERROR: {exc}"[:MAX_OBSERVATION_CHARS]
+                    observation = guard_observation(observation)
                     # ---- OBSERVE
                     await self.memory.log_step(episode_id, step, "observation",
                                                observation)
