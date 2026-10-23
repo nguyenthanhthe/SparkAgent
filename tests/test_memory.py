@@ -105,7 +105,7 @@ class MemoryTests(unittest.TestCase):
 class DailyAtTests(unittest.TestCase):
     def test_valid(self):
         from datetime import datetime
-        now = datetime(2026, 1, 1, 10, 0)
+        now = datetime(2026, 1, 1, 10, 0)     # Thursday
         self.assertEqual(_next_daily("09:00", now),
                          datetime(2026, 1, 2, 9, 0).timestamp())
         self.assertEqual(_next_daily("11:30", now),
@@ -115,6 +115,41 @@ class DailyAtTests(unittest.TestCase):
         for bad in ("25:00", "10:99", "banana", ""):
             with self.assertRaises(ValueError):
                 _next_daily(bad)
+
+    def test_multiple_times_pick_soonest(self):
+        from datetime import datetime
+        now = datetime(2026, 1, 1, 10, 0)     # Thursday
+        self.assertEqual(_next_daily("09:00,11:00", now),
+                         datetime(2026, 1, 1, 11, 0).timestamp())
+
+    def test_weekday_filter_skips_weekend(self):
+        from datetime import datetime
+        friday_evening = datetime(2026, 1, 2, 18, 0)      # Friday 18:00
+        # mon-fri@09:00 from Friday evening -> Monday 09:00
+        self.assertEqual(_next_daily("mon-fri@09:00", friday_evening),
+                         datetime(2026, 1, 5, 9, 0).timestamp())
+
+    def test_specific_weekdays(self):
+        from datetime import datetime
+        wednesday = datetime(2026, 1, 7, 12, 0)           # Wednesday
+        # mon,wed,fri@08:00 from Wed noon -> Friday 08:00
+        self.assertEqual(_next_daily("mon,wed,fri@08:00", wednesday),
+                         datetime(2026, 1, 9, 8, 0).timestamp())
+
+    def test_spec_parse_shape(self):
+        from kernel.memory import parse_daily_spec
+        days, times = parse_daily_spec("mon-fri@09:00,17:30")
+        self.assertEqual(days, {0, 1, 2, 3, 4})
+        self.assertEqual(times, [(9, 0), (17, 30)])
+        days, times = parse_daily_spec("08:00")
+        self.assertEqual(len(days), 7)
+        self.assertEqual(times, [(8, 0)])
+
+    def test_spec_parse_errors(self):
+        from kernel.memory import parse_daily_spec
+        for bad in ("funday@09:00", "mon@99:00", "@09:00", ""):
+            with self.assertRaises(ValueError):
+                parse_daily_spec(bad)
 
 
 if __name__ == "__main__":

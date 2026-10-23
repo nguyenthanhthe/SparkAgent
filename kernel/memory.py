@@ -459,17 +459,70 @@ class Memory:
         return await self._run(op)
 
 
-def _next_daily(hhmm: str, now: datetime | None = None) -> float:
-    """Unix time of the next occurrence of ``HH:MM`` local time."""
-    try:
-        hour_s, minute_s = hhmm.strip().split(":")
-        hour, minute = int(hour_s), int(minute_s)
+_WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4,
+             "sat": 5, "sun": 6}
+
+
+def parse_daily_spec(spec: str) -> tuple[set[int], list[tuple[int, int]]]:
+    """Parse a daily_at spec: ``[days@]HH:MM[,HH:MM...]``.
+
+    Examples: ``09:00`` · ``09:00,17:30`` · ``mon-fri@09:00`` ·
+    ``mon,wed,fri@08:00,20:00``. No days part means every day.
+    Returns (weekday set as ints, [(hour, minute), ...]).
+    """
+    original = spec
+    days: set[int] = set(_WEEKDAYS.values())
+    if "@" in spec:
+        day_part, _, time_part = spec.partition("@")
+        if not day_part.strip():
+            raise ValueError(f"invalid daily_at {original!r} "
+                             "(empty weekday list)")
+        days = set()
+        for token in day_part.split(","):
+            token = token.strip().lower()
+            if not token:
+                continue
+            if "-" in token:
+                start_name, _, end_name = token.partition("-")
+                if start_name not in _WEEKDAYS or end_name not in _WEEKDAYS:
+                    raise ValueError(f"bad weekday range {token!r}")
+                start, end = _WEEKDAYS[start_name], _WEEKDAYS[end_name]
+                days.update(range(min(start, end), max(start, end) + 1))
+            elif token in _WEEKDAYS:
+                days.add(_WEEKDAYS[token])
+            else:
+                raise ValueError(f"bad weekday {token!r}")
+        spec = time_part
+    times = []
+    for token in spec.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        hour_s, _, minute_s = token.partition(":")
+        try:
+            hour, minute = int(hour_s), int(minute_s)
+        except ValueError as exc:
+            raise ValueError(f"invalid daily_at {original!r} "
+                             "(expected HH:MM)") from exc
         if not (0 <= hour < 24 and 0 <= minute < 60):
-            raise ValueError
-    except (ValueError, AttributeError):
-        raise ValueError(f"invalid daily_at {hhmm!r} (expected HH:MM)")
+            raise ValueError(f"invalid daily_at time {token!r}")
+        times.append((hour, minute))
+    if not times:
+        raise ValueError(f"invalid daily_at {original!r} (no times)")
+    return days, times
+
+
+def _next_daily(spec: str, now: datetime | None = None) -> float:
+    """Unix time of the next occurrence of the daily spec (local time)."""
+    days, times = parse_daily_spec(spec)
     now = now or datetime.now()
-    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    if candidate <= now:
-        candidate += timedelta(days=1)
-    return candidate.timestamp()
+    for offset in range(8):                     # at most a week ahead
+        candidate_day = now + timedelta(days=offset)
+        if candidate_day.weekday() not in days:
+            continue
+        for hour, minute in sorted(times):
+            candidate = candidate_day.replace(hour=hour, minute=minute,
+                                              second=0, microsecond=0)
+            if candidate > now:
+                return candidate.timestamp()
+    raise ValueError(f"unreachable daily_at spec {spec!r}")  # pragma: no cover
