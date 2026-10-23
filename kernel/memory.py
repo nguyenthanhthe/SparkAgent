@@ -254,24 +254,41 @@ class Memory:
         return await self._run(op)
 
     async def recall(self, query: str, k: int | None = None) -> list[MemoryHit]:
+        """Hybrid recall: cosine vectors fused with BM25 lexical matches."""
         k = k or self.recall_k
         query_vec = await self.embed(query)
+
         def op(conn: sqlite3.Connection) -> list[MemoryHit]:
             rows = conn.execute(
                 "SELECT id, kind, key, text, embedding, created_at FROM memories "
                 "ORDER BY id DESC LIMIT 5000").fetchall()
-            hits: list[MemoryHit] = []
+            from memory_search.hybrid import HybridRanker
+            ranker = HybridRanker(recency_weight=0.0)
+            vector_by_id: dict[str, tuple[str, float]] = {}
             for row in rows:
                 blob = row["embedding"]
-                if not blob:
-                    continue
-                stored = _unpack(bytes(blob))
-                if len(stored) != len(query_vec):
-                    continue  # embedder changed between writes
-                score = sum(a * b for a, b in zip(query_vec, stored))
-                hits.append(MemoryHit(id=row["id"], kind=row["kind"],
-                                      key=row["key"], text=row["text"],
-                                      score=score, created_at=row["created_at"]))
+                stored = None
+                if blob:
+                    values = _unpack(bytes(blob))
+                    if len(values) == len(query_vec):
+                        stored = sum(a * b for a, b in zip(query_vec, values))
+                doc_id = str(row["id"])
+                ranker.add(doc_id, row["text"],
+                           metadata={"kind": row["kind"], "key": row["key"],
+                                     "created_at": row["created_at"],
+                                     "score": stored})
+                if stored is not None:
+                    vector_by_id[doc_id] = (row["text"], stored)
+            hits: list[MemoryHit] = []
+            for hit in ranker.search(query, top=k):
+                row_meta = hit.metadata
+                hits.append(MemoryHit(
+                    id=int(hit.doc_id), kind=row_meta.get("kind", "note"),
+                    key=row_meta.get("key"), text=hit.text,
+                    score=hit.fused_score + (vector_by_id.get(hit.doc_id,
+                                                              ("", 0.0))[1]
+                                             or 0.0),
+                    created_at=row_meta.get("created_at", "")))
             hits.sort(key=lambda h: h.score, reverse=True)
             return hits[:k]
         return await self._run(op)
