@@ -115,11 +115,17 @@ class DebouncerTests(unittest.IsolatedAsyncioTestCase):
         async def sink(value):
             fired.append(value)
 
-        deb = Debouncer(delay=0.02, fn=sink)
+        # window much wider than the burst: on Windows, sleep(0.002)
+        # really takes ~15ms (timer resolution), so a tight window
+        # legitimately fires mid-burst — the semantics under test are
+        # "one trailing fire per quiet period", not timer precision.
+        deb = Debouncer(delay=0.5, fn=sink)
         for i in range(10):
             deb.call(i)
             await asyncio.sleep(0.002)
-        await asyncio.sleep(0.08)
+        deadline = asyncio.get_running_loop().time() + 5.0
+        while deb.fired < 1 and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.01)
         self.assertEqual(deb.calls, 10)
         self.assertEqual(deb.fired, 1)
         self.assertEqual(fired, [9])  # only the last value fires
