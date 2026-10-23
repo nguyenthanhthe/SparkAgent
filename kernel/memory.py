@@ -157,8 +157,18 @@ class Memory:
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(_SCHEMA)
+        self._migrate()
         self._conn.commit()
         logger.info("memory open: %s", self.db_path)
+
+    def _migrate(self) -> None:
+        """Idempotent lightweight migrations (additive columns only)."""
+        existing = {row["name"] for row in self._conn.execute(
+            "PRAGMA table_info(episodes)")}
+        if "tags" not in existing:
+            self._conn.execute(
+                "ALTER TABLE episodes ADD COLUMN tags TEXT DEFAULT '[]'")
+            logger.info("migration: added episodes.tags")
 
     async def connect(self) -> None:
         await asyncio.to_thread(self.connect_sync)
@@ -189,11 +199,13 @@ class Memory:
 
     # -------------------------------------------------------------- episodes
     async def start_episode(self, goal: str, source: str) -> int:
+        tags = extract_tags(goal)
+
         def op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute(
-                "INSERT INTO episodes (created_at, source, goal, status) "
-                "VALUES (?, ?, ?, 'running')",
-                (_now_iso(), source, goal[:2000]))
+                "INSERT INTO episodes (created_at, source, goal, status, "
+                "tags) VALUES (?, ?, ?, 'running', ?)",
+                (_now_iso(), source, goal[:2000], json.dumps(tags)))
             conn.commit()
             return int(cursor.lastrowid)
         return await self._run(op)
@@ -220,13 +232,32 @@ class Memory:
             conn.commit()
         await self._run(op)
 
-    async def recent_episodes(self, limit: int = 20) -> list[dict]:
+    async def recent_episodes(self, limit: int = 20,
+                              tag: str | None = None) -> list[dict]:
+        """Newest episodes; ``tag`` filters on the episodes' tag list."""
+        wanted = (tag or "").lower().lstrip("#")
+
         def op(conn: sqlite3.Connection) -> list[dict]:
-            rows = conn.execute(
-                "SELECT id, created_at, source, goal, status, final_answer, "
-                "model_tier, steps FROM episodes ORDER BY id DESC LIMIT ?",
-                (limit,)).fetchall()
-            return [dict(row) for row in rows]
+            if wanted:
+                rows = conn.execute(
+                    "SELECT id, created_at, source, goal, status, "
+                    "final_answer, model_tier, steps, tags FROM episodes "
+                    "WHERE tags LIKE ? ORDER BY id DESC LIMIT ?",
+                    (f'%"{wanted}"%', limit)).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, created_at, source, goal, status, "
+                    "final_answer, model_tier, steps, tags FROM episodes "
+                    "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            results = []
+            for row in rows:
+                item = dict(row)
+                try:
+                    item["tags"] = json.loads(item.get("tags") or "[]")
+                except json.JSONDecodeError:
+                    item["tags"] = []
+                results.append(item)
+            return results
         return await self._run(op)
 
     async def episode_detail(self, episode_id: int) -> dict | None:
@@ -495,6 +526,21 @@ class Memory:
 
 _WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4,
              "sat": 5, "sun": 6}
+
+
+_TAG_RE = re.compile(r"#([a-z][a-z0-9_-]{0,31})", re.IGNORECASE)
+
+
+def extract_tags(text: str, max_tags: int = 5) -> list[str]:
+    """Pull #hashtags out of a goal for episode classification."""
+    seen: list[str] = []
+    for match in _TAG_RE.finditer(text or ""):
+        tag = match.group(1).lower()
+        if tag not in seen:
+            seen.append(tag)
+        if len(seen) >= max_tags:
+            break
+    return seen
 
 
 def parse_daily_spec(spec: str) -> tuple[set[int], list[tuple[int, int]]]:
