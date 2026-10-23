@@ -119,19 +119,29 @@ class ToolRegistry:
                                        "action": "call",
                                        "detail": json.dumps(audit_detail)[:500]})
 
+        from kernel.metrics import REGISTRY as metrics
+        import time as _time
+        started = _time.perf_counter()
         try:
             result = tool.handler(ctx, **args)
             if inspect.isawaitable(result):
                 result = await result
-        except ToolError:
+        except ToolError as exc:
+            metrics.observe("tool_seconds", _time.perf_counter() - started)
+            metrics.incr(f"tool_{name}_errors_total")
             raise
         except TypeError as exc:
             raise ToolError(f"bad arguments for tool {name!r}: {exc}") from exc
         except Exception as exc:  # noqa: BLE001 — errors become observations
             logger.error("tool %s crashed: %s\n%s", name, exc,
                          traceback.format_exc())
-            raise ToolError(f"tool {name!r} crashed: {type(exc).__name__}: {exc}") from exc
+            metrics.incr(f"tool_{name}_crashes_total")
+            raise ToolError(f"tool {name!r} crashed: {type(exc).__name__}: "
+                            f"{exc}") from exc
+        finally:
+            metrics.incr(f"tool_{name}_total")
 
+        metrics.observe("tool_seconds", _time.perf_counter() - started)
         return _stringify(result, MAX_RESULT_CHARS)
 
 
