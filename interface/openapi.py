@@ -158,6 +158,10 @@ def build_spec() -> dict[str, Any]:
             "/api/version": {"get": {
                 "summary": "Build/version info", "responses": {
                     "200": _json_response("Version payload")}}},
+            "/api/brain": {"get": {
+                "summary": "Brain observability — tier health, call stats, "
+                           "cost ledger, daily budget",
+                "responses": {"200": _json_response("Brain report")}}},
             "/metrics": {"get": {
                 "summary": "Prometheus metrics", "responses": {
                     "200": {"description": "text/plain exposition"}}}},

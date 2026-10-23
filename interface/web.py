@@ -428,8 +428,19 @@ def build_web_app(daemon) -> web.Application:
                                   "python": __import__("platform")
                                   .python_version()})
 
+    async def api_brain(_request: web.Request) -> web.Response:
+        health = await daemon.brain.health()
+        return web.json_response({
+            "health": health,
+            "tier_stats": daemon.brain.stats(),
+            "costs": daemon.costs.report(),
+            "budget": {"today_usd": daemon.costs.today_total()},
+
+        })
+
     app.router.add_get("/api/audit", api_audit)
     app.router.add_get("/api/version", api_version)
+    app.router.add_get("/api/brain", api_brain)
     app.router.add_get("/api/stream", api_stream)
     return app
 
