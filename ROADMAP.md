@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[108/500]** commits · all tests green after every wave.
+Progress counter: **[118/500]** commits · **613 tests green** after every wave.
 
 ## Wave L status
 
@@ -22,18 +22,31 @@ Episode detail (89) · budget guard (90) · smoke tests (91) · exec rate
 limits (92, 93) · graph tools (94, 95) · telegram /health (96) ·
 pagination (97) · CI coverage (98).
 
-## Wave M backlog (next)
+## Wave M status
 
-1. /api/brain endpoint aggregating router.status + cost report
-2. dashboard: cost + brain panels (today spend, tier stats)
-3. kernel: task retries with backoff for transient failures
-4. openshell: dry-run mode returning the policy decision
-5. memory: recall filtering by kind (episodes vs notes vs digests)
-6. interface: websocket channel mirroring the SSE stream
-7. swarm: orchestrator budget (max total role calls per run)
-8. security: approval expiry notifications via telegram
-9. docs: config reference page generated from DEFAULTS
-10. examples: memory graph build-from-text demo
+1. ✅ /api/brain — tier health, stats, cost ledger, budget (110)
+2. ⬜ dashboard cost/brain panels
+3. ⬜ task retries with backoff
+4. ✅ openshell dry-run policy probe (111)
+5. ✅ memory kind-filtered recall (112)
+6. ✅ /ws websocket with redacted log forwarding (116)
+7. ✅ swarm per-run role-call budget (113)
+8. ✅ approval-expiry sweep with notifications (117)
+9. ✅ generated config reference + staleness test (114)
+10. ✅ graph build-from-text example (118)
+
+## Wave N backlog (next)
+
+1. dashboard: cost + brain panels wired to /api/brain
+2. scheduler: task retries with exponential backoff on transient failure
+3. react: context budget applied to long scratchpads (wire brain.context)
+4. brain: response cache wired into Brain.chat (bridge router upgrade)
+5. telegram: markdown replies + /audit command
+6. openshell: working-directory allowlist per program
+7. swarm: debate streaming to /ws (agent-visible progress)
+8. security: promptguard score in web_fetch observations (visible)
+9. docs: architecture diagrams as mermaid in docs
+10. examples: cron scheduling walkthrough
 
 ## Wave L backlog (next)
 
