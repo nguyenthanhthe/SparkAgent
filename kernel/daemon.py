@@ -315,6 +315,13 @@ class AgentDaemon:
                 pruned = await self.memory.housekeeping()
                 if any(pruned.values()):
                     logger.info("housekeeping pruned: %s", pruned)
+                from ops.diskwatch import check_usage
+                disk = check_usage(self.cfg.root / "data")
+                if disk.level == "critical":
+                    logger.error("data directory at %.0f MB (critical) — "
+                                 "prune logs/quarantine", disk.total_mb)
+                elif disk.level == "warn":
+                    logger.warning("data directory at %.0f MB", disk.total_mb)
                 digests = await self._consolidate_episodes()
                 if digests:
                     logger.info("consolidated %d episode(s) into memory",
