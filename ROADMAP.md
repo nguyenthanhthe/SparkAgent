@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[125/500]** commits · **621 tests green** after every wave.
+Progress counter: **[131/500]** commits · **645 tests green** · self-check passing.
 
 ## Wave L status
 
@@ -48,18 +48,31 @@ pagination (97) · CI coverage (98).
 9. ⬜ mermaid architecture diagrams
 10. ✅ cron walkthrough example (124)
 
-## Wave O backlog (next)
+## Wave O status
 
-1. response cache + router stats inside Brain.bridge (adapter upgrade)
-2. openshell per-program cwd allowlist
-3. swarm debate progress over /ws
-4. promptguard score surfaced in web_fetch tool results
-5. docs: mermaid diagrams for architecture + data flow
-6. kernel: spawn a periodic 'nightly digest' scheduled task by default
-7. interface: /api/tools endpoint listing tool specs
-8. security: rate-limit login attempts on /api when token set
-9. tests: golden-file prompts for the ReAct system contract
-10. ops: log rotation config + data/ disk quota check
+1. ⬜ response cache + router stats inside Brain.bridge
+2. ⬜ openshell per-program cwd allowlist
+3. ⬜ swarm debate progress over /ws
+4. ✅ promptguard report already in web_fetch results (since 41)
+5. ✅ mermaid diagrams (129)
+6. ✅ seeded nightly digest task (128)
+7. ✅ /api/tools manifest (126)
+8. ⬜ token-auth rate limiting
+9. ✅ golden prompt contract tests (127)
+10. ✅ disk quota watch in housekeeping (130)
+
+## Wave P backlog (next)
+
+1. Brain.bridge: response cache + cost recording on every chat (wire existing cache/costs)
+2. openshell: per-program working-directory allowlist
+3. swarm: debate/consensus progress over /ws (agent-visible)
+4. security: auth-attempt rate limiting when SPARKAGENT_WEB_TOKEN set
+5. kernel: episode tagging + tag-filtered history
+6. brain: streaming chat adapter option
+7. interface: dashboard episode-detail viewer page
+8. tools: file_ops skill tool (read/list in sandbox via registry, not just helpers)
+9. docs: ADR (architecture decision records) index
+10. ops: systemd unit for Linux parity with NSSM docs
 
 ## Wave L backlog (next)
 
