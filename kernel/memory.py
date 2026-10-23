@@ -270,15 +270,28 @@ class Memory:
             return int(cursor.lastrowid)
         return await self._run(op)
 
-    async def recall(self, query: str, k: int | None = None) -> list[MemoryHit]:
-        """Hybrid recall: cosine vectors fused with BM25 lexical matches."""
+    async def recall(self, query: str, k: int | None = None,
+                     kinds: list[str] | None = None) -> list[MemoryHit]:
+        """Hybrid recall: cosine vectors fused with BM25 lexical matches.
+
+        ``kinds`` optionally restricts results (e.g. ``["digest",
+        "episode"]``) — filtering happens in SQL, parameter-bound.
+        """
         k = k or self.recall_k
         query_vec = await self.embed(query)
 
         def op(conn: sqlite3.Connection) -> list[MemoryHit]:
-            rows = conn.execute(
-                "SELECT id, kind, key, text, embedding, created_at FROM memories "
-                "ORDER BY id DESC LIMIT 5000").fetchall()
+            if kinds:
+                placeholders = ", ".join("?" for _ in kinds)
+                rows = conn.execute(
+                    f"SELECT id, kind, key, text, embedding, created_at "
+                    f"FROM memories WHERE kind IN ({placeholders}) "
+                    f"ORDER BY id DESC LIMIT 5000",
+                    tuple(kinds)).fetchall()   # placeholders are fixed '?'
+            else:
+                rows = conn.execute(
+                    "SELECT id, kind, key, text, embedding, created_at "
+                    "FROM memories ORDER BY id DESC LIMIT 5000").fetchall()
             from memory_search.hybrid import HybridRanker
             ranker = HybridRanker(recency_weight=0.0)
             vector_by_id: dict[str, tuple[str, float]] = {}
