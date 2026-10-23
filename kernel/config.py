@@ -72,8 +72,10 @@ DEFAULTS: dict[str, Any] = {
             "timeout": 30.0,
             "allowed_ports": [80, 443, 8080, 8443],
             "max_chars": 6000,
+            "prompt_guard": True,
         },
-        "skillforge": {"autonomous": False, "exec_timeout": 30.0},
+        "skillforge": {"autonomous": False, "exec_timeout": 30.0,
+                       "sign_skills": True},
     },
     "interface": {
         "web": {"enabled": True, "host": "127.0.0.1", "port": 8788},
