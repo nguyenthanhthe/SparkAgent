@@ -282,6 +282,10 @@ def build_web_app(daemon) -> web.Application:
     async def api_health(_request: web.Request) -> web.Response:
         return web.json_response(await daemon.health.check_all())
 
+    async def api_openapi(_request: web.Request) -> web.Response:
+        from interface.openapi import build_spec
+        return web.json_response(build_spec())
+
     async def api_metrics(_request: web.Request) -> web.Response:
         from kernel.metrics import REGISTRY
         return web.Response(text=REGISTRY.render_text(),
@@ -337,6 +341,7 @@ def build_web_app(daemon) -> web.Application:
         raise web.HTTPNotFound
 
     app.router.add_get("/api/health", api_health)
+    app.router.add_get("/api/openapi.json", api_openapi)
     app.router.add_get("/metrics", api_metrics)
     app.router.add_get("/api/approvals", api_approvals)
     app.router.add_post("/api/approvals/{id}/{decision}",
