@@ -47,6 +47,9 @@ DEFAULTS: dict[str, Any] = {
         "vram_guard_mb": 1024,
         "health_ttl": 30.0,
         "daily_budget_usd": 5.0,
+        "cache_responses": False,
+        "cache_entries": 256,
+        "cache_ttl": 900.0,
     },
     "memory": {
         "db_path": "data/sparkagent.db",

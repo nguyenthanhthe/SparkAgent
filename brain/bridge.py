@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Awaitable, Callable
 
+from brain.cache import ResponseCache, cache_key as cache_key_of
 from brain.local import OllamaClient
 from brain.remote import OpenAICompatClient
 from kernel.bus import EventBus
@@ -85,13 +86,37 @@ class Brain:
             temperature=float(remote_cfg.get("temperature", 0.4)))
         self._fallback_after = int(self.cfg.get("brain.fallback_after_failures", 2))
         self._cooldown_seconds = 60.0
+        self.cache_enabled = bool(self.cfg.get("brain.cache_responses",
+                                                False))
+        self.cache = ResponseCache(
+            max_entries=int(self.cfg.get("brain.cache_entries", 256)),
+            ttl_seconds=float(self.cfg.get("brain.cache_ttl", 900)))
+        self.cache_hits = 0
         self._state: dict[Tier, _TierState] = {Tier.LOCAL: _TierState(),
                                                Tier.REMOTE: _TierState()}
 
     # ------------------------------------------------------------------- chat
     async def chat(self, messages: list[dict[str, str]],
-                   force: Tier | None = None) -> BrainResponse:
+                   force: Tier | None = None,
+                   json_mode: bool = False) -> BrainResponse:
         order = [force] if force else [Tier.LOCAL, Tier.REMOTE]
+
+        cache_key = None
+        if self.cache_enabled and force is None:
+            first_model = self.local.model if self.local_enabled else \
+                self.remote.model
+            cache_key = cache_key_of(first_model, messages,
+                                     json_mode=json_mode)
+            entry = self.cache.get(cache_key)
+            if entry is not None:
+                self.cache_hits += 1
+                logger.debug("brain cache hit (%d total)", self.cache_hits)
+                return BrainResponse(text=entry.text,
+                                     tier=Tier.LOCAL,
+                                     model=entry.usage.get("model",
+                                                           first_model),
+                                     elapsed=0.0)
+
         now = time.monotonic()
         errors: dict[str, str] = {}
         for tier in order:
@@ -133,6 +158,10 @@ class Brain:
                 state.requests += 1
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
+                if cache_key is not None:
+                    self.cache.put(cache_key, text, {
+                        "model": self.local.model if tier is Tier.LOCAL
+                        else self.remote.model})
                 return BrainResponse(text=text, tier=tier,
                                      model=self.local.model if tier is Tier.LOCAL
                                      else self.remote.model,
