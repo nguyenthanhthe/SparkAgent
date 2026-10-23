@@ -125,8 +125,11 @@ class AgentDaemon:
         self.forge = skillforge_tools.SkillForge(
             self.cfg.skills_dir, self.registry, self.policy, self.executor,
             self.bus, self.fetcher,
-            autonomous=bool(self.cfg.get("tools.skillforge.autonomous", False)),
-            exec_timeout=float(self.cfg.get("tools.skillforge.exec_timeout", 30)))
+            autonomous=bool(self.cfg.get("tools.skillforge.autonomous",
+                                         False)),
+            exec_timeout=float(self.cfg.get("tools.skillforge.exec_timeout",
+                                            30)),
+            signing_key=self._skill_signing_key())
         skillforge_tools.register_tools(self.registry, self.forge)
 
         # Agent + scheduler
@@ -144,6 +147,17 @@ class AgentDaemon:
     async def _vram_guard(self) -> bool:
         return await sysmon_tools.vram_guard(
             self.executor, float(self.cfg.get("brain.vram_guard_mb", 1024)))
+
+    def _skill_signing_key(self) -> bytes | None:
+        """Sign skills when the vault master key is present (opt-out)."""
+        if not bool(self.cfg.get("tools.skillforge.sign_skills", True)):
+            return None
+        import os
+        master = os.environ.get("SPARKAGENT_VAULT_KEY", "").strip()
+        if not master:
+            return None
+        from security.signatures import derive_signing_key
+        return derive_signing_key(master, domain="skill")
 
     # ---------------------------------------------------------------- health
     def _register_health_checks(self) -> None:
