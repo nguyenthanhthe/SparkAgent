@@ -85,6 +85,12 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 <div class="card"><h2>Tasks</h2><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
 <div class="card"><h2>Skills</h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
+<div class="card" style="margin-bottom:12px"><h2>Operator approvals <span id="apcount" class="badge b-warn" style="display:none"></span></h2>
+  <div style="max-height:180px;overflow:auto"><table id="approvals"></table></div>
+</div>
+<div class="card" style="margin-bottom:12px"><h2>Quarantine</h2>
+  <div style="max-height:160px;overflow:auto"><table id="quarantine"></table></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>Memory recall</h2>
   <div class="row" style="margin:0 0 8px"><input id="memq" placeholder="search long-term memory…"
     onkeydown="if(event.key==='Enter')memSearch()"><button onclick="memSearch()">Recall</button></div>
@@ -156,13 +162,40 @@ async function createSkill(){try{const r=await api('/api/skills',{method:'POST',
    parameters:JSON.parse($('sk-params').value||'{}'),code:$('sk-code').value})});
   toast('skill '+r.status);refreshSkills()}catch(e){toast('failed: '+e.message)}}
 
+async function refreshApprovals(){try{const data=await api('/api/approvals');
+  const pend=data.pending||[];
+  $('apcount').style.display=pend.length?'inline-block':'none';
+  $('apcount').textContent=pend.length;
+  $('approvals').innerHTML='<tr><th>id</th><th>kind</th><th>summary</th><th></th></tr>'+
+   (pend.length?pend.map(a=>`<tr><td>${a.id.slice(0,8)}</td><td>${a.kind}</td>
+     <td>${a.summary.slice(0,70)}</td>
+     <td><button class="small" onclick="decide('${a.id}','approve')">approve</button>
+         <button class="small" onclick="decide('${a.id}','deny')">deny</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--dim)">nothing pending</td></tr>');
+}catch(e){}}
+async function decide(id,decision){try{await api(`/api/approvals/${id}/${decision}`,{method:'POST'});
+  toast('approval '+decision+'d');refreshApprovals()}catch(e){toast(e.message)}}
+async function refreshQuarantine(){try{const data=await api('/api/quarantine');
+  const items=data.items||[];
+  $('quarantine').innerHTML='<tr><th>id</th><th>reason</th><th>size</th><th></th></tr>'+
+   (items.length?items.map(q=>`<tr><td>${q.id.slice(0,8)}</td><td>${q.reason.slice(0,50)}</td>
+     <td>${q.size_bytes}B</td>
+     <td><button class="small" onclick="quar('${q.id}','release')">release</button>
+         <button class="small" onclick="quar('${q.id}','delete')">delete</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--dim)">empty</td></tr>');
+}catch(e){}}
+async function quar(id,action){try{const r=await api(`/api/quarantine/${id}/${action}`,{method:'POST'});
+  toast(action+'d');refreshQuarantine()}catch(e){toast(e.message)}}
+
 const log=$('log');const lines=[];
 const es=new EventSource('/api/stream');
 es.onmessage=ev=>{try{const d=JSON.parse(ev.data);
   if(d.log){lines.push(d.log);if(lines.length>400)lines.shift();
     log.textContent=lines.join('\\n');log.scrollTop=log.scrollHeight}}catch(e){}};
-refreshStatus();refreshTasks();refreshSkills();
-setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);setInterval(refreshSkills,15000);
+refreshStatus();refreshTasks();refreshSkills();refreshApprovals();refreshQuarantine();
+setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
+setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
+setInterval(refreshQuarantine,15000);
 </script></body></html>"""
 
 
