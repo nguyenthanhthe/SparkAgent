@@ -165,6 +165,28 @@ class SafeExecutor:
             return False
         return shutil.which(program) is not None
 
+    async def dry_run(self, program: str, args: list[str] | None = None) \
+            -> dict:
+        """Report what WOULD happen without spawning: policy verdict,
+        denylist/allowlist reasons, resolved executable, rate budget."""
+        args = [str(a) for a in (args or [])]
+        try:
+            self.policy.validate_command(program, args)
+            decision = "allowed"
+            reason = ""
+        except SecurityError as exc:
+            decision, reason = "blocked", str(exc)
+        resolved = shutil.which(program) if decision == "allowed" else None
+        rate_ok = True
+        rate_note = "unlimited"
+        if decision == "allowed" and self._limiters is not None:
+            rate_ok = self._limiters.bucket(program.lower()).peek() >= 1.0
+            rate_note = ("ok" if rate_ok else
+                         "would be rate-limited this minute")
+        return {"program": program, "args": args, "decision": decision,
+                "reason": reason, "executable": resolved,
+                "rate_limit": rate_note}
+
     # ----------------------------------------------------------------- helpers
     async def _kill_tree(self, process: asyncio.subprocess.Process) -> None:
         if process.returncode is not None:
