@@ -124,7 +124,9 @@ class DebouncerTests(unittest.IsolatedAsyncioTestCase):
             deb.call(i)
             await asyncio.sleep(0.002)
         deadline = asyncio.get_running_loop().time() + 5.0
-        while deb.fired < 1 and asyncio.get_running_loop().time() < deadline:
+        # wait on the observable effect (the sink task appending), not the
+        # internal counter — the counter ticks one loop-iteration earlier
+        while not fired and asyncio.get_running_loop().time() < deadline:
             await asyncio.sleep(0.01)
         self.assertEqual(deb.calls, 10)
         self.assertEqual(deb.fired, 1)
