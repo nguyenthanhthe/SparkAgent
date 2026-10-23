@@ -170,6 +170,19 @@ class AgentDaemon:
         return derive_signing_key(master, domain="skill")
 
     # ---------------------------------------------------------------- health
+    async def _seed_daily_digest_task(self) -> None:
+        """First boot convenience: one recurring morning digest task."""
+        if not self.cfg.get("agent.seed_daily_task", True):
+            return
+        existing = await self.memory.list_tasks(limit=1)
+        if existing:
+            return
+        await self.memory.submit_task(
+            "Produce a morning digest: summarize yesterday's episodes, "
+            "check system_status, and note anything that needs an operator.",
+            source="daemon", daily_at="08:00")
+        logger.info("seeded default daily digest task (08:00)")
+
     def _register_health_checks(self) -> None:
         async def memory_check() -> HealthStatus:
             try:
@@ -212,6 +225,7 @@ class AgentDaemon:
         logger.info("skills loaded: %s", loaded)
         await self.memory.audit("daemon", "boot", self.cfg.get("agent.name"))
         self._register_health_checks()
+        await self._seed_daily_digest_task()
 
         self._spawn("scheduler", self.scheduler.run_forever)
         self._spawn("heartbeat", self._heartbeat_loop)
