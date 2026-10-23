@@ -7,6 +7,7 @@ swarm coordination, and hybrid memory.
 | Page | Contents |
 |---|---|
 | [Architecture](architecture.md) | layers, supervision, invariants |
+| [OpenShell integration](openshell-integration.md) | NVIDIA OpenShell sandbox backend, policy export |
 | [Security](security.md) | sandbox, guards, secrets, honest limits |
 | [Tools](tools.md) | built-in tools, SkillForge sandbox contract |
 | [Brain](brain.md) | adapters, tier routing, cache, cost model |
