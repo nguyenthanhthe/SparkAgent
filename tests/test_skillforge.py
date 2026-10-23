@@ -11,7 +11,7 @@ from tools.skillforge import (SkillForge, SkillValidationError)
 from tools.webfetch import WebFetcher
 
 
-def make_forge(sandbox: Path, autonomous: bool = False):
+def make_forge(sandbox: Path, autonomous: bool = False, **kw):
     skills_dir = sandbox / "skills"
     registry = ToolRegistry(EventBus())
     policy = SecurityPolicy(
@@ -20,8 +20,10 @@ def make_forge(sandbox: Path, autonomous: bool = False):
     executor = SafeExecutor(policy, SecretVault(), EventBus(),
                             timeout=10, max_output_bytes=4096)
     fetcher = WebFetcher([80, 443])
+    defaults = dict(autonomous=autonomous, exec_timeout=5)
+    defaults.update(kw)
     forge = SkillForge(skills_dir, registry, policy, executor, EventBus(),
-                       fetcher, autonomous=autonomous, exec_timeout=5)
+                       fetcher, **defaults)
     return forge, registry
 
 
@@ -141,9 +143,12 @@ class ExecutionTests(unittest.IsolatedAsyncioTestCase):
     async def test_timeout_enforced(self):
         code = ("def run():\n"
                 "    total = 0\n"
-                "    for i in range(400000000):\n"
+                "    for i in range(20_000_000):\n"
                 "        total += i\n"
                 "    return total\n")
+        # smoke disabled: we want the skill REGISTERED so the runtime
+        # timeout path itself is what gets exercised
+        self.forge.smoke_test = False
         self.forge.exec_timeout = 0.2
         self.forge.propose("slowpoke", "Burns CPU until the timeout hits",
                            {}, code, "operator")
@@ -159,6 +164,71 @@ class ExecutionTests(unittest.IsolatedAsyncioTestCase):
             "word_count", {"text": "a a b"},
             ToolContext(source="agent"))
         self.assertIn("a", result)
+
+
+class SmokeTestTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def make(self, autonomous=True, **kw):
+        forge, registry = make_forge(self.tmp, autonomous=autonomous)
+        for key, value in kw.items():
+            setattr(forge, key, value)
+        return forge, registry
+
+    async def test_working_skill_passes_smoke(self):
+        forge, registry = self.make()
+        result = forge.propose("shout", "Upper-case the given text",
+                               {"text": {"type": "string", "required": True}},
+                               "def run(text):\n    return text.upper()\n",
+                               "operator")
+        self.assertEqual(result["status"], "active")
+        self.assertIn("shout", registry.names())
+
+    async def test_crashing_skill_rejected_by_smoke(self):
+        forge, registry = self.make()
+        with self.assertRaises(SkillValidationError) as ctx:
+            forge.propose("crasher", "A skill that always crashes",
+                          {"text": {"type": "string", "required": True}},
+                          "def run(text):\n    raise ValueError('boom')\n",
+                          "operator")
+        self.assertIn("smoke test failed", str(ctx.exception))
+        self.assertNotIn("crasher", registry.names())
+
+    async def test_smoke_disabled_allows_broken_skill(self):
+        forge, registry = self.make(smoke_test=False)
+        result = forge.propose("risky", "Skill with runtime-only failure",
+                               {"text": {"type": "string", "required": True}},
+                               "def run(text):\n    return text\n",
+                               "operator")
+        self.assertEqual(result["status"], "active")
+
+    async def test_slow_skill_times_out(self):
+        forge, registry = self.make()
+        forge.exec_timeout = 0.2
+        code = ("def run(text):\n"
+                "    total = 0\n"
+                "    for i in range(20_000_000):\n"
+                "        total += i\n"
+                "    return total\n")
+        with self.assertRaises(SkillValidationError) as ctx:
+            forge.propose("slowpoke", "A skill that runs past its budget",
+                          {"text": {"type": "string", "required": True}},
+                          code, "operator")
+        # the skill exceeds exec_timeout and must be rejected
+        self.assertIn("smoke test", str(ctx.exception))
+
+    async def test_guard_rejection_on_smoke_is_acceptance(self):
+        # a skill whose placeholder args trip a sandbox guard is WIRED
+        # correctly — the guard firing proves the helpers are live
+        forge, registry = self.make()
+        result = forge.propose(
+            "escape_writer", "A skill that writes outside the sandbox",
+            {"content": {"type": "string", "required": True}},
+            "def run(content):\n"
+            "    return write_file('../../escape.txt', content)\n",
+            "operator")
+        self.assertEqual(result["status"], "active")
 
 
 if __name__ == "__main__":

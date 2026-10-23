@@ -124,7 +124,8 @@ class SkillForge:
     def __init__(self, skills_dir: Path, registry: ToolRegistry,
                  policy: SecurityPolicy, executor: SafeExecutor,
                  bus: EventBus, fetcher: WebFetcher,
-                 autonomous: bool = False, exec_timeout: float = 30.0):
+                 autonomous: bool = False, exec_timeout: float = 30.0,
+                 smoke_test: bool = True):
         self.skills_dir = skills_dir
         self.registry = registry
         self.policy = policy
@@ -133,6 +134,7 @@ class SkillForge:
         self.fetcher = fetcher
         self.autonomous = autonomous
         self.exec_timeout = exec_timeout
+        self.smoke_test = smoke_test
         self.pending: dict[str, SkillMeta] = {}
         self.skills_dir.mkdir(parents=True, exist_ok=True)
 
@@ -217,6 +219,8 @@ class SkillForge:
         run_fn = getattr(module, "run", None)
         if not callable(run_fn):
             raise SkillValidationError("skill module must define 'run'")
+        if self.smoke_test:
+            self._smoke_test(meta, run_fn)
         forge = self
 
         async def handler(ctx: ToolContext, **kwargs: Any) -> Any:
@@ -236,6 +240,68 @@ class SkillForge:
         except asyncio.TimeoutError as exc:
             raise ToolError(f"skill {name!r} exceeded {self.exec_timeout}s "
                             "limit") from exc
+
+    def _smoke_test(self, meta: SkillMeta, run_fn: Callable) -> None:
+        """Call the skill once with synthesized args; reject broken skills.
+
+        Runs on a dedicated daemon thread with its own event loop (never
+        the caller's loop — activation is sync and must not deadlock it),
+        joined with a wall timeout. Sandbox-guard rejections count as a
+        PASS: the guard firing on placeholder args proves wiring, not a
+        broken skill. Args come from the parameter spec: strings get
+        "smoke", integers 1, numbers 1.0, objects {}.
+
+        Residual (documented): a skill stuck in an unkillable CPU loop
+        leaks its daemon thread — the same thread-leak class as any
+        timeout-cancelled ``_execute`` call.
+        """
+        from openshell.policy import SecurityError
+        args: dict[str, Any] = {}
+        for param, rule in meta.parameters.items():
+            kind = rule.get("type", "string")
+            if not rule.get("required"):
+                continue
+            if kind == "integer":
+                args[param] = 1
+            elif kind == "number":
+                args[param] = 1.0
+            elif kind == "object":
+                args[param] = {}
+            else:
+                args[param] = "smoke"
+
+        outcome: dict[str, Any] = {}
+
+        def runner() -> None:
+            loop = asyncio.new_event_loop()
+            try:
+                outcome["value"] = loop.run_until_complete(
+                    self._execute(meta.name, run_fn, args))
+            except SecurityError as exc:
+                outcome["guard"] = str(exc)      # sandbox worked — acceptable
+            except BaseException as exc:        # noqa: BLE001 — recorded
+                outcome["error"] = exc
+            finally:
+                loop.close()
+
+        import threading
+        thread = threading.Thread(target=runner, daemon=True,
+                                  name=f"smoke-{meta.name}")
+        thread.start()
+        thread.join(self.exec_timeout + 5)
+        if thread.is_alive():
+            raise SkillValidationError(
+                "smoke test timed out — skill rejected")
+        if "guard" in outcome:
+            logger.info("smoke test: sandbox guard fired for %s (%s) — "
+                        "accepted", meta.name, outcome["guard"][:60])
+            return
+        if "error" in outcome:
+            exc = outcome["error"]
+            raise SkillValidationError(
+                f"smoke test failed: {type(exc).__name__}: {exc}") from exc
+        logger.info("smoke test passed for skill %s -> %s",
+                    meta.name, str(outcome.get("value"))[:60])
 
     # ------------------------------------------------------------- namespace
     def _load_module(self, name: str) -> ModuleType:
