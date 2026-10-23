@@ -1,0 +1,15 @@
+.git
+.mimosa
+.venv
+venv
+__pycache__
+*.pyc
+data
+skills
+*.log
+.env
+tests
+docs
+examples
+.github
+*.zip
