@@ -29,6 +29,11 @@ class FakeDaemon:
             async def recall(self, query, k=5):
                 return []
 
+            async def recent_audit(self, limit=15):
+                return [{"created_at": "2026-10-24T10:00:00", "actor":
+                         "executor", "action": "exec.start",
+                         "detail": "python -c print(1)"}]
+
         self.forge = FakeForge()
         self.memory = FakeMemory()
         self.approvals = ApprovalQueue(clock=FakeClock())
@@ -123,6 +128,11 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_mem_empty(self):
         reply = await self._command("/mem nothing matches")
         self.assertIn("no memories", reply)
+
+    async def test_audit_lists_redacted_rows(self):
+        reply = await self._command("/audit")
+        self.assertIn("executor exec.start", reply)
+        self.assertIn("print(1)", reply)
 
     async def test_help_lists_new_commands(self):
         reply = await self._command("/help")

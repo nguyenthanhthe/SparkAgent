@@ -9,6 +9,7 @@ is ignored (and logged). Commands:
     /task <goal>     submit a one-shot task
     /mem <query>     semantic memory recall
     /skills          list skills
+    /audit           recent audit trail (redacted)
     /pending         operator approval queue (skills + questions)
     /approve <id>    approve a pending skill or approval request
     /deny <id>       deny a pending approval request
@@ -120,6 +121,7 @@ class TelegramGateway:
                     "/task <goal> — submit a task\n"
                     "/mem <query> — search memory\n"
                     "/skills — list skills\n"
+                    "/audit — recent audit trail\n"
                     "/pending — operator approval queue\n"
                     "/approve <skill or id> — approve\n"
                     "/deny <id> — deny an approval request\n"
@@ -173,6 +175,16 @@ class TelegramGateway:
             skills = daemon.forge.list_skills()
             return "\n".join(f"{s['name']} — {s['status']}" for s in skills) \
                 or "(no skills)"
+        if command == "/audit":
+            rows = await daemon.memory.recent_audit(limit=15)
+            if not rows:
+                return "(audit trail empty)"
+            lines = []
+            for row in rows:
+                detail = daemon.vault.redact(row.get("detail") or "")[:60]
+                lines.append(f"{row['created_at'][11:]} {row['actor']} "
+                             f"{row['action']} {detail}")
+            return "\n".join(lines)
         if command == "/pending":
             lines = []
             for skill in daemon.forge.list_skills():
