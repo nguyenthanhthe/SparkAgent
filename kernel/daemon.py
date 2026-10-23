@@ -290,11 +290,38 @@ class AgentDaemon:
                 pruned = await self.memory.housekeeping()
                 if any(pruned.values()):
                     logger.info("housekeeping pruned: %s", pruned)
+                digests = await self._consolidate_episodes()
+                if digests:
+                    logger.info("consolidated %d episode(s) into memory",
+                                digests)
                 saved = self.entity_graph.save(self.cfg.root / "data" /
                                                "graph.json")
                 logger.debug("entity graph persisted: %d edges", saved)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("housekeeping failed: %s", exc)
+
+    async def _consolidate_episodes(self, batch: int = 30) -> int:
+        """Distill finished episodes into one compact memory per episode."""
+        from datetime import datetime, timedelta
+        from memory_search.summarizer import consolidate
+        since = (datetime.now() - timedelta(
+            days=int(self.cfg.get("memory.retention_days", 30)))
+        ).isoformat(timespec="seconds")
+        episodes = await self.memory.episodes_without_digest(since,
+                                                             limit=batch)
+        if not episodes:
+            return 0
+        digest_text = consolidate(episodes,
+                                  header="Episode consolidation")
+        await self.memory.remember(digest_text, kind="digest",
+                                   key=f"digest:{episodes[0]['id']}-"
+                                       f"{episodes[-1]['id']}")
+        # mark each source episode as digested by its own key
+        for episode in episodes:
+            await self.memory.remember(
+                f"[digested] {episode['goal'][:200]}",
+                kind="digest-marker", key=f"episode:{episode['id']}")
+        return len(episodes)
 
     async def _run_web(self) -> None:
         from interface.web import build_web_app  # lazy: interface lands later

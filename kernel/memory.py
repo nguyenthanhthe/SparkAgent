@@ -430,6 +430,20 @@ class Memory:
             return [dict(row) for row in rows]
         return await self._run(op)
 
+    async def episodes_without_digest(self, since_iso: str,
+                                      limit: int = 50) -> list[dict]:
+        """Finished episodes after ``since_iso`` that have no digest memory
+        keyed on their id — the consolidation job's work queue."""
+        def op(conn: sqlite3.Connection) -> list[dict]:
+            rows = conn.execute(
+                "SELECT id, goal, final_answer FROM episodes "
+                "WHERE status = 'done' AND created_at >= ? "
+                "AND id NOT IN (SELECT CAST(REPLACE(key, 'episode:', '') "
+                "AS INTEGER) FROM memories WHERE key LIKE 'episode:%') "
+                "ORDER BY id LIMIT ?", (since_iso, limit)).fetchall()
+            return [dict(row) for row in rows]
+        return await self._run(op)
+
     # ------------------------------------------------------------ maintenance
     async def housekeeping(self) -> dict[str, int]:
         cutoff = (datetime.now() - timedelta(days=self.retention_days)
