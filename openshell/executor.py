@@ -18,7 +18,9 @@ from pathlib import Path
 
 from kernel.bus import EventBus
 from kernel.logging import get_logger
+from openshell.env_guard import sanitize_env
 from openshell.policy import SecurityError, SecurityPolicy
+from openshell.process_registry import ProcessRegistry
 from openshell.vault import SecretVault
 
 logger = get_logger("executor")
@@ -61,12 +63,16 @@ def _clip(text: str, limit: int) -> str:
 class SafeExecutor:
     def __init__(self, policy: SecurityPolicy, vault: SecretVault,
                  bus: EventBus, timeout: float = 60.0,
-                 max_output_bytes: int = 131072):
+                 max_output_bytes: int = 131072,
+                 registry: ProcessRegistry | None = None,
+                 sanitize_child_env: bool = True):
         self.policy = policy
         self.vault = vault
         self.bus = bus
         self.timeout = timeout
         self.max_output_bytes = max_output_bytes
+        self.registry = registry or ProcessRegistry()
+        self.sanitize_child_env = sanitize_child_env
         self.policy.sandbox_root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ public
@@ -96,14 +102,16 @@ class SafeExecutor:
         started = time.monotonic()
         self.bus.publish("audit", {"actor": "executor", "action": "exec.start",
                                    "detail": f"{program} {base['args']}"})
+        child_env = sanitize_env() if self.sanitize_child_env else None
         try:
             process = await asyncio.create_subprocess_exec(
-                exe, *args, cwd=str(workdir),
+                exe, *args, cwd=str(workdir), env=child_env,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 stdin=asyncio.subprocess.DEVNULL)
         except OSError as exc:
             return ExecResult(program=program, args=tuple(args), exit_code=None,
                               blocked_reason=f"spawn failed: {exc}")
+        self.registry.spawn(process.pid, program, base["args"])
 
         timed_out = False
         try:
@@ -117,6 +125,8 @@ class SafeExecutor:
         duration = time.monotonic() - started
         stdout = self.vault.redact(_decode(stdout_b, self.max_output_bytes))
         stderr = self.vault.redact(_decode(stderr_b, self.max_output_bytes))
+        self.registry.finish(process.pid, process.returncode,
+                             timed_out=timed_out)
         result = ExecResult(program=program, args=tuple(args),
                             exit_code=process.returncode, stdout=stdout,
                             stderr=stderr, duration=duration, timed_out=timed_out)
