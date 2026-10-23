@@ -63,6 +63,7 @@ class Brain:
     vault: SecretVault
     bus: EventBus
     resource_guard: Callable[[], Awaitable[bool]] | None = field(default=None)
+    budget_guard: Callable[[], Awaitable[bool]] | None = field(default=None)
 
     def __post_init__(self) -> None:
         local_cfg = self.cfg.section("brain.local")
@@ -111,6 +112,17 @@ class Brain:
                 if not guard_ok:
                     errors[tier.value] = "resource guard: not enough free VRAM"
                     logger.info("local tier skipped: low VRAM")
+                    continue
+            if tier is Tier.REMOTE and self.budget_guard is not None:
+                try:
+                    within_budget = await self.budget_guard()
+                except Exception as exc:  # noqa: BLE001 — guard must never kill chat
+                    within_budget = True
+                    logger.warning("budget guard errored (ignoring): %s", exc)
+                if not within_budget:
+                    errors[tier.value] = ("daily spend budget exhausted — "
+                                          "remote tier paused")
+                    logger.warning("remote tier skipped: budget exhausted")
                     continue
             try:
                 started = time.monotonic()

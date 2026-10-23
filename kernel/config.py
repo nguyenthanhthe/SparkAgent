@@ -46,6 +46,7 @@ DEFAULTS: dict[str, Any] = {
         "fallback_after_failures": 2,
         "vram_guard_mb": 1024,
         "health_ttl": 30.0,
+        "daily_budget_usd": 5.0,
     },
     "memory": {
         "db_path": "data/sparkagent.db",

@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from brain.bridge import Brain
+from brain.cost import CostTracker
 from kernel.bus import EventBus
 from kernel.clock import Clock
 from kernel.config import Config
@@ -80,8 +81,15 @@ class AgentDaemon:
         self.health = HealthRegistry()
 
         # Brain + memory
+        self.costs = CostTracker()
+        daily_budget = float(self.cfg.get("brain.daily_budget_usd", 5.0))
+
+        async def _budget_guard() -> bool:
+            return self.costs.within_budget(daily_budget)
+
         self.brain = Brain(self.cfg, self.vault, self.bus,
-                           resource_guard=self._vram_guard)
+                           resource_guard=self._vram_guard,
+                           budget_guard=_budget_guard)
         self.memory = Memory(self.cfg.db_path,
                              embedder_fn=self.brain.embed,
                              embed_dim=int(self.cfg.get("memory.embed_dim", 384)),
