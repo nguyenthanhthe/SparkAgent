@@ -81,6 +81,25 @@ brain → tools → kernel → interface → entrypoint. See git history for pro
    (`fetch`, `read_file`, `write_file`, `run_command`). By default new
    skills require operator approval.
 
+## How the kernel works
+
+- **ReAct protocol** — each turn the model must reply with exactly one JSON
+  object: either `{"thought", "action": {"name", "args"}}` or
+  `{"thought", "final_answer"}`. Malformed replies become corrective
+  observations (3 strikes → episode fails). Every thought/action/observation
+  is persisted to SQLite as episode steps.
+- **Scheduler** — SQLite-backed task queue. One-shot, `interval_seconds`
+  recurring, and `daily_at HH:MM` tasks; atomic claim via conditional
+  UPDATE; concurrency-limited episodes; recurring tasks auto-disable after
+  3 consecutive failures; stale `running` tasks are recovered on boot.
+- **Memory** — episodes, steps, audit trail, and a vector store. Recall is
+  cosine similarity over embeddings (Ollama `nomic-embed-text` when local is
+  up, deterministic hashing embedder otherwise), injected into the system
+  prompt of new episodes. Finished episodes summarize themselves into memory.
+- **Daemon supervision** — every loop (scheduler, heartbeat, audit persist,
+  housekeeping, web, telegram) runs under a supervisor that restarts it with
+  exponential backoff. A 24/7 daemon must survive its own bugs.
+
 ## Usage
 
 *Being filled in as modules land — see sections below (Work in progress).*
