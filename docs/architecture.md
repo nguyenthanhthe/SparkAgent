@@ -1,5 +1,22 @@
 # Architecture
 
+```mermaid
+flowchart TD
+    TG[Telegram bot] --> I[interface/ · web · CLI · OpenAPI]
+    CLI[spark CLI] --> I
+    I -->|submit / approve / query| D[AgentDaemon]
+    D --> S[scheduler]
+    S --> R[react ReAct core]
+    R --> T[ToolRegistry]
+    T --> O[openshell + security]
+    R --> B[brain adapters -> tier router]
+    B --> L[local Ollama GPU]
+    B --> G[remote GLM]
+    D --> M[(SQLite + vectors + BM25)]
+    T --> M
+    O --> Q[quarantine / approvals / vault]
+```
+
 SparkAgent is a 24/7 asyncio daemon composed of independently supervised
 subsystems. This page is the map; each package has its own page.
 

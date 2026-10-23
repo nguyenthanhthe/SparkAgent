@@ -1,5 +1,17 @@
 # Memory
 
+```mermaid
+flowchart LR
+    E[episode ends] -->|self-summary| DB[(memories table)]
+    Q[recall query] --> V[vector cosine]
+    Q --> K[BM25 lexical]
+    V --> F[RRF fusion + recency]
+    K --> F
+    F --> H[top-k hits]
+    HK[housekeeping] --> C[consolidator]
+    C -->|digest memories| DB
+```
+
 SparkAgent remembers in layers, all in one SQLite database (WAL mode)
 plus derived indexes — every statement parameter-bound.
 
