@@ -1,0 +1,77 @@
+# SparkAgent configuration example.
+# Copy to config.yaml and adjust. Precedence: defaults < config.yaml < env vars.
+# Env overrides use SPARKAGENT_ + double-underscore nesting, e.g.
+#   SPARKAGENT_BRAIN__LOCAL__MODEL=llama3
+#   SPARKAGENT_INTERFACE__WEB__PORT=9000
+# Credentials (API keys, bot tokens) are NEVER stored here — see .env.example.
+
+agent:
+  name: sparkagent
+  max_steps: 12            # ReAct iterations per task before giving up
+  poll_seconds: 5          # scheduler tick
+  concurrency: 2           # max simultaneous ReAct episodes
+  heartbeat_seconds: 30    # system snapshot cadence (feeds web dashboard)
+
+brain:
+  local:                   # Tier 1: Nemotron via Ollama on the RTX GPU
+    enabled: true
+    base_url: http://127.0.0.1:11434
+    model: nemotron-mini   # `ollama pull nemotron-mini` (or any local model)
+    timeout: 180
+    num_ctx: 8192
+    temperature: 0.4
+  remote:                  # Tier 2: GLM fallback (needs GLM_API_KEY env)
+    enabled: true
+    chat_url: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    model: glm-5.3
+    timeout: 120
+    temperature: 0.4
+  fallback_after_failures: 2   # local failures before routing straight to remote
+  vram_guard_mb: 1024          # skip local tier if free VRAM below this
+  health_ttl: 30               # seconds to cache local health check
+
+memory:
+  db_path: data/sparkagent.db
+  embedding_model: nomic-embed-text   # Ollama embeddings; falls back to
+  embed_dim: 384                      # a built-in deterministic hashing embedder
+  recall_k: 5
+  retention_days: 30
+
+openshell:
+  timeout: 60                 # default subprocess timeout (s)
+  max_output_bytes: 131072    # captured stdout/stderr cap per stream
+  allow_shell: false          # never interpret args through cmd/powershell
+  allowed_programs:           # executable allowlist (bare names only)
+    - python
+    - py
+    - pip
+    - git
+    - node
+    - npm
+    - nvidia-smi
+    - where
+    - tasklist
+    - systeminfo
+
+tools:
+  webfetch:
+    max_bytes: 2097152        # 2 MB download cap
+    timeout: 30
+    allowed_ports: [80, 443, 8080, 8443]
+    max_chars: 6000           # text returned to the model per fetch
+  skillforge:
+    autonomous: false         # true = agent-created skills activate without approval
+    exec_timeout: 30
+
+interface:
+  web:
+    enabled: true
+    host: 127.0.0.1           # bind localhost only by default
+    port: 8788
+  telegram:
+    enabled: false            # needs TELEGRAM_BOT_TOKEN env + allowed chat ids
+    allowed_chat_ids: []      # e.g. [123456789]
+
+logging:
+  level: INFO
+  file: data/logs/sparkagent.log
