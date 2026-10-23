@@ -278,6 +278,72 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/skills", api_skills)
     app.router.add_post("/api/skills", api_skills_create)
     app.router.add_post("/api/skills/{name}/approve", api_skills_approve)
+    # --------------------------------------------------------------- v2 api
+    async def api_health(_request: web.Request) -> web.Response:
+        return web.json_response(await daemon.health.check_all())
+
+    async def api_metrics(_request: web.Request) -> web.Response:
+        from kernel.metrics import REGISTRY
+        return web.Response(text=REGISTRY.render_text(),
+                            content_type="text/plain")
+
+    async def api_approvals(_request: web.Request) -> web.Response:
+        from security.approval import request_to_dict
+        return web.json_response(
+            {"pending": [request_to_dict(r)
+                         for r in daemon.approvals.pending()],
+             "recent": [request_to_dict(r)
+                        for r in daemon.approvals.recent(limit=30)]})
+
+    async def api_approval_decide(request: web.Request) -> web.Response:
+        approval_id = request.match_info["id"]
+        decision = request.match_info["decision"]
+        if decision not in ("approve", "deny"):
+            raise web.HTTPNotFound
+        try:
+            if decision == "approve":
+                request_obj = daemon.approvals.approve(approval_id)
+            else:
+                request_obj = daemon.approvals.deny(approval_id)
+        except (KeyError, ValueError) as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        await daemon.memory.audit("operator", f"approval.{decision}",
+                                  f"{approval_id} {request_obj.kind}: "
+                                  f"{request_obj.summary[:120]}")
+        return web.json_response({"id": approval_id,
+                                  "status": request_obj.status})
+
+    async def api_quarantine(_request: web.Request) -> web.Response:
+        return web.json_response({"items": daemon.quarantine.list(limit=100)})
+
+    async def api_quarantine_action(request: web.Request) -> web.Response:
+        item_id = request.match_info["id"]
+        action = request.match_info["action"]
+        if action == "release":
+            try:
+                content = daemon.quarantine.release(item_id)
+            except KeyError as exc:
+                raise web.HTTPNotFound(text=str(exc))
+            await daemon.memory.audit("operator", "quarantine.release",
+                                      item_id)
+            return web.json_response(
+                {"id": item_id, "released": content[:500]})
+        if action == "delete":
+            if not daemon.quarantine.delete(item_id):
+                raise web.HTTPNotFound(text=f"no item {item_id}")
+            await daemon.memory.audit("operator", "quarantine.delete",
+                                      item_id)
+            return web.json_response({"id": item_id, "deleted": True})
+        raise web.HTTPNotFound
+
+    app.router.add_get("/api/health", api_health)
+    app.router.add_get("/metrics", api_metrics)
+    app.router.add_get("/api/approvals", api_approvals)
+    app.router.add_post("/api/approvals/{id}/{decision}",
+                        api_approval_decide)
+    app.router.add_get("/api/quarantine", api_quarantine)
+    app.router.add_post("/api/quarantine/{id}/{action}",
+                        api_quarantine_action)
     app.router.add_get("/api/stream", api_stream)
     return app
 
