@@ -90,16 +90,26 @@ class SafeExecutor:
         """Validate and run a command inside the sandbox."""
         args = [str(a) for a in (args or [])]
         timeout = timeout or self.timeout
-        base = {"program": program, "args": self.vault.redact(" ".join(args))}
 
+        admitted = self._admit(program, args)
+        if admitted[0] is None:
+            return admitted[1]
+        exe = admitted[0]
+        return await self._spawn_and_collect(
+            [exe, *args], program, args, timeout, cwd)
+
+    def _admit(self, program: str,
+               args: list[str]) -> tuple[str | None, "ExecResult | None"]:
+        """Policy + rate-limit + PATH admission. Returns (exe, None) to
+        proceed or (None, blocked_result) to stop."""
         try:
             self.policy.validate_command(program, args)
         except SecurityError as exc:
             logger.warning("blocked command %s %s: %s", program, args, exc)
             self.bus.publish("audit", {"actor": "executor", "action": "exec.blocked",
                                        "detail": f"{program} {args!r}: {exc}"})
-            return ExecResult(program=program, args=tuple(args),
-                              exit_code=None, blocked_reason=str(exc))
+            return None, ExecResult(program=program, args=tuple(args),
+                                    exit_code=None, blocked_reason=str(exc))
 
         if self._limiters is not None and \
                 not self._limiters.try_take(program.lower()):
@@ -109,28 +119,36 @@ class SafeExecutor:
             self.bus.publish("audit", {"actor": "executor",
                                        "action": "exec.ratelimited",
                                        "detail": program})
-            return ExecResult(program=program, args=tuple(args),
-                              exit_code=None, blocked_reason=reason)
+            return None, ExecResult(program=program, args=tuple(args),
+                                    exit_code=None, blocked_reason=reason)
 
         exe = shutil.which(program)
         if exe is None:
-            return ExecResult(program=program, args=tuple(args), exit_code=None,
-                              blocked_reason=f"program not found on PATH: {program}")
+            return None, ExecResult(program=program, args=tuple(args),
+                                    exit_code=None,
+                                    blocked_reason=f"program not found on "
+                                    f"PATH: {program}")
+        return exe, None
 
+    async def _spawn_and_collect(self, argv: list[str], program: str,
+                                 args: list[str], timeout: float,
+                                 cwd: Path | None) -> ExecResult:
+        """Spawn the (already admitted) argv, cap output, redact, audit."""
+        base_args = self.vault.redact(" ".join(args))
         workdir = cwd or self.policy.sandbox_root
         started = time.monotonic()
         self.bus.publish("audit", {"actor": "executor", "action": "exec.start",
-                                   "detail": f"{program} {base['args']}"})
+                                   "detail": f"{program} {base_args}"})
         child_env = sanitize_env() if self.sanitize_child_env else None
         try:
             process = await asyncio.create_subprocess_exec(
-                exe, *args, cwd=str(workdir), env=child_env,
+                *argv, cwd=str(workdir), env=child_env,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 stdin=asyncio.subprocess.DEVNULL)
         except OSError as exc:
             return ExecResult(program=program, args=tuple(args), exit_code=None,
                               blocked_reason=f"spawn failed: {exc}")
-        self.registry.spawn(process.pid, program, base["args"])
+        self.registry.spawn(process.pid, program, base_args)
 
         timed_out = False
         try:
@@ -154,7 +172,7 @@ class SafeExecutor:
             "action": "exec.finish",
             "detail": (f"{program} exit={result.exit_code} {duration:.1f}s"
                        + (" TIMEOUT" if timed_out else ""))})
-        logger.info("exec %s -> exit=%s %.1fs", base["args"], result.exit_code, duration)
+        logger.info("exec %s -> exit=%s %.1fs", base_args, result.exit_code, duration)
         return result
 
     async def check(self, program: str) -> bool:
