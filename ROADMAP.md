@@ -1,20 +1,39 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[98/500]** commits · **567 tests, all green**.
+Progress counter: **[108/500]** commits · all tests green after every wave.
 
-## Wave K status
+## Wave L status
 
-1. ✅ `GET /api/episodes/{id}` episode detail with step replay (89)
-2. ⬜ cron-style daily_at list + weekday filter
-3. ✅ daily budget guard wired into brain (90)
-4. ✅ skillforge smoke tests before activation (91)
-5. ✅ pagination envelopes on tasks/episodes (97)
-6. ⬜ debate rounds streamed to bus
-7. ✅ telegram /health (96)
-8. ✅ graph extraction tools + daemon persistence (94, 95)
-9. ✅ per-program exec rate limits (92, 93)
-10. ✅ CI coverage (98)
+1. ✅ cron daily_at spec — multiple times + weekday filters (105)
+2. ✅ swarm progress events on the bus (106)
+3. ✅ tool latency metrics in registry.call (100)
+4. ✅ episode consolidation into digest memories (104)
+5. ✅ /api/audit redacted + paginated, /api/version (103)
+6. ⬜ brain router status endpoint aggregation
+7. ✅ /api/version (103)
+8. ✅ testing guide (107)
+9. ✅ approvals workflow example (108)
+10. ✅ signed skills: persist + verify-or-refuse + vault wiring (101, 102)
+
+## Wave K status (complete)
+
+Episode detail (89) · budget guard (90) · smoke tests (91) · exec rate
+limits (92, 93) · graph tools (94, 95) · telegram /health (96) ·
+pagination (97) · CI coverage (98).
+
+## Wave M backlog (next)
+
+1. /api/brain endpoint aggregating router.status + cost report
+2. dashboard: cost + brain panels (today spend, tier stats)
+3. kernel: task retries with backoff for transient failures
+4. openshell: dry-run mode returning the policy decision
+5. memory: recall filtering by kind (episodes vs notes vs digests)
+6. interface: websocket channel mirroring the SSE stream
+7. swarm: orchestrator budget (max total role calls per run)
+8. security: approval expiry notifications via telegram
+9. docs: config reference page generated from DEFAULTS
+10. examples: memory graph build-from-text demo
 
 ## Wave L backlog (next)
 
