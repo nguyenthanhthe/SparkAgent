@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sparkagent"
+version = "0.2.0"
+description = "Autonomous 24/7 local AI agent kernel — ReAct core, OpenShell sandbox, dual-tier brain, self-authoring skills"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "SparkAgent contributors" }]
+keywords = ["agent", "autonomous-agents", "llm", "react", "sandbox"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "aiohttp>=3.9",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["coverage>=7"]
+
+[project.scripts]
+sparkagent = "main:main"
+
+[project.urls]
+Homepage = "https://github.com/nguyenthanhthe/SparkAgent"
+Issues = "https://github.com/nguyenthanhthe/SparkAgent/issues"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["kernel*", "openshell*", "brain*", "tools*", "interface*",
+           "swarm*", "security*", "memory_search*"]
+
+[tool.coverage.run]
+source = ["kernel", "openshell", "brain", "tools", "swarm", "security",
+          "memory_search", "interface"]
