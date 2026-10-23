@@ -51,6 +51,9 @@ Defaults live in `kernel/config.py`. Overrides: `config.yaml` < environment (`SP
 | `openshell.allow_shell` | `False` |  |
 | `openshell.execs_per_minute` | `30.0` | per-program rate limit (0 = off) |
 | `openshell.profile` | `standard` | strict | standard | development |
+| `openshell.backend` | `auto` |  |
+| `openshell.sandbox_name` | `sparkagent` |  |
+| `openshell.minimum_version` | `0.1.0` |  |
 | `openshell.allowed_programs` | `['python', 'py', 'pip', 'git', 'node', 'npm', 'nvidia-smi', 'where', 'tasklist', 'systeminfo']` | executable allowlist (bare names) |
 
 ## `tools`
