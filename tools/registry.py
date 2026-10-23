@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from kernel.bus import EventBus
+from kernel.errors import ToolFailure
 from kernel.logging import get_logger
 
 logger = get_logger("tools")
@@ -24,9 +25,9 @@ Handler = Callable[..., Awaitable[Any] | Any]
 
 MAX_RESULT_CHARS = 8000
 
-
-class ToolError(Exception):
-    pass
+# Single tool-error type across the framework: handlers may raise either
+# alias; the registry passes it through as a model-facing observation.
+ToolError = ToolFailure
 
 
 @dataclass
