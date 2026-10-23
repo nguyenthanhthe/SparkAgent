@@ -1,14 +1,24 @@
 # ⚡ SparkAgent
 
-> An autonomous **24/7 local AI agent kernel** inspired by the **Nous Hermes Agent** and the **NVIDIA OpenShell** sandbox architecture — optimized for RTX hardware (local NVIDIA Nemotron via Ollama/CUDA, with a remote GLM fallback tier).
+> An autonomous **24/7 local AI agent framework** inspired by the **Nous Hermes Agent** and the **NVIDIA OpenShell** sandbox architecture — optimized for RTX hardware (local NVIDIA Nemotron via Ollama/CUDA, with a remote GLM fallback tier).
 
 [![CI](https://github.com/nguyenthanhthe/SparkAgent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
-SparkAgent runs continuously in the background on your Windows machine: it
-schedules goals, reasons over them with a ReAct loop, executes work through
-a policy-guarded sandbox, remembers everything in SQLite + a vector store,
-writes **new tools for itself**, and can be driven from a local web
-dashboard or Telegram.
+SparkAgent runs continuously in the background: it schedules goals, reasons over them with a ReAct loop, executes work through a policy-guarded sandbox, remembers everything in hybrid (BM25 + vector) memory, coordinates **multi-agent swarms**, writes **new tools for itself** under a sandbox + approval gate, and is driven from a web dashboard, CLI, or Telegram.
+
+## What's inside
+
+| Package | Highlights |
+|---|---|
+| `kernel/` | 24/7 supervised daemon, ReAct state machine, scheduler, SQLite + hybrid memory, metrics, health, tracing, rate limits, circuit breakers, retries |
+| `openshell/` + `security/` | sandbox profiles, allow/deny policy engine, path confinement, env sanitization, SSRF guard, prompt-injection guard, quarantine, HMAC signatures, approvals |
+| `brain/` | adapter framework (Ollama / OpenAI-compatible / mock), tier router with circuits + cache + cost ledger, context budgeting |
+| `tools/` + `swarm/` | 15+ built-in tools, SkillForge (agent-authored, AST-sandboxed skills), planner/worker/critic/synthesizer pipelines, debate, consensus |
+| `interface/` | dashboard (live logs, approvals, quarantine), OpenAPI spec, Prometheus metrics, CLI, Telegram bot |
+| `memory_search/` | BM25, RRF hybrid ranking, entity graph, extractive summarizer |
+| `ops/`, `benchmarks/`, `docs/`, `examples/` | backup/restore, Docker, micro-benchmarks, full docs, runnable demos |
+
+Full documentation starts at [docs/index.md](docs/index.md).
 
 ---
 
@@ -243,14 +253,18 @@ Key knobs:
 SparkAgent/
 ├── main.py                 # entry point (--check / --once / daemon)
 ├── config.example.yaml     # annotated configuration
-├── kernel/                 # daemon, react, scheduler, memory, bus, config, logging
-├── openshell/              # policy, vault (+CLI), executor
-├── brain/                  # local, remote, bridge
-├── tools/                  # registry, sysmon, webfetch, skillforge
-├── interface/              # web, telegram
-├── tests/                  # 81 unit tests (offline, no network/LLM)
-└── data/                   # runtime: db, logs, sandbox  (gitignored)
-└── skills/                 # agent-authored skills       (gitignored)
+├── kernel/                 # daemon, react, scheduler, memory, bus, metrics, health…
+├── openshell/              # policy, vault (+CLI), executor, profiles, env guard
+├── security/               # policy engine, approvals, prompt guard, quarantine, signatures
+├── brain/                  # adapters (ollama/openai_compat/mock), router, cache, cost, context
+├── tools/                  # registry, sysmon, webfetch, skillforge, stdlib tools
+├── swarm/                  # mailbox, blackboard, orchestrator, consensus, critic, topologies
+├── memory_search/          # BM25, hybrid ranker, graph store, summarizer
+├── interface/              # web dashboard, CLI, telegram, OpenAPI
+├── ops/ benchmarks/        # backup/restore, Docker, micro-benchmarks
+├── docs/ examples/         # documentation site + runnable demos
+├── tests/                  # 200+ unit tests (offline — no network, no LLM)
+└── data/ skills/           # runtime artifacts          (gitignored)
 ```
 
 ## Experimental ideas
@@ -265,10 +279,10 @@ SparkAgent/
 
 ## Status
 
-Built autonomously, module by module (see git history — one feature commit
-per module). Test suite: `python -m unittest discover -s tests -t .`
-(81 tests, all offline). CI runs on push for Python 3.10/3.12 ×
-Ubuntu/Windows.
+Built autonomously, module by module — one atomic, always-green commit per
+component (see git history and [ROADMAP.md](ROADMAP.md)). Every commit keeps
+`python -m unittest discover -s tests -t .` green; CI runs the suite on
+Python 3.10/3.12 × Ubuntu/Windows.
 
 ---
 *SparkAgent is experimental software. The OpenShell policy layer is a
