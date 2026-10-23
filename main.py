@@ -32,8 +32,12 @@ def build_parser() -> argparse.ArgumentParser:
                         help="run the offline self-test and exit")
     parser.add_argument("--once", metavar="GOAL", default=None,
                         help="run one ReAct episode for GOAL and exit")
+    parser.add_argument("--export-policy", metavar="FILE",
+                        default=None,
+                        help="export the current policy as a draft "
+                             "OpenShell sandbox policy and exit")
     parser.add_argument("--version", action="version",
-                        version="SparkAgent 0.1.0")
+                        version="SparkAgent 0.2.0")
     return parser
 
 
@@ -186,10 +190,31 @@ async def run_daemon(config_path: str | None) -> None:
         await daemon.stop()
 
 
+def run_export_policy(output: str, config_path: str | None) -> int:
+    from kernel.config import Config
+    from kernel.daemon import AgentDaemon
+    from openshell.policy_translate import export_policy_file
+    from pathlib import Path
+
+    daemon = AgentDaemon(Config.load(config_path))
+    document = export_policy_file(daemon.policy, Path(output),
+                                  sandbox_name=daemon.cfg.get(
+                                      "openshell.sandbox_name",
+                                      "sparkagent"))
+    print(f"exported draft OpenShell policy -> {output} "
+          f"(sandbox: {document['metadata']['name']}, "
+          f"programs: {len(document['spec']['process']['execAllowlist'])})")
+    print("review and apply via OpenShell's own policy flow; "
+          "SparkAgent will not install it")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.check:
         return run_check()
+    if args.export_policy:
+        return run_export_policy(args.export_policy, args.config)
     if args.once:
         return asyncio.run(run_once(args.once, args.config))
     try:
