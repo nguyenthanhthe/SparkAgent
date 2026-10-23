@@ -125,7 +125,7 @@ class SkillForge:
                  policy: SecurityPolicy, executor: SafeExecutor,
                  bus: EventBus, fetcher: WebFetcher,
                  autonomous: bool = False, exec_timeout: float = 30.0,
-                 smoke_test: bool = True):
+                 smoke_test: bool = True, signing_key: bytes | None = None):
         self.skills_dir = skills_dir
         self.registry = registry
         self.policy = policy
@@ -135,6 +135,7 @@ class SkillForge:
         self.autonomous = autonomous
         self.exec_timeout = exec_timeout
         self.smoke_test = smoke_test
+        self.signing_key = signing_key
         self.pending: dict[str, SkillMeta] = {}
         self.skills_dir.mkdir(parents=True, exist_ok=True)
 
@@ -369,12 +370,39 @@ class SkillForge:
     def _persist(self, meta: SkillMeta, code: str) -> None:
         header = ("# --- SparkAgent skill (auto-generated) ---\n"
                   f"{META_PREFIX} {json.dumps(meta.__dict__, ensure_ascii=False)}\n")
-        (self.skills_dir / f"{meta.name}.py").write_text(header + code,
+        body = header + code
+        if self.signing_key is not None:
+            from security.signatures import sign_text
+            body = f"# sig: {sign_text(body, self.signing_key)}\n" + body
+        (self.skills_dir / f"{meta.name}.py").write_text(body,
                                                          encoding="utf-8")
 
     def _read_code(self, name: str) -> str:
         text = (self.skills_dir / f"{name}.py").read_text(encoding="utf-8")
-        return text.split("\n", 2)[2] if text.startswith("# ---") else text
+        if text.startswith("# sig: "):
+            # signature line first; the original document follows
+            text = text.split("\n", 1)[1]
+        if text.startswith("# ---"):
+            return text.split("\n", 2)[2]
+        return text
+
+    def _verify_persisted(self, name: str) -> bool:
+        """True if the stored file is intact under the active key.
+
+        - unsigned file + signing enabled  -> tampered/foreign, reject
+        - signed file + key available       -> HMAC must verify
+        - anything else (no key configured) -> accept (compat mode)
+        """
+        path = self.skills_dir / f"{name}.py"
+        raw = path.read_text(encoding="utf-8")
+        if not raw.startswith("# sig: "):
+            return self.signing_key is None
+        if self.signing_key is None:
+            return True
+        from security.signatures import verify_text
+        lines = raw.split("\n", 1)
+        tag = lines[0][len("# sig: "):].strip()
+        return verify_text(lines[1], self.signing_key, tag)
 
     def load_persisted(self) -> dict[str, int]:
         """Reload skills from disk at daemon startup."""
@@ -387,6 +415,10 @@ class SkillForge:
                 if not meta_line:
                     continue
                 meta = SkillMeta(**json.loads(meta_line[len(META_PREFIX):]))
+                if not self._verify_persisted(meta.name):
+                    logger.error("skill %s failed signature verification — "
+                                 "SKIPPED (possible tampering)", meta.name)
+                    continue
                 if meta.approved:
                     self.activate(meta)
                     loaded["active"] += 1
