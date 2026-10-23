@@ -142,12 +142,16 @@ def html_to_text(raw: str) -> tuple[str, str]:
 class WebFetcher:
     def __init__(self, allowed_ports: list[int], max_bytes: int = 2097152,
                  timeout: float = 30.0, max_chars: int = 6000,
-                 vault: SecretVault | None = None):
+                 vault: SecretVault | None = None,
+                 quarantine=None, guard_enabled: bool = True):
         self.allowed_ports = set(allowed_ports)
         self.max_bytes = max_bytes
         self.timeout = timeout
         self.max_chars = max_chars
         self.vault = vault
+        self.quarantine = quarantine
+        self.guard_enabled = guard_enabled
+        self.guard_stats = {"scanned": 0, "sanitized": 0, "quarantined": 0}
         self._session: aiohttp.ClientSession | None = None
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
@@ -212,6 +216,26 @@ class WebFetcher:
         if self.vault is not None:
             result["text"] = self.vault.redact(result["text"])
             result["title"] = self.vault.redact(result["title"])
+
+        if self.guard_enabled:
+            from security.promptguard import risk_report, scan, wrap_as_data
+            verdict = scan(result["text"])
+            self.guard_stats["scanned"] += 1
+            result["injection_risk"] = risk_report(verdict)
+            if verdict.verdict == "sanitize":
+                self.guard_stats["sanitized"] += 1
+                result["text"] = wrap_as_data(result["text"], source=url)
+            elif verdict.verdict == "quarantine":
+                self.guard_stats["quarantined"] += 1
+                if self.quarantine is not None:
+                    self.quarantine.put(result["text"],
+                                        "prompt-injection risk",
+                                        {"url": url,
+                                         "score": verdict.score})
+                result["text"] = (f"[BLOCKED] content from {url} quarantined "
+                                  f"for prompt-injection risk (score "
+                                  f"{verdict.score}). Ask the operator to "
+                                  f"review and release it.")
         return result
 
 
