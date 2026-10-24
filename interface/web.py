@@ -473,14 +473,25 @@ def build_web_app(daemon) -> web.Application:
     async def api_websocket(request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse(heartbeat=15)
         await ws.prepare(request)
-        queue = daemon.bus.subscribe("logs")
+        log_queue = daemon.bus.subscribe("logs")
+        swarm_queue = daemon.bus.subscribe("swarm")
 
         async def forward_logs() -> None:
             while True:
-                line = await queue.get()
+                line = await log_queue.get()
                 await ws.send_json({"log": daemon.vault.redact(str(line))})
 
+        async def forward_swarm() -> None:
+            while True:
+                event = await swarm_queue.get()
+                if isinstance(event, dict):
+                    event = {key: daemon.vault.redact(str(value))
+                             if isinstance(value, str) else value
+                             for key, value in event.items()}
+                await ws.send_json({"swarm": event})
+
         sender = asyncio.create_task(forward_logs())
+        swarm_sender = asyncio.create_task(forward_swarm())
         try:
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
@@ -494,7 +505,9 @@ def build_web_app(daemon) -> web.Application:
                     break
         finally:
             sender.cancel()
-            daemon.bus.unsubscribe("logs", queue)
+            swarm_sender.cancel()
+            daemon.bus.unsubscribe("logs", log_queue)
+            daemon.bus.unsubscribe("swarm", swarm_queue)
             if not ws.closed:
                 await ws.close()
         return ws

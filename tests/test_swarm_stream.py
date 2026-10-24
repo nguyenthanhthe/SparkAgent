@@ -62,6 +62,39 @@ class SwarmStreamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("[swarm] debate: starting", joined)
         self.assertIn("settled", joined)
 
+    async def test_swarm_channel_structured_debate_events(self):
+        bus = EventBus()
+        swarm_q = bus.subscribe("swarm")
+        registry = ToolRegistry(bus)
+        register_swarm_tools(registry, RoleBrain(), bus=bus)
+        await registry.call(
+            "debate", {"question": "tabs or spaces?", "rounds": 2},
+            ToolContext(source="agent"))
+        events = []
+        while not swarm_q.empty():
+            events.append(swarm_q.get_nowait())
+        round_events = [e for e in events
+                        if e["stage"] == "debate" and "round" in e]
+        self.assertEqual([e["round"] for e in round_events], [1, 2])
+        self.assertEqual(round_events[0]["rounds"], 2)
+        self.assertTrue(any(e["stage"] == "debate" and e["detail"] == "settled"
+                            for e in events))
+
+    async def test_swarm_channel_consensus_voter_progress(self):
+        bus = EventBus()
+        swarm_q = bus.subscribe("swarm")
+        registry = ToolRegistry(bus)
+        register_swarm_tools(registry, RoleBrain(), bus=bus)
+        await registry.call(
+            "consensus", {"question": "capital of France?", "voters": 3},
+            ToolContext(source="agent"))
+        events = []
+        while not swarm_q.empty():
+            events.append(swarm_q.get_nowait())
+        voters = [e["voter"] for e in events
+                  if e["stage"] == "consensus" and "voter" in e]
+        self.assertEqual(voters, [1, 2, 3])
+
     async def test_no_bus_still_works(self):
         registry = ToolRegistry()
         register_swarm_tools(registry, RoleBrain(), bus=None)

@@ -87,8 +87,14 @@ async def star(goal: str, hub: Fn, spokes: list[tuple[str, Fn]]) \
     return result
 
 
-async def debate(goal: str, fn: Fn, rounds: int = 2) -> TopologyResult:
-    """Alternate proponent/opponent perspectives, then settle."""
+async def debate(goal: str, fn: Fn, rounds: int = 2,
+                 on_round: Callable[[int, int, str, str], None] | None = None
+                 ) -> TopologyResult:
+    """Alternate proponent/opponent perspectives, then settle.
+
+    ``on_round(index, total, pro, con)`` fires after each round so
+    callers can stream progress to observers.
+    """
     result = TopologyResult(output="")
     transcript = ""
     for round_index in range(rounds):
@@ -98,6 +104,8 @@ async def debate(goal: str, fn: Fn, rounds: int = 2) -> TopologyResult:
         transcript = f"{pro}\n\n---\n\n{con}"
         result.note(f"round_{round_index + 1}", pro=pro[:120],
                     con=con[:120])
+        if on_round is not None:
+            on_round(round_index + 1, rounds, pro, con)
     result.output = await fn(goal, f"Settle the debate fairly:\n{transcript}")
     return result
 

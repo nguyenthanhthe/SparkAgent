@@ -49,9 +49,11 @@ def _role_fn(brain, role: str):
 
 def register_swarm_tools(registry: ToolRegistry, brain, bus=None) -> None:
 
-    def _emit(stage: str, detail: str) -> None:
+    def _emit(stage: str, detail: str, **extra) -> None:
         if bus is not None:
             bus.publish("logs", f"[swarm] {stage}: {detail[:160]}")
+            bus.publish("swarm", {"stage": stage, "detail": detail[:160],
+                                  **extra})
 
     async def swarm_delegate(ctx: ToolContext, goal: str,
                              workers: int = 2) -> dict:
@@ -97,10 +99,16 @@ def register_swarm_tools(registry: ToolRegistry, brain, bus=None) -> None:
                      rounds: int = 2) -> dict:
         question = require_str(question, "question", max_len=MAX_GOAL_CHARS)
         rounds = require_int(rounds, "rounds", minimum=1, maximum=3)
-        _emit("debate", f"starting {rounds} rounds on {question[:60]}")
+        _emit("debate", f"starting {rounds} rounds on {question[:60]}",
+              rounds=rounds)
+
+        def on_round(index: int, total: int, pro: str, con: str) -> None:
+            _emit("debate", f"round {index}/{total} settled",
+                  round=index, rounds=total)
+
         result = await debate_topology(question,
                                        _role_fn(brain, "debater"),
-                                       rounds=rounds)
+                                       rounds=rounds, on_round=on_round)
         _emit("debate", "settled")
         return {"answer": result.output,
                 "rounds": len(result.stages)}
@@ -128,7 +136,11 @@ def register_swarm_tools(registry: ToolRegistry, brain, bus=None) -> None:
             except Exception as exc:  # noqa: BLE001
                 return f"(voter failed: {exc})"
 
-        answers = [await one_voter() for _ in range(voters)]
+        answers = []
+        for i in range(voters):
+            answers.append(await one_voter())
+            _emit("consensus", f"voter {i + 1}/{voters} answered",
+                  voter=i + 1, voters=voters)
         votes = vote([(text, 1.0) for text in answers], quorum=0.5)
         summary = consensus_summary(votes)
         summary["answers"] = [text[:200] for text in answers]

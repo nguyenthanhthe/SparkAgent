@@ -59,6 +59,30 @@ class WebSocketTests(unittest.IsolatedAsyncioTestCase):
             await daemon.memory.close()
 
 
+    async def test_swarm_events_reach_socket(self):
+        daemon, client = await self._client()
+        try:
+            ws = await client.ws_connect("/ws")
+            await asyncio.sleep(0.05)
+            daemon.bus.publish("swarm", {"stage": "debate",
+                                         "detail": "round 1/2 settled",
+                                         "round": 1})
+            received = None
+            for _ in range(5):
+                msg = await asyncio.wait_for(ws.receive(), timeout=5)
+                if msg.type == aiohttp_ws_text():
+                    payload = json.loads(msg.data)
+                    if payload.get("swarm", {}).get("stage") == "debate":
+                        received = payload
+                        break
+            self.assertIsNotNone(received, "swarm event never arrived")
+            self.assertEqual(received["swarm"]["round"], 1)
+            await ws.close()
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+
 def aiohttp_ws_text():
     import aiohttp
     return aiohttp.WSMsgType.TEXT
