@@ -27,6 +27,7 @@ from typing import Any
 import aiohttp
 from aiohttp import web
 from kernel.logging import get_logger
+from security.auth_limiter import AuthRateLimiter
 
 logger = get_logger("web")
 
@@ -509,9 +510,19 @@ async def _auth_middleware(request: web.Request, handler):
     daemon = request.app["daemon"]
     expected = daemon.vault.get("SPARKAGENT_WEB_TOKEN")
     if expected and request.path.startswith("/api"):
+        limiter = request.app.setdefault(
+            "auth_limiter", AuthRateLimiter())
+        client = request.remote or "unknown"
+        if not limiter.allowed(client):
+            return web.json_response(
+                {"error": "too many failed auth attempts"},
+                status=429, headers={
+                    "Retry-After": str(int(limiter.retry_after(client)) + 1)})
         provided = request.headers.get("Authorization", "")
         token = provided[7:] if provided.startswith("Bearer ") else \
             request.query.get("token", "")
         if token != expected:
+            limiter.record_failure(client)
             return web.json_response({"error": "unauthorized"}, status=401)
+        limiter.record_success(client)
     return await handler(request)
