@@ -58,13 +58,24 @@ def _iter_files(data_dir: Path, excludes: set[str]) -> list[Path]:
 
 
 def create_backup(data_dir: Path, output_dir: Path,
-                  excludes: set[str] | None = None) -> BackupResult:
-    """Zip ``data_dir`` (minus excludes) into a verified archive."""
+                  excludes: set[str] | None = None,
+                  extra_dirs: list[Path] | None = None) -> BackupResult:
+    """Zip ``data_dir`` (minus excludes) plus any ``extra_dirs`` (e.g.
+    skills/) into a verified archive. Extra files are stored under their
+    directory name, so restore lands them inside the data dir."""
     if not data_dir.is_dir():
         raise BackupError(f"data directory not found: {data_dir}")
     excludes = excludes or DEFAULT_EXCLUDES
-    files = _iter_files(data_dir, excludes)
-    if not files:
+    entries_src: list[tuple[Path, str]] = [
+        (path, path.relative_to(data_dir).as_posix())
+        for path in _iter_files(data_dir, excludes)]
+    for extra in (extra_dirs or []):
+        if not extra.is_dir():
+            continue
+        entries_src.extend(
+            (path, f"{extra.name}/{path.relative_to(extra).as_posix()}")
+            for path in _iter_files(extra, excludes))
+    if not entries_src:
         raise BackupError("nothing to back up")
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -74,15 +85,14 @@ def create_backup(data_dir: Path, output_dir: Path,
     entries = []
     total = 0
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
-        for path in files:
-            relative = path.relative_to(data_dir).as_posix()
+        for path, arcname in entries_src:
             size = path.stat().st_size
             total += size
             if total > MAX_ARCHIVE_BYTES:
                 archive_path.unlink(missing_ok=True)
                 raise BackupError("backup exceeds size limit")
-            archive.write(path, relative)
-            entries.append({"path": relative, "bytes": size,
+            archive.write(path, arcname)
+            entries.append({"path": arcname, "bytes": size,
                             "sha256": _sha256(path)})
     combined = hashlib.sha256(
         "\n".join(f"{e['path']}:{e['sha256']}" for e in entries)
@@ -122,6 +132,18 @@ def verify_backup(archive_path: Path) -> dict:
     return manifest
 
 
+def prune_backups(output_dir: Path, keep: int = 10) -> int:
+    """Delete the oldest backup archives beyond ``keep``; returns how
+    many were removed. ``keep <= 0`` removes everything."""
+    archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
+    doomed = archives[:-keep] if keep > 0 else archives
+    removed = 0
+    for path in doomed:
+        path.unlink(missing_ok=True)
+        removed += 1
+    return removed
+
+
 def restore_backup(archive_path: Path, data_dir: Path,
                    overwrite: bool = False) -> dict:
     """Verify-then-restore. Writes only after all hashes check out."""
@@ -137,3 +159,50 @@ def restore_backup(archive_path: Path, data_dir: Path,
             target.write_bytes(archive.read(entry["path"]))
     return {"restored_files": manifest["file_count"],
             "total_bytes": manifest["total_bytes"]}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI: python -m ops.backup create|verify|restore."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog="python -m ops.backup",
+        description="SparkAgent backup tool (db + skills, with retention)")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    p_create = sub.add_parser("create", help="create and prune backups")
+    p_create.add_argument("--data-dir", required=True)
+    p_create.add_argument("--skills-dir", default=None,
+                          help="optional extra directory (e.g. skills/)")
+    p_create.add_argument("--output-dir", required=True)
+    p_create.add_argument("--keep", type=int, default=10)
+    p_verify = sub.add_parser("verify", help="verify an archive")
+    p_verify.add_argument("archive")
+    p_restore = sub.add_parser("restore", help="verify then restore")
+    p_restore.add_argument("archive")
+    p_restore.add_argument("--data-dir", required=True)
+    p_restore.add_argument("--overwrite", action="store_true")
+    args = parser.parse_args(argv)
+
+    if args.cmd == "create":
+        extra = [Path(args.skills_dir)] if args.skills_dir else None
+        result = create_backup(Path(args.data_dir), Path(args.output_dir),
+                               extra_dirs=extra)
+        pruned = prune_backups(Path(args.output_dir), keep=args.keep)
+        print(json.dumps({"archive": str(result.archive_path),
+                          "files": result.file_count,
+                          "bytes": result.total_bytes,
+                          "digest": result.digest,
+                          "pruned": pruned}))
+        return 0
+    if args.cmd == "verify":
+        manifest = verify_backup(Path(args.archive))
+        print(json.dumps({"ok": True, "files": manifest["file_count"],
+                          "digest": manifest["digest"]}))
+        return 0
+    result = restore_backup(Path(args.archive), Path(args.data_dir),
+                            overwrite=args.overwrite)
+    print(json.dumps({"ok": True, **result}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

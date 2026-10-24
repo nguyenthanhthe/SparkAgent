@@ -1,9 +1,11 @@
+import json
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
-from ops.backup import BackupError, create_backup, restore_backup, verify_backup
+from ops.backup import (BackupError, create_backup, main, prune_backups,
+                        restore_backup, verify_backup)
 
 
 def make_data_dir() -> Path:
@@ -93,6 +95,67 @@ class BackupTests(unittest.TestCase):
     def test_missing_archive_rejected(self):
         with self.assertRaises(BackupError):
             verify_backup(Path("no/such/backup.zip"))
+
+    def test_extra_dirs_included(self):
+        data = make_data_dir()
+        skills = Path(tempfile.mkdtemp()) / "skills"
+        skills.mkdir()
+        (skills / "alpha.py").write_text("print('a')", encoding="utf-8")
+        (skills / "beta.py").write_text("print('b')", encoding="utf-8")
+        result = create_backup(data, data.parent / "backups",
+                               extra_dirs=[skills])
+        self.assertEqual(result.file_count, 5)   # db + log + note + 2 skills
+        with zipfile.ZipFile(result.archive_path) as archive:
+            names = archive.namelist()
+        self.assertIn("skills/alpha.py", names)
+        self.assertIn("skills/beta.py", names)
+
+    def test_prune_keeps_newest(self):
+        from unittest import mock
+        data = make_data_dir()
+        output = data.parent / "backups"
+        counter = {"n": 0}
+
+        def fake_strftime(fmt, t=None):
+            if "T" in fmt:   # manifest created_at
+                return "2026-01-01T00:00:00"
+            counter["n"] += 1
+            return f"20260101-0000{counter['n']:02d}"
+
+        with mock.patch("ops.backup.time.strftime", fake_strftime):
+            for _ in range(4):
+                create_backup(data, output)
+        self.assertEqual(len(list(output.glob("*.zip"))), 4)
+        removed = prune_backups(output, keep=2)
+        self.assertEqual(removed, 2)
+        self.assertEqual(len(list(output.glob("*.zip"))), 2)
+
+    def test_prune_zero_keeps_nothing(self):
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        self.assertEqual(prune_backups(output, keep=0), 1)
+        self.assertEqual(list(output.glob("*.zip")), [])
+
+    def test_cli_create_verify(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output), "--keep", "5"])
+        self.assertEqual(rc, 0)
+        summary = json.loads(buffer.getvalue())
+        self.assertEqual(summary["pruned"], 0)
+        self.assertTrue(Path(summary["archive"]).exists())
+
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify", summary["archive"]])
+        self.assertEqual(rc, 0)
+        verdict = json.loads(buffer.getvalue().splitlines()[-1])
+        self.assertTrue(verdict["ok"])
 
 
 if __name__ == "__main__":
