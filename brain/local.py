@@ -76,6 +76,58 @@ class OllamaClient:
                            "total_tokens": prompt_toks + eval_toks}
         return content
 
+    async def chat_stream(self, messages: list[dict[str, str]],
+                          model: str | None = None,
+                          temperature: float | None = None):
+        """NDJSON streaming /api/chat: yields content deltas, records
+        final token counts into ``last_usage`` from the done frame."""
+        import json
+        payload: dict[str, Any] = {
+            "model": model or self.model,
+            "messages": messages,
+            "stream": True,
+            "keep_alive": "10m",
+            "options": {
+                "temperature": self.temperature if temperature is None else temperature,
+                "num_ctx": self.num_ctx,
+            },
+        }
+        session = await self._ensure_session()
+        try:
+            async with session.post(f"{self.base_url}/api/chat",
+                                    json=payload) as resp:
+                if resp.status != 200:
+                    body = (await resp.text())[:300]
+                    raise OllamaError(f"/api/chat HTTP {resp.status}: {body}")
+                produced = 0
+                prompt_toks = eval_toks = 0
+                async for raw_line in resp.content:
+                    line = raw_line.decode("utf-8", errors="replace").strip()
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except ValueError:
+                        continue
+                    delta = (chunk.get("message") or {}).get("content")
+                    if delta:
+                        produced += 1
+                        yield delta
+                    if chunk.get("done"):
+                        prompt_toks = int(chunk.get("prompt_eval_count") or 0)
+                        eval_toks = int(chunk.get("eval_count") or 0)
+                self.last_usage = {"prompt_tokens": prompt_toks,
+                                   "completion_tokens": eval_toks,
+                                   "total_tokens": prompt_toks + eval_toks}
+                if produced == 0:
+                    raise OllamaError("empty stream from local model")
+        except asyncio.TimeoutError as exc:
+            raise OllamaError(f"local model timed out after {self.timeout}s") \
+                from exc
+        except aiohttp.ClientError as exc:
+            raise OllamaError(f"cannot reach Ollama at {self.base_url}: {exc}") \
+                from exc
+
     # ----------------------------------------------------------------- health
     async def healthy(self) -> tuple[bool, str]:
         """Return (ok, detail). ok requires the server up AND the model pulled."""

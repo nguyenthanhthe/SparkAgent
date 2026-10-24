@@ -191,6 +191,80 @@ class Brain:
                     raise
         raise BrainUnavailable(errors)
 
+    async def chat_stream(self, messages: list[dict[str, str]],
+                          force: Tier | None = None):
+        """Streaming chat: yields text deltas from the first tier that
+        starts producing. A tier that fails *before* its first chunk is
+        skipped like in :meth:`chat` (failover); a failure after output
+        has begun propagates — partial answers are not silently re-run.
+
+        Cache is not consulted: streamed answers are consumed
+        incrementally and repeated prompts stay rare on this path.
+        """
+        order = [force] if force else [Tier.LOCAL, Tier.REMOTE]
+        now = time.monotonic()
+        errors: dict[str, str] = {}
+        for tier in order:
+            if not self._tier_available(tier):
+                errors[tier.value] = "tier disabled"
+                continue
+            state = self._state[tier]
+            if force is None and state.cooldown_until > now:
+                errors[tier.value] = (f"in cooldown after {state.consecutive_failures} "
+                                      f"failures (last: {state.last_error})")
+                continue
+            if tier is Tier.LOCAL and self.resource_guard is not None:
+                try:
+                    guard_ok = await self.resource_guard()
+                except Exception:  # noqa: BLE001 — guard must never kill chat
+                    guard_ok = True
+                if not guard_ok:
+                    errors[tier.value] = "resource guard: not enough free VRAM"
+                    continue
+            if tier is Tier.REMOTE and self.budget_guard is not None:
+                try:
+                    within_budget = await self.budget_guard()
+                except Exception:  # noqa: BLE001 — guard must never kill chat
+                    within_budget = True
+                if not within_budget:
+                    errors[tier.value] = ("daily spend budget exhausted — "
+                                          "remote tier paused")
+                    continue
+            client = self.local if tier is Tier.LOCAL else self.remote
+            model = client.model
+            started = time.monotonic()
+            produced = 0
+            try:
+                async for delta in client.chat_stream(messages):
+                    if produced == 0:
+                        state.requests += 1
+                        state.consecutive_failures = 0
+                        state.cooldown_until = 0.0
+                    produced += 1
+                    yield delta
+                usage = getattr(client, "last_usage", {}) or {}
+                self.costs.record(model,
+                                  int(usage.get("prompt_tokens") or 0),
+                                  int(usage.get("completion_tokens") or 0),
+                                  tier=tier.value)
+                logger.debug("streamed %d chunks from %s in %.1fs",
+                             produced, model, time.monotonic() - started)
+                return
+            except Exception as exc:  # noqa: BLE001 — failover until first chunk
+                if produced:
+                    raise
+                state.failures += 1
+                state.consecutive_failures += 1
+                state.last_error = f"{type(exc).__name__}: {exc}"
+                errors[tier.value] = state.last_error
+                logger.warning("stream tier %s failed pre-chunk: %s",
+                               tier.value, exc)
+                if state.consecutive_failures >= self._fallback_after:
+                    state.cooldown_until = time.monotonic() + self._cooldown_seconds
+                if force is not None:
+                    raise
+        raise BrainUnavailable(errors)
+
     # ----------------------------------------------------------------- health
     async def health(self) -> dict:
         local_ok, detail = (False, "disabled") if not self.local_enabled \

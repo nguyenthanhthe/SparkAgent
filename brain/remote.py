@@ -110,3 +110,61 @@ class OpenAICompatClient:
             return data["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError, TypeError):
             return ""
+
+    async def chat_stream(self, messages: list[dict[str, str]],
+                          temperature: float | None = None):
+        """SSE streaming chat: yields content deltas, records final
+        usage from the closing frame when the server provides one."""
+        import json
+        api_key = self._api_key_provider()
+        if not api_key:
+            raise RemoteNotConfigured("no API key configured (set GLM_API_KEY)")
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature if temperature is None else temperature,
+            "stream": True,
+        }
+        headers = {"Authorization": f"Bearer {api_key}",
+                   "Content-Type": "application/json"}
+        session = await self._ensure_session()
+        try:
+            async with session.post(self.chat_url, json=payload,
+                                    headers=headers) as resp:
+                if resp.status != 200:
+                    body = (await resp.text())[:300]
+                    raise RemoteLLMError(f"HTTP {resp.status}: {body}")
+                produced = 0
+                prompt_toks = completion_toks = 0
+                async for raw_line in resp.content:
+                    line = raw_line.decode("utf-8", errors="replace").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if not data or data == "[DONE]":
+                        continue
+                    try:
+                        chunk = json.loads(data)
+                    except ValueError:
+                        continue
+                    delta = ((chunk.get("choices") or [{}])[0].get("delta")
+                             or {}).get("content")
+                    if delta:
+                        produced += 1
+                        yield delta
+                    usage = chunk.get("usage")
+                    if usage:
+                        prompt_toks = int(usage.get("prompt_tokens")
+                                          or prompt_toks)
+                        completion_toks = int(usage.get("completion_tokens")
+                                              or completion_toks)
+                self.last_usage = {"prompt_tokens": prompt_toks,
+                                   "completion_tokens": completion_toks,
+                                   "total_tokens": prompt_toks
+                                   + completion_toks}
+                if produced == 0:
+                    raise RemoteLLMError(f"empty stream from {self.model}")
+        except asyncio.TimeoutError as exc:
+            raise RemoteLLMError(
+                f"remote timed out after {self.timeout}s") from exc
