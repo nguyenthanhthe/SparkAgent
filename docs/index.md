@@ -14,6 +14,7 @@ swarm coordination, and hybrid memory.
 | [Memory](memory.md) | hybrid recall, consolidation, entity graph |
 | [Swarm](swarm.md) | roles, topologies, consensus |
 | [Operations](operations.md) | services, Docker, monitoring, backups |
+| [Failover runbook](runbook-failover.md) | GPU tier failover: signals, actions, verification |
 | [API](api.md) | HTTP endpoints, auth, CLI |
 | [FAQ](faq.md) | common questions |
 
