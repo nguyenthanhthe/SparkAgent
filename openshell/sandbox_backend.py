@@ -74,9 +74,10 @@ class OpenShellExecutor(SafeExecutor):
                   cwd: Path | None = None):
         args = [str(a) for a in (args or [])]
         timeout = timeout or self.timeout
+        workdir = Path(cwd) if cwd is not None else self.policy.sandbox_root
 
         # 1. the policy layer always runs first, regardless of backend
-        admitted = self._admit(program, args)
+        admitted = self._admit(program, args, workdir=workdir)
         if admitted[0] is None:
             return admitted[1]
         exe = admitted[0]
@@ -91,9 +92,9 @@ class OpenShellExecutor(SafeExecutor):
                 "detail": f"{program} via openshell sandbox "
                           f"{self.sandbox_name!r}"})
             return await self._spawn_and_collect(argv, program, args,
-                                                 timeout, cwd)
+                                                 timeout, workdir)
 
         # 3. transparent fallback to the host policy executor
         self.backend_stats["fallback"] += 1
         return await self._spawn_and_collect([exe, *args], program, args,
-                                             timeout, cwd)
+                                             timeout, workdir)

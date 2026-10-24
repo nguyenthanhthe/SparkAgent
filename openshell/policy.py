@@ -81,10 +81,18 @@ class SecurityPolicy:
     """Validates commands and paths against the sandbox policy."""
 
     def __init__(self, allowed_programs: list[str], allowed_roots: list[Path],
-                 sandbox_root: Path, allow_shell: bool = False):
+                 sandbox_root: Path, allow_shell: bool = False,
+                 program_cwd: dict[str, list[Path]] | None = None):
         self.allowed_programs = {self._normalize_program(p) for p in allowed_programs}
         self.sandbox_root = sandbox_root.resolve()
         self.allow_shell = allow_shell
+        # optional per-program cwd restriction: program -> allowed cwd
+        # roots (all paths already resolved). Empty/missing = any
+        # allowed root is fine (the default behavior).
+        self.program_cwd = {
+            self._normalize_program(name): [Path(root).resolve()
+                                            for root in roots]
+            for name, roots in (program_cwd or {}).items()}
         # Precompute comparable (normcase, resolved) roots once.
         self._roots = [os.path.normcase(str(root.resolve())) for root in allowed_roots]
 
@@ -174,6 +182,25 @@ class SecurityPolicy:
             raise SecurityError(
                 f"path argument {arg!r} escapes the allowed roots "
                 f"{self._roots}")
+
+    def validate_workdir(self, program: str, cwd: Path) -> None:
+        """When a per-program cwd allowlist exists, the working directory
+        must fall inside that program's roots (ADR-0004)."""
+        roots = self.program_cwd.get(self._normalize_program(program))
+        if not roots:
+            return
+        try:
+            resolved = os.path.normcase(str(Path(cwd).resolve()))
+        except (OSError, RuntimeError) as exc:
+            raise SecurityError(f"unresolvable working directory {cwd!r}") \
+                from exc
+        for root in roots:
+            root_cmp = os.path.normcase(str(root))
+            if resolved == root_cmp or resolved.startswith(root_cmp + os.sep):
+                return
+        raise SecurityError(
+            f"program {program!r} may only run from "
+            f"{[str(r) for r in roots]}, got {str(cwd)!r}")
 
     # ------------------------------------------------------------------ paths
     def validate_path(self, path: str | Path, *, write: bool = False) -> Path:

@@ -91,19 +91,21 @@ class SafeExecutor:
         args = [str(a) for a in (args or [])]
         timeout = timeout or self.timeout
 
-        admitted = self._admit(program, args)
+        workdir = Path(cwd) if cwd is not None else self.policy.sandbox_root
+        admitted = self._admit(program, args, workdir=workdir)
         if admitted[0] is None:
             return admitted[1]
         exe = admitted[0]
         return await self._spawn_and_collect(
-            [exe, *args], program, args, timeout, cwd)
+            [exe, *args], program, args, timeout, workdir)
 
-    def _admit(self, program: str,
-               args: list[str]) -> tuple[str | None, "ExecResult | None"]:
-        """Policy + rate-limit + PATH admission. Returns (exe, None) to
-        proceed or (None, blocked_result) to stop."""
+    def _admit(self, program: str, args: list[str],
+               workdir: Path) -> tuple[str | None, "ExecResult | None"]:
+        """Policy + workdir + rate-limit + PATH admission. Returns
+        (exe, None) to proceed or (None, blocked_result) to stop."""
         try:
             self.policy.validate_command(program, args)
+            self.policy.validate_workdir(program, workdir)
         except SecurityError as exc:
             logger.warning("blocked command %s %s: %s", program, args, exc)
             self.bus.publish("audit", {"actor": "executor", "action": "exec.blocked",
