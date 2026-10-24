@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, AsyncIterator
 
 
 @dataclass
@@ -44,6 +44,21 @@ class ChatAdapter(ABC):
     @abstractmethod
     async def healthy(self) -> tuple[bool, str]:
         """Cheap liveness probe: (ok, human detail)."""
+
+    async def chat_stream(self, messages: list[dict[str, str]],
+                          *, temperature: float | None = None,
+                          max_tokens: int | None = None,
+                          json_mode: bool = False) -> AsyncIterator[str]:
+        """Yield response text incrementally.
+
+        Default fallback: one non-streaming ``chat`` call yielded as a
+        single chunk — providers without a streaming transport stay
+        usable through the same interface, at full-wait latency.
+        """
+        response = await self.chat(messages, temperature=temperature,
+                                   max_tokens=max_tokens,
+                                   json_mode=json_mode)
+        yield response.text
 
     async def close(self) -> None:
         """Release any lazily-created resources."""
