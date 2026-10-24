@@ -10,6 +10,21 @@ def parse(text: str) -> Any:
     return json.loads(text)
 
 
+def parse_jsonl(text: str) -> list[Any]:
+    """Parse newline-delimited JSON; blank lines are skipped, malformed
+    lines raise ValueError with the 1-based line number."""
+    docs: list[Any] = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            docs.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"line {lineno}: {exc}") from exc
+    return docs
+
+
 def get_path(data: Any, path: str) -> Any:
     """Dotted path with list indices: ``items.0.name`` -> data["items"][0]["name"]."""
     node = data

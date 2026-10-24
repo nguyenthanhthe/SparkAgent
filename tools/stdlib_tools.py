@@ -77,13 +77,18 @@ def register_tools(registry: ToolRegistry,
 
     # ------------------------------------------------------------ json_query
     async def json_query(ctx: ToolContext, data: str, path: str = "",
-                         mode: str = "get") -> dict:
+                         mode: str = "get", jsonl: bool = False) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode", ["get", "search", "shape", "stats"])
         try:
-            parsed = json_mod.parse(data)
+            if jsonl:
+                parsed = json_mod.parse_jsonl(data)
+            else:
+                parsed = json_mod.parse(data)
         except json_lib.JSONDecodeError as exc:
             raise ToolFailure(f"invalid JSON: {exc}") from exc
+        except ValueError as exc:
+            raise ToolFailure(f"invalid JSONL: {exc}") from exc
         if mode == "get":
             require_str(path, "path", min_len=1)
             try:
@@ -102,12 +107,15 @@ def register_tools(registry: ToolRegistry,
         description=("Inspect JSON: mode=get reads a dotted path "
                      "(e.g. 'items.0.name'), mode=search finds paths "
                      "containing a needle, mode=shape summarizes structure, "
-                     "mode=stats counts keys/leaves."),
+                     "mode=stats counts keys/leaves. Set jsonl=true for "
+                     "newline-delimited JSON (treated as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
                              "desc": "raw JSON text"},
                     "path": {"type": "string", "required": False,
                              "desc": "dotted path (get) or needle (search)"},
-                    "mode": {"type": "string", "required": False}},
+                    "mode": {"type": "string", "required": False},
+                    "jsonl": {"type": "boolean", "required": False,
+                              "desc": "parse input as JSON lines"}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze

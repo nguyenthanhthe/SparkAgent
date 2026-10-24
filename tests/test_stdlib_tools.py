@@ -75,6 +75,24 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                 "json_query", {"data": "{not json", "mode": "shape"},
                 self.ctx)
 
+    async def test_json_query_jsonl_mode(self):
+        jsonl = '{"name": "alice", "n": 1}\n\n{"name": "bob", "n": 2}\n'
+        result = await self.registry.call(
+            "json_query", {"data": jsonl, "mode": "get",
+                           "path": "1.name", "jsonl": True}, self.ctx)
+        self.assertIn("bob", result)
+        result = await self.registry.call(
+            "json_query", {"data": jsonl, "mode": "stats", "jsonl": True},
+            self.ctx)
+        self.assertIn('"list_len": 2', result)
+
+    async def test_json_query_jsonl_bad_line_reports_number(self):
+        with self.assertRaises(ToolFailure) as caught:
+            await self.registry.call(
+                "json_query", {"data": '{"ok": 1}\n{broken\n',
+                               "mode": "stats", "jsonl": True}, self.ctx)
+        self.assertIn("line 2", str(caught.exception))
+
     async def test_csv_analyze_filter(self):
         csv_data = "name,score\nalice,90\nbob,70\n"
         result = await self.registry.call(
