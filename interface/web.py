@@ -90,6 +90,15 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 <div class="card"><h2>Tasks</h2><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
 <div class="card"><h2>Skills</h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
+<div class="card" style="margin-bottom:12px"><h2>Episodes</h2>
+  <div style="max-height:220px;overflow:auto"><table id="episodes"></table></div>
+</div>
+<div class="card" id="epdetail" style="margin-bottom:12px;display:none">
+  <h2>Episode detail <button class="small" style="float:right"
+    onclick="$('epdetail').style.display='none'">close</button></h2>
+  <div id="ephead"></div>
+  <div id="epsteps" style="max-height:320px;overflow:auto;margin-top:8px"></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>Operator approvals <span id="apcount" class="badge b-warn" style="display:none"></span></h2>
   <div style="max-height:180px;overflow:auto"><table id="approvals"></table></div>
 </div>
@@ -193,6 +202,33 @@ async function refreshQuarantine(){try{const data=await api('/api/quarantine');
 async function quar(id,action){try{const r=await api(`/api/quarantine/${id}/${action}`,{method:'POST'});
   toast(action+'d');refreshQuarantine()}catch(e){toast(e.message)}}
 
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function epBadge(st){return st==='success'?badge('b-ok',st):
+  st==='failed'?badge('b-err',st):badge('b-warn',st)}
+async function refreshEpisodes(){try{const payload=await api('/api/episodes?limit=15');
+  const eps=payload.items||payload||[];
+  $('episodes').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th>tags</th><th></th></tr>'+
+   (eps.length?eps.map(e=>`<tr><td>${e.id}</td><td>${esc(e.goal.slice(0,80))}</td>
+    <td>${epBadge(e.status)}</td>
+    <td>${(e.tags||[]).map(t=>badge('b-dim',esc(t))).join(' ')||'<span style="color:var(--dim)">—</span>'}</td>
+    <td><button class="small" onclick="showEpisode(${e.id})">view</button></td></tr>`).join('')
+    :'<tr><td colspan="5" style="color:var(--dim)">no episodes yet</td></tr>');
+}catch(e){}}
+async function showEpisode(id){try{const d=await api('/api/episodes/'+id);
+  $('epdetail').style.display='block';
+  $('ephead').innerHTML=kv('goal',esc(d.goal))+kv('status',epBadge(d.status))
+    +kv('source',esc(d.source))+kv('tier',esc(d.model_tier||'—'))
+    +((d.tags||[]).length?kv('tags',(d.tags||[]).map(t=>badge('b-dim',esc(t))).join(' ')):'')
+    +(d.final_answer?`<div style="margin-top:6px;font-size:13px">${esc(d.final_answer.slice(0,600))}</div>`
+      :'<div style="margin-top:6px;color:var(--dim)">no final answer yet</div>');
+  $('epsteps').innerHTML='<table><tr><th>#</th><th>kind</th><th>content</th></tr>'+
+   ((d.step_log||[]).length?d.step_log.map(s=>`<tr><td>${s.idx}</td>
+     <td>${esc(s.kind)}</td><td style="white-space:pre-wrap">${esc(String(s.content).slice(0,500))}</td></tr>`).join('')
+    :'<tr><td colspan="3" style="color:var(--dim)">no steps recorded</td></tr>')+'</table>';
+  $('epdetail').scrollIntoView({behavior:'smooth',block:'start'});
+}catch(e){toast('failed: '+e.message)}}
+
 async function refreshCost(){try{const b=await api('/api/brain');
   const today=b.budget.today_usd;
   const byModel=Object.entries(b.costs.by_model||{})
@@ -211,10 +247,11 @@ es.onmessage=ev=>{try{const d=JSON.parse(ev.data);
   if(d.log){lines.push(d.log);if(lines.length>400)lines.shift();
     log.textContent=lines.join('\\n');log.scrollTop=log.scrollHeight}}catch(e){}};
 refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
-refreshQuarantine();refreshCost();
+refreshQuarantine();refreshCost();refreshEpisodes();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
 setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
 setInterval(refreshQuarantine,15000);setInterval(refreshCost,10000);
+setInterval(refreshEpisodes,10000);
 </script></body></html>"""
 
 

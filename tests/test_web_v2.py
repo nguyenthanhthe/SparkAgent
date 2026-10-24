@@ -31,6 +31,13 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_dashboard_has_episode_viewer(self):
+        from interface.web import _DASHBOARD_HTML
+        self.assertIn('id="episodes"', _DASHBOARD_HTML)
+        self.assertIn('id="epdetail"', _DASHBOARD_HTML)
+        self.assertIn("showEpisode", _DASHBOARD_HTML)
+        self.assertIn("refreshEpisodes", _DASHBOARD_HTML)
+
     async def test_metrics_endpoint_prometheus(self):
         daemon, client = await self._setup()
         try:
