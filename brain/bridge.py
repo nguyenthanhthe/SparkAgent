@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Awaitable, Callable
 
 from brain.cache import ResponseCache, cache_key as cache_key_of
+from brain.cost import CostTracker
 from brain.local import OllamaClient
 from brain.remote import OpenAICompatClient
 from kernel.bus import EventBus
@@ -92,6 +93,7 @@ class Brain:
             max_entries=int(self.cfg.get("brain.cache_entries", 256)),
             ttl_seconds=float(self.cfg.get("brain.cache_ttl", 900)))
         self.cache_hits = 0
+        self.costs = CostTracker()
         self._state: dict[Tier, _TierState] = {Tier.LOCAL: _TierState(),
                                                Tier.REMOTE: _TierState()}
 
@@ -111,6 +113,8 @@ class Brain:
             if entry is not None:
                 self.cache_hits += 1
                 logger.debug("brain cache hit (%d total)", self.cache_hits)
+                self.costs.record(entry.usage.get("model", first_model),
+                                  0, 0, tier=Tier.LOCAL.value, cached=True)
                 return BrainResponse(text=entry.text,
                                      tier=Tier.LOCAL,
                                      model=entry.usage.get("model",
@@ -158,13 +162,19 @@ class Brain:
                 state.requests += 1
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
+                model = self.local.model if tier is Tier.LOCAL \
+                    else self.remote.model
+                usage = getattr(self.local if tier is Tier.LOCAL
+                                else self.remote, "last_usage", {}) or {}
+                self.costs.record(model,
+                                  int(usage.get("prompt_tokens") or 0),
+                                  int(usage.get("completion_tokens") or 0),
+                                  tier=tier.value)
                 if cache_key is not None:
                     self.cache.put(cache_key, text, {
-                        "model": self.local.model if tier is Tier.LOCAL
-                        else self.remote.model})
-                return BrainResponse(text=text, tier=tier,
-                                     model=self.local.model if tier is Tier.LOCAL
-                                     else self.remote.model,
+                        "model": model,
+                        "total_tokens": int(usage.get("total_tokens") or 0)})
+                return BrainResponse(text=text, tier=tier, model=model,
                                      elapsed=time.monotonic() - started)
             except Exception as exc:  # noqa: BLE001 — any tier error fails over
                 state.failures += 1
@@ -203,6 +213,10 @@ class Brain:
     def stats(self) -> dict[str, dict]:
         return {tier.value: {"requests": st.requests, "failures": st.failures}
                 for tier, st in self._state.items()}
+
+    def cost_report(self) -> dict:
+        """Cost ledger snapshot: every chat (hit or miss) is recorded."""
+        return self.costs.report()
 
     def _tier_available(self, tier: Tier) -> bool:
         return {Tier.LOCAL: self.local_enabled,

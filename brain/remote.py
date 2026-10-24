@@ -37,6 +37,8 @@ class OpenAICompatClient:
         self.temperature = temperature
         self.max_retries = max_retries
         self._session: aiohttp.ClientSession | None = None
+        # usage dict from the last successful chat (API-reported token counts)
+        self.last_usage: dict = {}
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -74,6 +76,11 @@ class OpenAICompatClient:
                         data = await resp.json()
                         content = self._extract(data)
                         if content:
+                            usage = data.get("usage") or {}
+                            self.last_usage = {
+                                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+                                "completion_tokens": int(usage.get("completion_tokens") or 0),
+                                "total_tokens": int(usage.get("total_tokens") or 0)}
                             return content
                         raise RemoteLLMError(
                             f"malformed response: {str(data)[:200]}")

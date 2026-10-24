@@ -26,6 +26,9 @@ class OllamaClient:
         self.num_ctx = num_ctx
         self.temperature = temperature
         self._session: aiohttp.ClientSession | None = None
+        # token counts from the last successful chat (Ollama reports
+        # prompt_eval_count / eval_count); zeros when absent
+        self.last_usage: dict[str, int] = {}
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -66,6 +69,11 @@ class OllamaClient:
         content = (data.get("message") or {}).get("content")
         if not content:
             raise OllamaError(f"empty response from local model: {str(data)[:200]}")
+        prompt_toks = int(data.get("prompt_eval_count") or 0)
+        eval_toks = int(data.get("eval_count") or 0)
+        self.last_usage = {"prompt_tokens": prompt_toks,
+                           "completion_tokens": eval_toks,
+                           "total_tokens": prompt_toks + eval_toks}
         return content
 
     # ----------------------------------------------------------------- health
