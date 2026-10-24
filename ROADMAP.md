@@ -61,18 +61,18 @@ pagination (97) · CI coverage (98).
 9. ✅ golden prompt contract tests (127)
 10. ✅ disk quota watch in housekeeping (130)
 
-## Wave Q backlog (next)
+## Wave Q status (complete)
 
 1. ✅ brain: streaming chat through the bridge (chat_stream, failover before first chunk)
 2. ✅ interface: dashboard swarm activity feed via SSE swarm events
 3. ✅ openshell: per-program exec latency histograms (exec_seconds_<program>)
 4. ✅ kernel: episode tags enrich memory recall hits + /api/memories
-5. security: quarantine TTL auto-expiry sweep
-6. tools: json_query JSONL mode
-7. docs: GPU tier failover runbook
-8. brain: per-role temperature override for swarm roles
-9. interface: /api/tasks/{id} detail endpoint
-10. ops: backup script for db + skills with retention
+5. ✅ security: quarantine TTL auto-expiry sweep (housekeeping, security.quarantine.ttl_seconds)
+6. ✅ tools: json_query JSONL mode (line-numbered parse errors)
+7. ✅ docs: GPU tier failover runbook (docs/runbook-failover.md)
+8. ✅ brain: per-role temperature via swarm.temperature.<role>, wired through Brain.chat
+9. ✅ interface: /api/tasks/{id} detail endpoint
+10. ✅ ops: backup CLI (python -m ops.backup) with skills dir + retention pruning
 
 ## Wave P status (complete)
 
