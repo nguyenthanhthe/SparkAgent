@@ -33,6 +33,15 @@ MAX_GOAL_CHARS = 2000
 
 
 def _role_fn(brain, role: str):
+    # optional per-role temperature: swarm.temperature.<role> in config;
+    # None keeps the tier default
+    temperature = None
+    cfg = getattr(brain, "cfg", None)
+    if cfg is not None:
+        configured = cfg.get(f"swarm.temperature.{role}")
+        if configured is not None:
+            temperature = float(configured)
+
     async def handler(goal: str, context: str) -> str:
         messages = [
             {"role": "system", "content": ROLE_PROMPTS[role]},
@@ -40,7 +49,11 @@ def _role_fn(brain, role: str):
              "content": f"Goal: {goal}\n\nContext:\n{context or '(none)'}"},
         ]
         try:
-            response = await brain.chat(messages)
+            if temperature is None:
+                response = await brain.chat(messages)
+            else:
+                response = await brain.chat(messages,
+                                            temperature=temperature)
         except Exception as exc:  # noqa: BLE001 — role failure surfaces in report
             return f"[{role} failed: {type(exc).__name__}: {exc}]"
         return response.text

@@ -100,15 +100,18 @@ class Brain:
     # ------------------------------------------------------------------- chat
     async def chat(self, messages: list[dict[str, str]],
                    force: Tier | None = None,
-                   json_mode: bool = False) -> BrainResponse:
+                   json_mode: bool = False,
+                   temperature: float | None = None) -> BrainResponse:
         order = [force] if force else [Tier.LOCAL, Tier.REMOTE]
 
         cache_key = None
         if self.cache_enabled and force is None:
             first_model = self.local.model if self.local_enabled else \
                 self.remote.model
-            cache_key = cache_key_of(first_model, messages,
-                                     json_mode=json_mode)
+            cache_params: dict = {"json_mode": json_mode}
+            if temperature is not None:
+                cache_params["temperature"] = temperature
+            cache_key = cache_key_of(first_model, messages, **cache_params)
             entry = self.cache.get(cache_key)
             if entry is not None:
                 self.cache_hits += 1
@@ -156,9 +159,11 @@ class Brain:
             try:
                 started = time.monotonic()
                 if tier is Tier.LOCAL:
-                    text = await self.local.chat(messages)
+                    text = await self.local.chat(messages,
+                                                 temperature=temperature)
                 else:
-                    text = await self.remote.chat(messages)
+                    text = await self.remote.chat(messages,
+                                                  temperature=temperature)
                 state.requests += 1
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
