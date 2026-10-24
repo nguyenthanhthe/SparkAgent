@@ -81,7 +81,10 @@ class AgentDaemon:
             on_change=lambda request: self.bus.publish(
                 "logs", f"[approval] {request.status} {request.kind}: "
                         f"{request.summary[:100]}"))
-        self.quarantine = QuarantineStore(self.cfg.root / "data" / "quarantine")
+        self.quarantine = QuarantineStore(
+            self.cfg.root / "data" / "quarantine",
+            ttl_seconds=float(self.cfg.get("security.quarantine.ttl_seconds",
+                                           7 * 24 * 3600)))
         self.health = HealthRegistry()
 
         # Brain + memory
@@ -350,6 +353,10 @@ class AgentDaemon:
                 if digests:
                     logger.info("consolidated %d episode(s) into memory",
                                 digests)
+                expired = self.quarantine.expire()
+                if expired:
+                    logger.info("quarantine TTL sweep removed %d item(s)",
+                                expired)
                 saved = self.entity_graph.save(self.cfg.root / "data" /
                                                "graph.json")
                 logger.debug("entity graph persisted: %d edges", saved)

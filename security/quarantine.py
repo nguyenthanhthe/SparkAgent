@@ -18,9 +18,12 @@ MAX_TOTAL_BYTES = 16 * 1024 * 1024
 
 
 class QuarantineStore:
-    def __init__(self, root: Path, max_total_bytes: int = MAX_TOTAL_BYTES):
+    def __init__(self, root: Path, max_total_bytes: int = MAX_TOTAL_BYTES,
+                 ttl_seconds: float = 7 * 24 * 3600):
         self.root = root
         self.max_total_bytes = max_total_bytes
+        # items older than the TTL are deleted by expire(); 0 disables
+        self.ttl_seconds = ttl_seconds
         self.root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------- api
@@ -83,6 +86,29 @@ class QuarantineStore:
             self._delete_files(meta_path.stem)
             count += 1
         return count
+
+    def expire(self) -> int:
+        """Delete items older than the TTL; returns how many were removed.
+
+        Called by housekeeping so forgotten quarantined blobs cannot pile
+        up forever. Items carry ``expires_at`` in their record so the
+        sweep is auditable via ``list()``.
+        """
+        if self.ttl_seconds <= 0:
+            return 0
+        now = time.time()
+        removed = 0
+        for item in self.list(limit=10_000):
+            created = item.get("created_at", "")
+            try:
+                created_ts = time.mktime(
+                    time.strptime(created, "%Y-%m-%dT%H:%M:%S"))
+            except ValueError:
+                continue   # unparsable timestamp: keep for operator review
+            if now - created_ts > self.ttl_seconds:
+                self._delete_files(item["id"])
+                removed += 1
+        return removed
 
     # -------------------------------------------------------------- internals
     def _delete_files(self, item_id: str) -> None:
