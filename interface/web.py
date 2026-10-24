@@ -119,6 +119,10 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
     placeholder="def run(**params): …  (no imports; helpers: fetch, read_file, write_file, list_dir, run_command, log)"></textarea>
   <div class="row"><span></span><button onclick="createSkill()">Create skill</button></div>
 </details>
+<div class="card" style="margin-bottom:12px"><h2>Swarm activity</h2>
+  <div id="swarm" style="max-height:160px;overflow:auto;font:12px var(--mono)">
+    <span style="color:var(--dim)">multi-agent progress appears here</span></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>Live log</h2><div id="log"></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -245,10 +249,18 @@ async function refreshCost(){try{const b=await api('/api/brain');
 }catch(e){}}
 
 const log=$('log');const lines=[];
+const swarmFeed=$('swarm');const swarmEvents=[];
 const es=new EventSource('/api/stream');
 es.onmessage=ev=>{try{const d=JSON.parse(ev.data);
   if(d.log){lines.push(d.log);if(lines.length>400)lines.shift();
-    log.textContent=lines.join('\\n');log.scrollTop=log.scrollHeight}}catch(e){}};
+    log.textContent=lines.join('\\n');log.scrollTop=log.scrollHeight}
+  if(d.swarm){const e=d.swarm;
+    swarmEvents.push(e);if(swarmEvents.length>60)swarmEvents.shift();
+    swarmFeed.innerHTML=swarmEvents.map(x=>`<div style="padding:2px 0;border-bottom:1px solid var(--border)">
+      ${badge('b-dim',esc(x.stage))} ${esc(x.detail||'')}
+      ${x.round!=null?badge('b-warn',`round ${x.round}/${x.rounds??'?'}`):''}
+      ${x.voter!=null?badge('b-warn',`voter ${x.voter}/${x.voters??'?'}`):''}</div>`).join('');
+    swarmFeed.scrollTop=swarmFeed.scrollHeight}}catch(e){}};
 refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
 refreshQuarantine();refreshCost();refreshEpisodes();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
@@ -370,20 +382,43 @@ def build_web_app(daemon) -> web.Application:
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no"})
         await response.prepare(request)
-        queue = daemon.bus.subscribe("logs")
+        log_queue = daemon.bus.subscribe("logs")
+        swarm_queue = daemon.bus.subscribe("swarm")
+
+        def _send(payload: dict) -> bytes:
+            return (f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    ).encode("utf-8")
+
+        log_t = asyncio.create_task(log_queue.get())
+        swarm_t = asyncio.create_task(swarm_queue.get())
         try:
             while True:
-                try:
-                    line = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    payload = json.dumps({"log": daemon.vault.redact(str(line))},
-                                         ensure_ascii=False)
-                    await response.write(f"data: {payload}\n\n".encode("utf-8"))
-                except asyncio.TimeoutError:
+                done, _ = await asyncio.wait({log_t, swarm_t}, timeout=15.0,
+                                             return_when=asyncio.
+                                             FIRST_COMPLETED)
+                if not done:
                     await response.write(b": ping\n\n")
+                    continue
+                if log_t in done:
+                    line = log_t.result()
+                    await response.write(_send(
+                        {"log": daemon.vault.redact(str(line))}))
+                    log_t = asyncio.create_task(log_queue.get())
+                if swarm_t in done:
+                    event = swarm_t.result()
+                    if isinstance(event, dict):
+                        event = {key: daemon.vault.redact(str(value))
+                                 if isinstance(value, str) else value
+                                 for key, value in event.items()}
+                    await response.write(_send({"swarm": event}))
+                    swarm_t = asyncio.create_task(swarm_queue.get())
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
-            daemon.bus.unsubscribe("logs", queue)
+            log_t.cancel()
+            swarm_t.cancel()
+            daemon.bus.unsubscribe("logs", log_queue)
+            daemon.bus.unsubscribe("swarm", swarm_queue)
         return response
 
     app.router.add_get("/", index)

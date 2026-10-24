@@ -38,6 +38,37 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("showEpisode", _DASHBOARD_HTML)
         self.assertIn("refreshEpisodes", _DASHBOARD_HTML)
 
+    async def test_sse_stream_forwards_swarm_events(self):
+        daemon, client = await self._setup()
+        try:
+            import asyncio as _asyncio
+            import json as _json
+            resp = await client.get("/api/stream")
+            await _asyncio.sleep(0.05)
+            daemon.bus.publish("swarm", {"stage": "consensus",
+                                         "detail": "voter 1/3 answered",
+                                         "voter": 1, "voters": 3})
+            found = None
+            deadline = _asyncio.get_event_loop().time() + 5
+            buffer = b""
+            while _asyncio.get_event_loop().time() < deadline and not found:
+                chunk = await resp.content.read(256)
+                if not chunk:
+                    break
+                buffer += chunk
+                for raw in buffer.split(b"\n\n"):
+                    if raw.startswith(b"data: "):
+                        payload = _json.loads(raw[6:])
+                        if payload.get("swarm", {}).get("stage") == \
+                                "consensus":
+                            found = payload
+            self.assertIsNotNone(found, "swarm event missing from SSE")
+            self.assertEqual(found["swarm"]["voter"], 1)
+            resp.close()
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_metrics_endpoint_prometheus(self):
         daemon, client = await self._setup()
         try:
