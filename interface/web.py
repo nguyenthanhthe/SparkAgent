@@ -8,6 +8,7 @@ Serves a single-page dashboard and a JSON API:
     POST /api/tasks/{id}/cancel|pause|resume
     GET  /api/episodes         recent episodes
     GET  /api/memories?q=...   vector recall
+    GET  /api/adapters         brain tier router status + adapter catalog
     GET  /api/skills           skills (active+pending)
     POST /api/skills           create (operator source)  {name,description,parameters,code}
     POST /api/skills/{name}/approve
@@ -497,6 +498,15 @@ def build_web_app(daemon) -> web.Application:
 
         })
 
+    async def api_adapters(_request: web.Request) -> web.Response:
+        from brain.adapters import adapter_registry
+        health = await daemon.brain.health()
+        return web.json_response({
+            "tiers": health,
+            "cache": daemon.brain.cache_stats(),
+            "catalog": {"available": adapter_registry.available()},
+        })
+
     async def api_tools(_request: web.Request) -> web.Response:
         specs = daemon.registry.specs()
         return web.json_response({
@@ -510,6 +520,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/audit", api_audit)
     app.router.add_get("/api/version", api_version)
     app.router.add_get("/api/brain", api_brain)
+    app.router.add_get("/api/adapters", api_adapters)
     async def api_websocket(request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse(heartbeat=15)
         await ws.prepare(request)

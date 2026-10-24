@@ -33,6 +33,25 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_adapters_endpoint_aggregates_router_status(self):
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        daemon = AgentDaemon(Config({"memory": {"db_path": str(db)}}))
+        await daemon.memory.connect()
+        client = TestClient(TestServer(build_web_app(daemon)))
+        await client.start_server()
+        try:
+            response = await client.get("/api/adapters")
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertIn("local", body["tiers"])
+            self.assertIn("remote", body["tiers"])
+            self.assertIn("hit_rate", body["cache"])
+            for name in ("mock", "ollama", "openai_compat"):
+                self.assertIn(name, body["catalog"]["available"])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()

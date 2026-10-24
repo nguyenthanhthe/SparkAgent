@@ -10,7 +10,7 @@ Progress counter: **[131/500]** commits · **645 tests green** · self-check pas
 3. ✅ tool latency metrics in registry.call (100)
 4. ✅ episode consolidation into digest memories (104)
 5. ✅ /api/audit redacted + paginated, /api/version (103)
-6. ⬜ brain router status endpoint aggregation
+6. ✅ brain router status endpoint aggregation (/api/adapters: tier health + cache + adapter catalog)
 7. ✅ /api/version (103)
 8. ✅ testing guide (107)
 9. ✅ approvals workflow example (108)
@@ -25,8 +25,8 @@ pagination (97) · CI coverage (98).
 ## Wave M status
 
 1. ✅ /api/brain — tier health, stats, cost ledger, budget (110)
-2. ⬜ dashboard cost/brain panels
-3. ⬜ task retries with backoff
+2. ✅ dashboard cost/brain panels
+3. ✅ task retries with backoff
 4. ✅ openshell dry-run policy probe (111)
 5. ✅ memory kind-filtered recall (112)
 6. ✅ /ws websocket with redacted log forwarding (116)
@@ -40,24 +40,24 @@ pagination (97) · CI coverage (98).
 1. ✅ dashboard spend panel wired to /api/brain (122)
 2. ✅ task retries with exponential backoff (121)
 3. ✅ react adaptive context budgeting (120)
-4. ⬜ response cache wired into Brain.chat
+4. ✅ response cache wired into Brain.chat (since 129, stats exposed)
 5. ✅ telegram /audit (123)
 6. ✅ per-program working-directory allowlist
-7. ⬜ swarm debate progress on /ws
-8. ⬜ visible promptguard scores in observations
-9. ⬜ mermaid architecture diagrams
+7. ✅ swarm debate progress on /ws
+8. ✅ visible promptguard scores in observations (injection_risk in web_fetch results, since 41)
+9. ✅ mermaid architecture diagrams
 10. ✅ cron walkthrough example (124)
 
 ## Wave O status
 
-1. ⬜ response cache + router stats inside Brain.bridge
+1. ✅ response cache + router stats inside Brain.bridge (cache snapshot in /api/brain + spend panel)
 2. ✅ openshell per-program cwd allowlist
 3. ✅ swarm debate progress over /ws
 4. ✅ promptguard report already in web_fetch results (since 41)
 5. ✅ mermaid diagrams (129)
 6. ✅ seeded nightly digest task (128)
 7. ✅ /api/tools manifest (126)
-8. ⬜ token-auth rate limiting
+8. ✅ token-auth rate limiting (security.auth_limiter, 429 with Retry-After)
 9. ✅ golden prompt contract tests (127)
 10. ✅ disk quota watch in housekeeping (130)
 
