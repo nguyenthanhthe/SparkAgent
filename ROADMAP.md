@@ -52,7 +52,7 @@ pagination (97) · CI coverage (98).
 
 1. ⬜ response cache + router stats inside Brain.bridge
 2. ✅ openshell per-program cwd allowlist
-3. ⬜ swarm debate progress over /ws
+3. ✅ swarm debate progress over /ws
 4. ✅ promptguard report already in web_fetch results (since 41)
 5. ✅ mermaid diagrams (129)
 6. ✅ seeded nightly digest task (128)
@@ -61,16 +61,16 @@ pagination (97) · CI coverage (98).
 9. ✅ golden prompt contract tests (127)
 10. ✅ disk quota watch in housekeeping (130)
 
-## Wave P status
+## Wave P status (complete)
 
 1. ✅ Brain.bridge cost recording on every chat (client-reported usage, cache hits recorded as free calls)
 2. ✅ openshell: per-program working-directory allowlist (ADR-0004)
-3. ⬜ swarm: debate/consensus progress over /ws (agent-visible)
-4. ⬜ security: auth-attempt rate limiting when SPARKAGENT_WEB_TOKEN set
-5. ⬜ kernel: episode tagging + tag-filtered history
-6. ⬜ brain: streaming chat adapter option
-7. ⬜ interface: dashboard episode-detail viewer page
-8. ⬜ tools: file_ops skill tool (read/list in sandbox via registry, not just helpers)
+3. ✅ swarm: debate/consensus progress events on the swarm channel, forwarded over /ws
+4. ✅ security: auth-attempt rate limiting when SPARKAGENT_WEB_TOKEN set
+5. ✅ kernel: episode tagging + tag-filtered history (since 144)
+6. ✅ brain: streaming chat adapter option (SSE transport, single-chunk fallback)
+7. ✅ interface: dashboard episodes list + episode-detail viewer page
+8. ✅ tools: file_ops tool (read/list/write/stat via registry, policy-confined)
 9. ✅ docs: ADR (architecture decision records) index
 10. ✅ ops: systemd unit for Linux parity with NSSM docs
 
