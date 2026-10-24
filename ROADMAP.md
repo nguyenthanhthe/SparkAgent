@@ -61,6 +61,19 @@ pagination (97) · CI coverage (98).
 9. ✅ golden prompt contract tests (127)
 10. ✅ disk quota watch in housekeeping (130)
 
+## Wave Q backlog (next)
+
+1. ✅ brain: streaming chat through the bridge (chat_stream, failover before first chunk)
+2. ✅ interface: dashboard swarm activity feed via SSE swarm events
+3. ✅ openshell: per-program exec latency histograms (exec_seconds_<program>)
+4. ✅ kernel: episode tags enrich memory recall hits + /api/memories
+5. security: quarantine TTL auto-expiry sweep
+6. tools: json_query JSONL mode
+7. docs: GPU tier failover runbook
+8. brain: per-role temperature override for swarm roles
+9. interface: /api/tasks/{id} detail endpoint
+10. ops: backup script for db + skills with retention
+
 ## Wave P status (complete)
 
 1. ✅ Brain.bridge cost recording on every chat (client-reported usage, cache hits recorded as free calls)
