@@ -38,6 +38,26 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("showEpisode", _DASHBOARD_HTML)
         self.assertIn("refreshEpisodes", _DASHBOARD_HTML)
 
+    async def test_task_detail_endpoint(self):
+        daemon, client = await self._setup()
+        try:
+            task_id = await daemon.memory.submit_task("detail check",
+                                                      source="test")
+            response = await client.get(f"/api/tasks/{task_id}")
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertEqual(body["id"], task_id)
+            self.assertEqual(body["goal"], "detail check")
+
+            missing = await client.get("/api/tasks/999999")
+            self.assertEqual(missing.status, 404)
+
+            bad = await client.get("/api/tasks/notanumber")
+            self.assertEqual(bad.status, 400)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_sse_stream_forwards_swarm_events(self):
         daemon, client = await self._setup()
         try:

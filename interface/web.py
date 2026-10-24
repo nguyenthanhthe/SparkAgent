@@ -5,6 +5,7 @@ Serves a single-page dashboard and a JSON API:
     GET  /                     dashboard page
     GET  /api/status           daemon status (uptime, brain tiers, GPU, tasks)
     GET  /api/tasks            task list          POST /api/tasks  submit
+    GET  /api/tasks/{id}       single task detail
     POST /api/tasks/{id}/cancel|pause|resume
     GET  /api/episodes         recent episodes
     GET  /api/memories?q=...   vector recall
@@ -290,6 +291,17 @@ def build_web_app(daemon) -> web.Application:
         tasks = await daemon.memory.list_tasks(limit=offset + limit + 1)
         return web.json_response(paginate(tasks, offset, limit).envelope())
 
+    async def api_task_detail(request: web.Request) -> web.Response:
+        try:
+            task_id = int(request.match_info["id"])
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text="task id must be an integer") \
+                from exc
+        rows = await daemon.memory.list_tasks(task_id=task_id)
+        if not rows:
+            raise web.HTTPNotFound(text=f"no task {task_id}")
+        return web.json_response(rows[0])
+
     async def api_tasks_create(request: web.Request) -> web.Response:
         body = await request.json()
         goal = str(body.get("goal", "")).strip()
@@ -425,6 +437,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/api/status", api_status)
     app.router.add_get("/api/tasks", api_tasks)
+    app.router.add_get("/api/tasks/{id}", api_task_detail)
     app.router.add_post("/api/tasks", api_tasks_create)
     app.router.add_post("/api/tasks/{id}/{action}", api_task_action)
     app.router.add_get("/api/episodes", api_episodes)
