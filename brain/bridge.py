@@ -218,6 +218,11 @@ class Brain:
         """Cost ledger snapshot: every chat (hit or miss) is recorded."""
         return self.costs.report()
 
+    def cache_stats(self) -> dict:
+        """Response-cache snapshot for the dashboard: hits, misses,
+        hit rate, evictions, and the bridge's own hit counter."""
+        return {**self.cache.snapshot(), "bridge_hits": self.cache_hits}
+
     def _tier_available(self, tier: Tier) -> bool:
         return {Tier.LOCAL: self.local_enabled,
                 Tier.REMOTE: self.remote_enabled}[tier]

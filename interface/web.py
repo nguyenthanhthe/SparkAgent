@@ -231,11 +231,13 @@ async function showEpisode(id){try{const d=await api('/api/episodes/'+id);
 
 async function refreshCost(){try{const b=await api('/api/brain');
   const today=b.budget.today_usd;
+  const cache=b.cache||{};
   const byModel=Object.entries(b.costs.by_model||{})
     .filter(([m,r])=>r.cost_usd>0)
     .map(([m,r])=>`${m}: $${r.cost_usd.toFixed(4)} (${r.calls})`).join('<br>');
   $('cost').innerHTML=
     kv('today','$'+today.toFixed(4))+kv('total','$'+b.costs.total_usd.toFixed(4))+
+    kv('cache hits',`${cache.hits||0} of ${(cache.hits||0)+(cache.misses||0)} · ${Math.round((cache.hit_rate||0)*100)}%`)+
     (byModel?'<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+
       byModel+'</div>':'<div style="color:var(--dim);font-size:12px">'+
       'no spend recorded yet (local tier is free)</div>');
@@ -489,6 +491,7 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response({
             "health": health,
             "tier_stats": daemon.brain.stats(),
+            "cache": daemon.brain.cache_stats(),
             "costs": daemon.costs.report(),
             "budget": {"today_usd": daemon.costs.today_total()},
 
