@@ -19,6 +19,7 @@ from pathlib import Path
 from kernel.bus import EventBus
 from kernel.limits import RateLimiterSet
 from kernel.logging import get_logger
+from kernel.metrics import REGISTRY
 from openshell.env_guard import sanitize_env
 from openshell.policy import SecurityError, SecurityPolicy
 from openshell.process_registry import ProcessRegistry
@@ -59,6 +60,12 @@ class ExecResult:
 def _clip(text: str, limit: int) -> str:
     text = text.strip()
     return text if len(text) <= limit else text[: limit - 15] + "…[truncated]"
+
+
+def _metric_safe(program: str) -> str:
+    """Program name -> metric-name-safe slug (exec_seconds_<slug>)."""
+    slug = "".join(c if c.isalnum() else "_" for c in program.lower())
+    return slug.strip("_") or "unknown"
 
 
 class SafeExecutor:
@@ -162,6 +169,7 @@ class SafeExecutor:
             stdout_b, stderr_b = await process.communicate()
 
         duration = time.monotonic() - started
+        REGISTRY.observe(f"exec_seconds_{_metric_safe(program)}", duration)
         stdout = self.vault.redact(_decode(stdout_b, self.max_output_bytes))
         stderr = self.vault.redact(_decode(stderr_b, self.max_output_bytes))
         self.registry.finish(process.pid, process.returncode,
