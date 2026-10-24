@@ -352,7 +352,8 @@ def build_web_app(daemon) -> web.Application:
         hits = await daemon.memory.recall(query, k=8)
         return web.json_response([{"kind": h.kind, "key": h.key,
                                    "text": h.text, "score": round(h.score, 3),
-                                   "created_at": h.created_at} for h in hits])
+                                   "created_at": h.created_at,
+                                   "tags": h.tags or []} for h in hits])
 
     async def api_skills(_request: web.Request) -> web.Response:
         return web.json_response(daemon.forge.list_skills())

@@ -131,6 +131,7 @@ class MemoryHit:
     text: str
     score: float
     created_at: str
+    tags: list[str] | None = None   # episode tags for episode-linked hits
 
 
 class Memory:
@@ -351,8 +352,42 @@ class Memory:
                                              or 0.0),
                     created_at=row_meta.get("created_at", "")))
             hits.sort(key=lambda h: h.score, reverse=True)
-            return hits[:k]
+            hits = hits[:k]
+            self._attach_episode_tags(conn, hits)
+            return hits
         return await self._run(op)
+
+    @staticmethod
+    def _attach_episode_tags(conn: sqlite3.Connection,
+                             hits: list[MemoryHit]) -> None:
+        """Fill ``tags`` for hits whose key links an episode
+        (``episode:<id>``) — one bounded query, JSON-parsed."""
+        ids = []
+        for hit in hits:
+            if hit.key and hit.key.startswith("episode:"):
+                try:
+                    ids.append(int(hit.key.split(":", 1)[1]))
+                except ValueError:
+                    continue
+        if not ids:
+            return
+        placeholders = ", ".join("?" for _ in ids)
+        rows = conn.execute(
+            f"SELECT id, tags FROM episodes WHERE id IN ({placeholders})",
+            tuple(ids)).fetchall()
+        tags_by_id: dict[int, list[str]] = {}
+        for row in rows:
+            try:
+                tags_by_id[int(row["id"])] = json.loads(row["tags"] or "[]")
+            except (json.JSONDecodeError, ValueError, TypeError):
+                tags_by_id[int(row["id"])] = []
+        for hit in hits:
+            if hit.key and hit.key.startswith("episode:"):
+                try:
+                    hit.tags = tags_by_id.get(int(hit.key.split(":", 1)[1]),
+                                              [])
+                except ValueError:
+                    pass
 
     # ------------------------------------------------------------------ tasks
     async def submit_task(self, goal: str, source: str,
