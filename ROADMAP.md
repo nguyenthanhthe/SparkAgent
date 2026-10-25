@@ -1,7 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[166/500]** commits · **808 tests green** · self-check passing.
+Progress counter: **[177/500]** commits · **819 tests green** · self-check passing.
+
+## Wave S status (complete)
+
+1. ✅ interface: task detail exposes `blocked_by` (unsatisfied dependency ids)
+2. ✅ interface: dashboard swarm-topology cards fed from /api/swarm
+3. ✅ brain: /api/adapters tier stats with last_error + cooldown remaining
+4. ✅ interface: /api/memories combined kind+tag filters; Brain.embed degrades on any transport failure
+5. ✅ security: quarantine restore-with-approval (two-step audited release)
+6. ✅ openshell: per-program wall-clock budget veto at the admission gate (`openshell.program_timeouts`)
+7. ✅ interface: /api/db read-only lookups + CLI `sqlite` command over the tool's guarded path
+8. ✅ ops: combined preflight CLI (config + brain + disk, severity exit codes)
+9. ✅ docs: testing guide — dependency/topology/security-tool patterns
+10. ✅ examples: dependency chain demo (blocked → released)
+
+## Wave T backlog (next)
+
+1. kernel: scheduler emits task-blocked/task-released events to the bus (/ws visibility)
+2. brain: response-cache entries record hit counts; /api/brain shows top-hit keys (hashed)
+3. memory: consolidation carries episode tags into digest memories
+4. security: promptguard score histogram in the metrics registry
+5. interface: dashboard task drawer shows blocked_by inline
+6. openshell: time-budget veto counter in the metrics registry
+7. tools: json_query dot-path subset (a.b.c traversal)
+8. ops: backup CLI --verify-all over the retention window
+9. docs: ADR-0007 — read-only database access pattern (static statements)
+10. examples: sqlite_query drill-down demo (tasks → audit)
 
 ## Wave R status (complete)
 
@@ -16,18 +42,7 @@ Progress counter: **[166/500]** commits · **808 tests green** · self-check pas
 9. ✅ docs: ADR-0006 + generated topology catalog page (`docs/topologies.md`)
 10. ✅ examples: `topology_demo.py` — all five composition shapes offline
 
-## Wave S backlog (next)
-
-1. kernel: cycle detection for task dependencies (warn + fail fast on submit)
-2. swarm: dashboard topology cards rendering the mermaid from `/api/swarm`
-3. brain: per-adapter call/failure counters in `/api/adapters` (from tier stats)
-4. memory: recall endpoint `kind`+`tag` combined filters (`/api/memories`)
-5. security: quarantine REST restore-with-approval flow (approve → restore)
-6. openshell: per-program wall-clock budget veto wired into the admission gate
-7. interface: CLI `sqlite` command mapping to the sqlite_query tool
-8. ops: `python -m ops.preflight` — diskwatch + brain preflight + config check combined
-9. docs: testing guide expansion — dependency and topology test patterns
-10. examples: task-dependency chain demo (submit → blocked → released)
+## Wave S status (complete)
 
 
 ## Wave L status
