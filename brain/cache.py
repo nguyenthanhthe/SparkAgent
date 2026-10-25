@@ -30,6 +30,7 @@ class CacheEntry:
     text: str
     usage: dict[str, Any]
     stored_at: float
+    hits: int = 0
 
 
 class ResponseCache:
@@ -58,6 +59,7 @@ class ResponseCache:
                 return None
             self._entries.move_to_end(key)
             self.stats["hits"] += 1
+            entry.hits += 1
             self.stats["saved_tokens"] += int(
                 entry.usage.get("total_tokens") or 0)
             return entry
@@ -95,3 +97,19 @@ class ResponseCache:
     def snapshot(self) -> dict:
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3)}
+
+    def top_hits(self, limit: int = 5) -> list[dict]:
+        """Most-hit live entries, keyed by a digest of the cache key
+        (never the messages themselves)."""
+        with self._lock:
+            now = self.clock.now()
+            ranked = sorted(
+                (entry for entry in self._entries.items()
+                 if entry[1].hits > 0),
+                key=lambda item: item[1].hits, reverse=True)[:limit]
+            return [{"key_hash": hashlib.sha256(
+                        key.encode("utf-8")).hexdigest()[:12],
+                     "hits": entry.hits,
+                     "age_s": round(now - entry.stored_at, 1),
+                     "chars": len(entry.text)}
+                    for key, entry in ranked]

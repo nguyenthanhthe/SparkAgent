@@ -669,6 +669,7 @@ def build_web_app(daemon) -> web.Application:
             "health": health,
             "tier_stats": daemon.brain.stats(),
             "cache": daemon.brain.cache_stats(),
+            "cache_top_hits": daemon.brain.cache.top_hits(limit=5),
             "costs": daemon.costs.report(),
             "budget": {"today_usd": daemon.costs.today_total()},
 
