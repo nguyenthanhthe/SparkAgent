@@ -178,6 +178,9 @@ def build_spec() -> dict[str, Any]:
                 "summary": "Metrics snapshot as JSON (counters, gauges, "
                            "histograms)",
                 "responses": {"200": _json_response("Metrics snapshot")}}},
+            "/api/swarm": {"get": {
+                "summary": "Swarm topology catalog with mermaid diagrams",
+                "responses": {"200": _json_response("Topology catalog")}}},
         },
     }
 
