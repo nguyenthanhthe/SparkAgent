@@ -70,6 +70,11 @@ class TopologyEndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_dashboard_has_topology_cards(self):
+        from interface.web import _DASHBOARD_HTML
+        self.assertIn('id="topologies"', _DASHBOARD_HTML)
+        self.assertIn("refreshTopologies", _DASHBOARD_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -124,6 +124,10 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   <div id="swarm" style="max-height:160px;overflow:auto;font:12px var(--mono)">
     <span style="color:var(--dim)">multi-agent progress appears here</span></div>
 </div>
+<div class="card" style="margin-bottom:12px"><h2>Swarm topologies</h2>
+  <div id="topologies" style="max-height:260px;overflow:auto;font:12px var(--mono)">
+    <span style="color:var(--dim)">loading…</span></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>Live log</h2><div id="log"></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -262,8 +266,14 @@ es.onmessage=ev=>{try{const d=JSON.parse(ev.data);
       ${x.round!=null?badge('b-warn',`round ${x.round}/${x.rounds??'?'}`):''}
       ${x.voter!=null?badge('b-warn',`voter ${x.voter}/${x.voters??'?'}`):''}</div>`).join('');
     swarmFeed.scrollTop=swarmFeed.scrollHeight}}catch(e){}};
+async function refreshTopologies(){try{const data=await api('/api/swarm');
+  $('topologies').innerHTML=data.topologies.map(t=>`<details style="margin:4px 0">
+    <summary>${esc(t.name)}</summary>
+    <p style="margin:6px 0;color:var(--dim)">${esc(t.description)}</p>
+    <pre style="white-space:pre-wrap;margin:0">${esc(t.mermaid)}</pre></details>`).join('');
+}catch(e){$('topologies').innerHTML=`<span style="color:var(--dim)">${esc(e.message)}</span>`}};
 refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
-refreshQuarantine();refreshCost();refreshEpisodes();
+refreshQuarantine();refreshCost();refreshEpisodes();refreshTopologies();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
 setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
 setInterval(refreshQuarantine,15000);setInterval(refreshCost,10000);
