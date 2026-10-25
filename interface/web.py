@@ -548,6 +548,8 @@ def build_web_app(daemon) -> web.Application:
                                       item_id)
             return web.json_response(
                 {"id": item_id, "released": content[:500]})
+        if action == "restore":
+            return await _quarantine_restore(item_id)
         if action == "delete":
             if not daemon.quarantine.delete(item_id):
                 raise web.HTTPNotFound(text=f"no item {item_id}")
@@ -555,6 +557,42 @@ def build_web_app(daemon) -> web.Application:
                                       item_id)
             return web.json_response({"id": item_id, "deleted": True})
         raise web.HTTPNotFound
+
+    async def _quarantine_restore(item_id: str) -> web.Response:
+        """Two-step restore: submit an approval, then release once an
+        operator has approved it. Direct release stays available for
+        operators who have already decided."""
+        from security.approval import APPROVED, PENDING
+        try:
+            daemon.quarantine.get(item_id)
+        except KeyError as exc:
+            raise web.HTTPNotFound(text=str(exc))
+        existing = None
+        for req in daemon.approvals.recent(limit=200):
+            if (req.kind == "quarantine_restore"
+                    and req.detail.get("item_id") == item_id):
+                existing = req
+                break
+        if existing is None or existing.status not in (PENDING, APPROVED):
+            req = daemon.approvals.submit(
+                kind="quarantine_restore",
+                summary=f"restore quarantined item {item_id}",
+                detail={"item_id": item_id}, requested_by="operator")
+            await daemon.memory.audit("operator", "quarantine.restore.request",
+                                      item_id)
+            return web.json_response({"id": item_id,
+                                      "status": "pending_approval",
+                                      "approval_id": req.id})
+        if existing.status == PENDING:
+            return web.json_response({"id": item_id,
+                                      "status": "pending_approval",
+                                      "approval_id": existing.id})
+        content = daemon.quarantine.release(item_id)
+        await daemon.memory.audit("operator", "quarantine.restore",
+                                  f"{item_id} via approval "
+                                  f"{existing.id} ({existing.decided_by})")
+        return web.json_response({"id": item_id, "status": "restored",
+                                  "released": content[:500]})
 
     app.router.add_get("/api/health", api_health)
     app.router.add_get("/api/openapi.json", api_openapi)
