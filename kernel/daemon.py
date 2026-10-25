@@ -39,6 +39,7 @@ from tools.graph_tools import register_tools as register_graph_tools
 from tools.registry import ToolRegistry
 from tools import sysmon as sysmon_tools
 from tools import file_ops
+from tools import sqlite_query as sqlite_query_tools
 from tools import skillforge as skillforge_tools
 from tools import stdlib_tools
 from tools import webfetch as webfetch_tools
@@ -108,6 +109,7 @@ class AgentDaemon:
         self.registry = ToolRegistry(self.bus)
         sysmon_tools.register_tools(self.registry, self.executor)
         file_ops.register_tools(self.registry, self.executor)
+        sqlite_query_tools.register_tools(self.registry, self.cfg.db_path)
         self.fetcher = webfetch_tools.WebFetcher(
             allowed_ports=self.cfg.get("tools.webfetch.allowed_ports", [80, 443]),
             max_bytes=int(self.cfg.get("tools.webfetch.max_bytes", 2097152)),
