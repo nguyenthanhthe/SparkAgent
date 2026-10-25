@@ -105,7 +105,8 @@ def register_tools(registry: ToolRegistry,
     registry.register(Tool(
         name="json_query",
         description=("Inspect JSON: mode=get reads a dotted path "
-                     "(e.g. 'items.0.name'), mode=search finds paths "
+                     "(e.g. 'items.0.name'; '*' spreads lists/dicts, "
+                     "like 'items.*.name'), mode=search finds paths "
                      "containing a needle, mode=shape summarizes structure, "
                      "mode=stats counts keys/leaves. Set jsonl=true for "
                      "newline-delimited JSON (treated as a list of docs)."),

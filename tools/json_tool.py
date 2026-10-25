@@ -26,26 +26,52 @@ def parse_jsonl(text: str) -> list[Any]:
 
 
 def get_path(data: Any, path: str) -> Any:
-    """Dotted path with list indices: ``items.0.name`` -> data["items"][0]["name"]."""
-    node = data
-    for segment in _split_path(path):
+    """Dotted path with list indices and ``*`` wildcards.
+
+    ``items.0.name`` -> data["items"][0]["name"];
+    ``items.*.name`` -> every name across the list; wildcards nest
+    (``a.*.b.*``) and over dicts spread values instead of elements."""
+    return _descend(data, _split_path(path), path)
+
+
+def _descend(node: Any, segments: list[str], full_path: str) -> Any:
+    if not segments:
+        return node
+    segment, rest = segments[0], segments[1:]
+    if segment == "*":
         if isinstance(node, dict):
-            if segment not in node:
-                raise KeyError(f"key {segment!r} not found at {path!r}")
-            node = node[segment]
+            children = list(node.values())
         elif isinstance(node, list):
-            try:
-                index = int(segment)
-            except ValueError as exc:
-                raise KeyError(f"list index expected, got {segment!r} "
-                               f"at {path!r}") from exc
-            if not -len(node) <= index < len(node):
-                raise IndexError(f"index {index} out of range at {path!r}")
-            node = node[index]
+            children = node
         else:
-            raise TypeError(f"cannot descend into "
-                            f"{type(node).__name__} at {path!r}")
-    return node
+            raise TypeError(f"wildcard needs a list or dict, got "
+                            f"{type(node).__name__} at {full_path!r}")
+        results = [_descend(child, rest, full_path) for child in children]
+        if rest:
+            # spread semantics: deeper wildcards/paths merge into one list
+            flat: list[Any] = []
+            for result in results:
+                if isinstance(result, list):
+                    flat.extend(result)
+                else:
+                    flat.append(result)
+            results = flat
+        return results
+    if isinstance(node, dict):
+        if segment not in node:
+            raise KeyError(f"key {segment!r} not found at {full_path!r}")
+        return _descend(node[segment], rest, full_path)
+    if isinstance(node, list):
+        try:
+            index = int(segment)
+        except ValueError as exc:
+            raise KeyError(f"list index expected, got {segment!r} "
+                           f"at {full_path!r}") from exc
+        if not -len(node) <= index < len(node):
+            raise IndexError(f"index {index} out of range at {full_path!r}")
+        return _descend(node[index], rest, full_path)
+    raise TypeError(f"cannot descend into "
+                    f"{type(node).__name__} at {full_path!r}")
 
 
 def _split_path(path: str) -> list[str]:
