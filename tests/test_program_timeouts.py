@@ -78,6 +78,24 @@ class ProgramTimeoutBudgetTests(unittest.TestCase):
         channels = [channel for channel, _event in events]
         self.assertIn("audit", channels)
 
+    def test_veto_increments_metrics_counter(self):
+        import openshell.executor as executor_mod
+        from kernel.metrics import MetricsRegistry
+        registry = MetricsRegistry()
+        original = executor_mod.REGISTRY
+        executor_mod.REGISTRY = registry
+        try:
+            executor = self.make_executor({"python": 1.0})
+
+            async def scenario():
+                await executor.run("python", ["-c", "print(1)"],
+                                   timeout=10.0)
+            asyncio.run(scenario())
+            self.assertGreaterEqual(
+                registry.counter("exec_timebudget_blocked_total"), 1.0)
+        finally:
+            executor_mod.REGISTRY = original
+
 
 if __name__ == "__main__":
     unittest.main()

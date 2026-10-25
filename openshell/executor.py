@@ -128,6 +128,7 @@ class SafeExecutor:
                                     exit_code=None, blocked_reason=str(exc))
         budget = self.program_timeouts.get(program.lower())
         if budget is not None and timeout > budget + 1e-9:
+            REGISTRY.incr("exec_timebudget_blocked_total")
             reason = (f"time budget: {program!r} allows {budget:g}s, "
                       f"run requested {timeout:g}s")
             logger.warning("blocked command %s %s: %s", program, args, reason)
