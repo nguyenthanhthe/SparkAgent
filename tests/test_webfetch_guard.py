@@ -94,6 +94,22 @@ class FetcherGuardTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(BlockedURLError):
             await fetcher.fetch("http://127.0.0.1/never-reached")
 
+    async def test_scores_observed_in_metrics_histogram(self):
+        from kernel.metrics import MetricsRegistry
+        import tools.webfetch as webfetch_mod
+        registry = MetricsRegistry()
+        original = webfetch_mod.REGISTRY
+        webfetch_mod.REGISTRY = registry
+        try:
+            fetcher = make_fetcher("configuration follows\n"
+                                   "system: check these")
+            await fetcher.fetch("http://8.8.8.8/")
+            hist = registry.histogram("promptguard_score")
+            self.assertIsNotNone(hist)
+            self.assertGreaterEqual(hist["count"], 1)
+        finally:
+            webfetch_mod.REGISTRY = original
+
 
 if __name__ == "__main__":
     unittest.main()
