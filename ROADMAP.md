@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[177/500]** commits · **819 tests green** · self-check passing.
+Progress counter: **[189/500]** commits · **854 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -16,18 +16,31 @@ Progress counter: **[177/500]** commits · **819 tests green** · self-check pas
 9. ✅ docs: testing guide — dependency/topology/security-tool patterns
 10. ✅ examples: dependency chain demo (blocked → released)
 
-## Wave T backlog (next)
+## Wave T status (complete)
 
-1. kernel: scheduler emits task-blocked/task-released events to the bus (/ws visibility)
-2. brain: response-cache entries record hit counts; /api/brain shows top-hit keys (hashed)
-3. memory: consolidation carries episode tags into digest memories
-4. security: promptguard score histogram in the metrics registry
-5. interface: dashboard task drawer shows blocked_by inline
-6. openshell: time-budget veto counter in the metrics registry
-7. tools: json_query dot-path subset (a.b.c traversal)
-8. ops: backup CLI --verify-all over the retention window
-9. docs: ADR-0007 — read-only database access pattern (static statements)
-10. examples: sqlite_query drill-down demo (tasks → audit)
+1. ✅ kernel: scheduler blocked/released events on the `scheduler` channel, streamed over /ws and SSE
+2. ✅ brain: per-entry cache hit counts; /api/brain `cache_top_hits` (key digests, never prompts)
+3. ✅ memory: consolidation carries episode tags into digest memories (hashtags + meta)
+4. ✅ security: promptguard score histogram (`promptguard_score`) in the metrics registry
+5. ✅ interface: dashboard task drawer — blocked_by, priority, dependencies inline
+6. ✅ openshell: time-budget veto counter (`exec_timebudget_blocked_total`)
+7. ✅ tools: json_query wildcard dot-paths (`items.*.name`, nested, spread semantics)
+8. ✅ ops: backup `verify-all` — whole retention window verified in one command
+9. ✅ docs: ADR-0007 — read-only database access via static statements
+10. ✅ examples: sqlite_query drill-down demo (tasks → audit)
+
+## Wave U backlog (next)
+
+1. openshell: rate-limit veto counter (`exec_ratelimit_blocked_total`) beside the budget counter
+2. brain: streamed chats record cost/usage once the final chunk lands
+3. memory: consolidation seeds the entity graph from digest texts
+4. security: /api/db goes through the auth limiter when SPARKAGENT_WEB_TOKEN is set
+5. interface: telegram `/db` command for read-only lookups from chat
+6. interface: dashboard scheduler panel shows blocked-task count
+7. tools: web_fetch conditional GET (ETag/If-None-Match) with 304 short-circuit
+8. ops: backup manifest gains an optional `--tag` label surfaced in verify output
+9. docs: runbook — dependency chains (blocked tasks, manual release, failure semantics)
+10. examples: backup create/verify/restore drill demo
 
 ## Wave R status (complete)
 
