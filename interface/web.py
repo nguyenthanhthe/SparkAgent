@@ -89,7 +89,7 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   </div>
 </div>
 <div class="grid">
-<div class="card"><h2>Tasks</h2><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
+<div class="card"><h2>Tasks</h2><div id="taskdetail" style="display:none;margin-bottom:8px;font:12px var(--mono)"></div><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
 <div class="card"><h2>Skills</h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Episodes</h2>
@@ -160,10 +160,19 @@ async function refreshStatus(){try{const s=await api('/api/status');
 async function refreshTasks(){try{const payload=await api('/api/tasks');
   const tasks=payload.items||[];
   $('tasks').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th></th></tr>'+
-   tasks.map(t=>`<tr><td>${t.id}</td><td>${t.goal.slice(0,80)}</td>
+   tasks.map(t=>`<tr onclick="showTask(${t.id})" style="cursor:pointer">
+    <td>${t.id}</td><td>${t.goal.slice(0,80)}</td>
     <td>${t.enabled?t.status:badge('b-dim',t.status)}</td>
-    <td>${t.enabled?`<button class="small" onclick="cancelTask(${t.id})">cancel</button>`:''}</td></tr>`).join('');
+    <td>${t.enabled?`<button class="small" onclick="event.stopPropagation();cancelTask(${t.id})">cancel</button>`:''}</td></tr>`).join('');
 }catch(e){}}
+async function showTask(id){try{const t=await api('/api/tasks/'+id);
+  const blocked=(t.blocked_by||[]).map(b=>`#${b}`).join(', ');
+  $('taskdetail').innerHTML=`<b>#${t.id}</b> ${esc(t.goal)}<br>
+    <span class="badge ${t.status==='done'?'b-ok':'b-warn'}">${t.status}</span>
+    priority ${t.priority??5} · runs ${t.last_run_at?new Date(t.last_run_at*1000).toLocaleTimeString():'never'}
+    ${t.depends_on?`· depends on ${(t.depends_on||[]).map(b=>'#'+b).join(', ')} (${blocked?'blocked by '+blocked:'satisfied'})`:''}`;
+  $('taskdetail').style.display='block';
+}catch(e){toast(e.message)}}
 async function refreshSkills(){try{const sk=await api('/api/skills');
   $('skills').innerHTML='<tr><th>name</th><th>status</th><th></th></tr>'+
    sk.map(s=>`<tr><td>${s.name}</td><td>${s.status==='active'?badge('b-ok','active'):badge('b-warn','pending')}</td>

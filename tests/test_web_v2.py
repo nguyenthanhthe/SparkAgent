@@ -43,6 +43,12 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("showEpisode", _DASHBOARD_HTML)
         self.assertIn("refreshEpisodes", _DASHBOARD_HTML)
 
+    async def test_dashboard_has_task_drawer(self):
+        from interface.web import _DASHBOARD_HTML
+        self.assertIn('id="taskdetail"', _DASHBOARD_HTML)
+        self.assertIn("showTask", _DASHBOARD_HTML)
+        self.assertIn("blocked_by", _DASHBOARD_HTML)
+
     async def test_task_detail_endpoint(self):
         daemon, client = await self._setup()
         try:
