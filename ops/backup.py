@@ -161,6 +161,28 @@ def restore_backup(archive_path: Path, data_dir: Path,
             "total_bytes": manifest["total_bytes"]}
 
 
+def _verify_all(output_dir: Path) -> int:
+    """Verify every archive in the retention window; exit 1 if any fails."""
+    archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
+    if not archives:
+        print(json.dumps({"ok": False, "error": "no backups found",
+                          "dir": str(output_dir)}))
+        return 1
+    results = []
+    for archive in archives:
+        try:
+            manifest = verify_backup(archive)
+            results.append({"archive": archive.name, "ok": True,
+                            "files": manifest["file_count"]})
+        except BackupError as exc:
+            results.append({"archive": archive.name, "ok": False,
+                            "error": str(exc)[:200]})
+    ok = all(item["ok"] for item in results)
+    print(json.dumps({"ok": ok, "count": len(results),
+                      "archives": results}))
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI: python -m ops.backup create|verify|restore."""
     import argparse
@@ -176,6 +198,10 @@ def main(argv: list[str] | None = None) -> int:
     p_create.add_argument("--keep", type=int, default=10)
     p_verify = sub.add_parser("verify", help="verify an archive")
     p_verify.add_argument("archive")
+    p_verify_all = sub.add_parser("verify-all",
+                                  help="verify every archive in the "
+                                       "backup dir")
+    p_verify_all.add_argument("--output-dir", required=True)
     p_restore = sub.add_parser("restore", help="verify then restore")
     p_restore.add_argument("archive")
     p_restore.add_argument("--data-dir", required=True)
@@ -198,6 +224,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": True, "files": manifest["file_count"],
                           "digest": manifest["digest"]}))
         return 0
+    if args.cmd == "verify-all":
+        return _verify_all(Path(args.output_dir))
     result = restore_backup(Path(args.archive), Path(args.data_dir),
                             overwrite=args.overwrite)
     print(json.dumps({"ok": True, **result}))

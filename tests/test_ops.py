@@ -157,6 +157,56 @@ class BackupTests(unittest.TestCase):
         verdict = json.loads(buffer.getvalue().splitlines()[-1])
         self.assertTrue(verdict["ok"])
 
+    def test_cli_verify_all(self):
+        import contextlib
+        import io
+        import shutil
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        # same-second creates collide on the timestamped name; copy one
+        # to an older name so the window holds two archives
+        original = next(output.glob("sparkagent-backup-*.zip"))
+        shutil.copyfile(original,
+                        output / "sparkagent-backup-20980101-000000.zip")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output)])
+        self.assertEqual(rc, 0)
+        verdict = json.loads(buffer.getvalue())
+        self.assertTrue(verdict["ok"])
+        self.assertEqual(verdict["count"], 2)
+        self.assertTrue(all(a["ok"] for a in verdict["archives"]))
+
+    def test_cli_verify_all_flags_corruption(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        corrupt = output / "sparkagent-backup-20990101-0000.zip"
+        with zipfile.ZipFile(corrupt, "w") as archive:
+            archive.writestr("garbage.txt", "not a backup")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output)])
+        self.assertEqual(rc, 1)
+        verdict = json.loads(buffer.getvalue())
+        self.assertFalse(verdict["ok"])
+        by_name = {a["archive"]: a for a in verdict["archives"]}
+        self.assertFalse(by_name[corrupt.name]["ok"])
+
+    def test_cli_verify_all_empty_dir(self):
+        import contextlib
+        import io
+        output = Path(tempfile.mkdtemp()) / "backups"
+        output.mkdir()
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output)])
+        self.assertEqual(rc, 1)
+        self.assertFalse(json.loads(buffer.getvalue())["ok"])
+
 
 if __name__ == "__main__":
     unittest.main()
