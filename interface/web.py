@@ -308,14 +308,27 @@ def build_web_app(daemon) -> web.Application:
         if not goal:
             raise web.HTTPBadRequest(text="goal is required")
         interval = body.get("interval_seconds")
-        if interval is not None:
-            interval = int(interval)
-            if interval < 60:
-                raise web.HTTPBadRequest(text="interval_seconds must be >= 60")
-            task_id = await daemon.submit_task(goal, source="operator",
-                                               interval_seconds=interval)
-        else:
-            task_id = await daemon.submit_task(goal, source="operator")
+        depends_on = body.get("depends_on")
+        if depends_on is not None:
+            if (not isinstance(depends_on, list)
+                    or not all(isinstance(d, int) and d > 0
+                               for d in depends_on)):
+                raise web.HTTPBadRequest(
+                    text="depends_on must be a list of positive task ids")
+        try:
+            if interval is not None:
+                interval = int(interval)
+                if interval < 60:
+                    raise web.HTTPBadRequest(
+                        text="interval_seconds must be >= 60")
+                task_id = await daemon.submit_task(goal, source="operator",
+                                                   interval_seconds=interval,
+                                                   depends_on=depends_on)
+            else:
+                task_id = await daemon.submit_task(goal, source="operator",
+                                                   depends_on=depends_on)
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
         return web.json_response({"id": task_id}, status=201)
 
     async def api_task_action(request: web.Request) -> web.Response:

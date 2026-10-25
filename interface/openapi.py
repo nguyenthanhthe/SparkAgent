@@ -51,7 +51,16 @@ def build_spec() -> dict[str, Any]:
                            "properties": {"goal": {"type": "string"},
                                           "interval_seconds": {
                                               "type": "integer",
-                                              "minimum": 60}}},
+                                              "minimum": 60},
+                                          "depends_on": {
+                                              "type": "array",
+                                              "items": {"type": "integer",
+                                                        "minimum": 1},
+                                              "description": "task ids that "
+                                                             "must finish "
+                                                             "successfully "
+                                                             "before this "
+                                                             "task runs"}}},
             "Approval": {"type": "object", "properties": {
                 "id": {"type": "string"},
                 "kind": {"type": "string"},

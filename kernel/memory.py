@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     last_run_at REAL,
     last_status TEXT,
     consecutive_failures INTEGER DEFAULT 0,
+    depends_on TEXT,
     enabled INTEGER DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'pending'
 );
@@ -170,6 +171,12 @@ class Memory:
             self._conn.execute(
                 "ALTER TABLE episodes ADD COLUMN tags TEXT DEFAULT '[]'")
             logger.info("migration: added episodes.tags")
+        task_cols = {row["name"] for row in self._conn.execute(
+            "PRAGMA table_info(tasks)")}
+        if "depends_on" not in task_cols:
+            self._conn.execute(
+                "ALTER TABLE tasks ADD COLUMN depends_on TEXT")
+            logger.info("migration: added tasks.depends_on")
 
     async def connect(self) -> None:
         await asyncio.to_thread(self.connect_sync)
@@ -390,30 +397,86 @@ class Memory:
                     pass
 
     # ------------------------------------------------------------------ tasks
+    @staticmethod
+    def _parse_depends(raw: str | None) -> list[int]:
+        """Parse a ``depends_on`` JSON column into a list of task ids."""
+        if not raw:
+            return []
+        try:
+            value = json.loads(raw)
+        except (json.JSONDecodeError, ValueError, TypeError):
+            return []
+        if not isinstance(value, list):
+            return []
+        return [int(v) for v in value if isinstance(v, (int, float))]
+
     async def submit_task(self, goal: str, source: str,
                           priority: int = 5, interval_seconds: int | None = None,
-                          daily_at: str | None = None) -> int:
+                          daily_at: str | None = None,
+                          depends_on: list[int] | None = None) -> int:
         next_run = time.time()
         if daily_at:
             next_run = _next_daily(daily_at)
+        deps_json: str | None = None
+        if depends_on:
+            deps = sorted({int(d) for d in depends_on if int(d) > 0})
+            if not deps:
+                raise ValueError("depends_on must contain positive task ids")
+
+            def check(conn: sqlite3.Connection) -> None:
+                placeholders = ", ".join("?" for _ in deps)
+                found = {row["id"] for row in conn.execute(
+                    f"SELECT id FROM tasks WHERE id IN ({placeholders})",
+                    tuple(deps))}
+                missing = sorted(set(deps) - found)
+                if missing:
+                    raise ValueError(
+                        f"unknown dependency task id(s): {missing}")
+            await self._run(check)
+            deps_json = json.dumps(deps)
+
         def op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute(
                 "INSERT INTO tasks (created_at, updated_at, source, goal, "
-                "priority, interval_seconds, daily_at, next_run_at, status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')",
+                "priority, interval_seconds, daily_at, depends_on, "
+                "next_run_at, status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')",
                 (_now_iso(), _now_iso(), source, goal[:2000], priority,
-                 interval_seconds, daily_at, next_run))
+                 interval_seconds, daily_at, deps_json, next_run))
             conn.commit()
             return int(cursor.lastrowid)
         return await self._run(op)
 
-    async def due_tasks(self, now: float | None = None, limit: int = 10) -> list[dict]:
+    async def due_tasks(self, now: float | None = None,
+                        limit: int = 10) -> list[dict]:
         def op(conn: sqlite3.Connection) -> list[dict]:
             rows = conn.execute(
                 "SELECT * FROM tasks WHERE enabled = 1 AND status = 'pending' "
                 "AND next_run_at <= ? ORDER BY priority ASC, next_run_at ASC "
-                "LIMIT ?", (now or time.time(), limit)).fetchall()
-            return [dict(row) for row in rows]
+                "LIMIT ?", (now or time.time(), limit * 3)).fetchall()
+            # dependency gate: a task runs only when every depends_on task
+            # has settled to 'done' (failed deps block forever until retried)
+            dep_ids: set[int] = set()
+            parsed: dict[int, list[int]] = {}
+            for row in rows:
+                deps = self._parse_depends(row["depends_on"])
+                if deps:
+                    parsed[row["id"]] = deps
+                    dep_ids.update(deps)
+            if not parsed:
+                return [dict(row) for row in rows[:limit]]
+            placeholders = ", ".join("?" for _ in dep_ids)
+            done = {row["id"] for row in conn.execute(
+                f"SELECT id FROM tasks WHERE id IN ({placeholders}) "
+                f"AND status = 'done'", tuple(dep_ids))}
+            ready: list[dict] = []
+            for row in rows:
+                deps = parsed.get(row["id"])
+                if deps is None or all(d in done for d in deps):
+                    ready.append(dict(row))
+                    if len(ready) >= limit:
+                        break
+            return ready
         return await self._run(op)
 
     async def mark_task_running(self, task_id: int) -> bool:

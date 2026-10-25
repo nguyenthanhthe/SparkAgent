@@ -5,7 +5,9 @@ every ``agent.poll_seconds``, claims them atomically (``status =
 'pending' -> 'running'`` guarded by a conditional UPDATE), runs each as a
 ReAct episode under a concurrency semaphore, and reschedules on completion:
 one-shot tasks end, ``interval_seconds`` tasks recur, ``daily_at`` tasks run
-once per day. Recurring tasks auto-disable after repeated failures.
+once per day. Recurring tasks auto-disable after repeated failures. A task
+with ``depends_on`` (task ids) stays blocked until every dependency has
+settled to ``done``.
 """
 
 from __future__ import annotations
