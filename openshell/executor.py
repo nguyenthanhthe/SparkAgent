@@ -74,7 +74,8 @@ class SafeExecutor:
                  max_output_bytes: int = 131072,
                  registry: ProcessRegistry | None = None,
                  sanitize_child_env: bool = True,
-                 execs_per_minute: float = 0.0):
+                 execs_per_minute: float = 0.0,
+                 program_timeouts: dict[str, float] | None = None):
         self.policy = policy
         self.vault = vault
         self.bus = bus
@@ -88,6 +89,11 @@ class SafeExecutor:
             capacity=max(1.0, execs_per_minute),
             refill_per_second=execs_per_minute / 60.0) \
             if execs_per_minute > 0 else None
+        # per-program wall-clock budget (seconds): a run requesting more
+        # than its program's budget is blocked at the admission gate
+        self.program_timeouts = {
+            str(name).lower(): float(budget)
+            for name, budget in (program_timeouts or {}).items()}
         self.policy.sandbox_root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ public
@@ -99,7 +105,7 @@ class SafeExecutor:
         timeout = timeout or self.timeout
 
         workdir = Path(cwd) if cwd is not None else self.policy.sandbox_root
-        admitted = self._admit(program, args, workdir=workdir)
+        admitted = self._admit(program, args, workdir=workdir, timeout=timeout)
         if admitted[0] is None:
             return admitted[1]
         exe = admitted[0]
@@ -107,9 +113,10 @@ class SafeExecutor:
             [exe, *args], program, args, timeout, workdir)
 
     def _admit(self, program: str, args: list[str],
-               workdir: Path) -> tuple[str | None, "ExecResult | None"]:
-        """Policy + workdir + rate-limit + PATH admission. Returns
-        (exe, None) to proceed or (None, blocked_result) to stop."""
+               workdir: Path, timeout: float) \
+            -> tuple[str | None, "ExecResult | None"]:
+        """Policy + workdir + budget + rate-limit + PATH admission.
+        Returns (exe, None) to proceed or (None, blocked_result) to stop."""
         try:
             self.policy.validate_command(program, args)
             self.policy.validate_workdir(program, workdir)
@@ -119,6 +126,17 @@ class SafeExecutor:
                                        "detail": f"{program} {args!r}: {exc}"})
             return None, ExecResult(program=program, args=tuple(args),
                                     exit_code=None, blocked_reason=str(exc))
+        budget = self.program_timeouts.get(program.lower())
+        if budget is not None and timeout > budget + 1e-9:
+            reason = (f"time budget: {program!r} allows {budget:g}s, "
+                      f"run requested {timeout:g}s")
+            logger.warning("blocked command %s %s: %s", program, args, reason)
+            self.bus.publish("audit", {"actor": "executor",
+                                       "action": "exec.blocked",
+                                       "detail": f"{program} {args!r}: "
+                                                 f"{reason}"})
+            return None, ExecResult(program=program, args=tuple(args),
+                                    exit_code=None, blocked_reason=reason)
 
         if self._limiters is not None and \
                 not self._limiters.try_take(program.lower()):

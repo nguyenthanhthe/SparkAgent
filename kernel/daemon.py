@@ -172,7 +172,9 @@ class AgentDaemon:
             max_output_bytes=int(self.cfg.get("openshell.max_output_bytes",
                                               131072)),
             execs_per_minute=float(self.cfg.get("openshell.execs_per_minute",
-                                                30.0)))
+                                                30.0)),
+            program_timeouts=dict(self.cfg.get(
+                "openshell.program_timeouts", {}) or {}))
         backend = str(self.cfg.get("openshell.backend", "auto")).lower()
         if backend in ("auto", "openshell"):
             from openshell.sandbox_backend import OpenShellExecutor

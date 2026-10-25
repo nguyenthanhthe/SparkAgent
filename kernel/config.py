@@ -63,6 +63,7 @@ DEFAULTS: dict[str, Any] = {
         "max_output_bytes": 131072,
         "allow_shell": False,
         "execs_per_minute": 30.0,
+        "program_timeouts": {},
         "profile": "standard",
         "backend": "auto",
         "sandbox_name": "sparkagent",
