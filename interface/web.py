@@ -300,7 +300,9 @@ def build_web_app(daemon) -> web.Application:
         rows = await daemon.memory.list_tasks(task_id=task_id)
         if not rows:
             raise web.HTTPNotFound(text=f"no task {task_id}")
-        return web.json_response(rows[0])
+        detail = rows[0]
+        detail["blocked_by"] = await daemon.memory.blocked_by(task_id)
+        return web.json_response(detail)
 
     async def api_tasks_create(request: web.Request) -> web.Response:
         body = await request.json()

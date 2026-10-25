@@ -561,6 +561,24 @@ class Memory:
             return cursor.rowcount > 0
         return await self._run(op)
 
+    async def blocked_by(self, task_id: int) -> list[int]:
+        """Unsatisfied dependency ids for a task (empty when runnable)."""
+        def op(conn: sqlite3.Connection) -> list[int]:
+            rows = conn.execute(
+                "SELECT depends_on, status FROM tasks WHERE id = ?",
+                (task_id,)).fetchall()
+            if not rows:
+                return []
+            deps = self._parse_depends(rows[0]["depends_on"])
+            if not deps or rows[0]["status"] == "done":
+                return []
+            placeholders = ", ".join("?" for _ in deps)
+            done = {row["id"] for row in conn.execute(
+                f"SELECT id FROM tasks WHERE id IN ({placeholders}) "
+                f"AND status = 'done'", tuple(deps))}
+            return [dep for dep in deps if dep not in done]
+        return await self._run(op)
+
     async def cancel_task(self, task_id: int) -> bool:
         def op(conn: sqlite3.Connection) -> bool:
             cursor = conn.execute(

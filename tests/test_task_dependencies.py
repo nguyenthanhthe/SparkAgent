@@ -157,5 +157,53 @@ class SchedulerDependencyTests(unittest.IsolatedAsyncioTestCase):
             await memory.close()
 
 
+class BlockedByTests(unittest.IsolatedAsyncioTestCase):
+    async def test_blocked_by_lists_unsatisfied_deps(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            first = await memory.submit_task("first", "test")
+            second = await memory.submit_task("second", "test",
+                                              depends_on=[first])
+            self.assertEqual(await memory.blocked_by(second), [first])
+            await memory.mark_task_running(first)
+            await memory.finish_task(first, success=True)
+            self.assertEqual(await memory.blocked_by(second), [])
+        finally:
+            await memory.close()
+
+    async def test_blocked_by_empty_without_deps(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            tid = await memory.submit_task("solo", "test")
+            self.assertEqual(await memory.blocked_by(tid), [])
+        finally:
+            await memory.close()
+
+    async def test_task_detail_includes_blocked_by(self):
+        from aiohttp.test_utils import TestClient, TestServer
+        from interface.web import build_web_app
+        from kernel.config import Config
+        from kernel.daemon import AgentDaemon
+        daemon = AgentDaemon(Config.load())
+        await daemon.memory.connect()
+        app = build_web_app(daemon)
+        server = TestServer(app)
+        client = TestClient(server)
+        await client.start_server()
+        try:
+            first = await daemon.memory.submit_task("first", "test")
+            second = await daemon.memory.submit_task(
+                "second", "test", depends_on=[first])
+            body = await (await client.get(f"/api/tasks/{second}")).json()
+            self.assertEqual(body["blocked_by"], [first])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+
 if __name__ == "__main__":
     unittest.main()
