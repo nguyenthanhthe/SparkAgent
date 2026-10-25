@@ -147,6 +147,7 @@ class Memory:
         self._hashing = HashingEmbedder(embed_dim)
         self.recall_k = recall_k
         self.retention_days = retention_days
+        self.graph_store = None   # optional GraphStore for graph-boosted recall
         self._lock = threading.Lock()
         self._conn: sqlite3.Connection | None = None
         self._vector_dim_warned = False
@@ -359,6 +360,12 @@ class Memory:
                                              or 0.0),
                     created_at=row_meta.get("created_at", "")))
             hits.sort(key=lambda h: h.score, reverse=True)
+            if self.graph_store is not None:
+                from memory_search.graph_boost import GraphBooster
+                booster = GraphBooster(self.graph_store)
+                for hit in hits:
+                    hit.score += booster.boost(query, hit.text)
+                hits.sort(key=lambda h: h.score, reverse=True)
             hits = hits[:k]
             self._attach_episode_tags(conn, hits)
             return hits

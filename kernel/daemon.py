@@ -126,6 +126,7 @@ class AgentDaemon:
         if loaded_edges:
             logger.info("entity graph restored: %d edges", loaded_edges)
         register_graph_tools(self.registry, self.entity_graph)
+        self.memory.graph_store = self.entity_graph
         self.forge = skillforge_tools.SkillForge(
             self.cfg.skills_dir, self.registry, self.policy, self.executor,
             self.bus, self.fetcher,
