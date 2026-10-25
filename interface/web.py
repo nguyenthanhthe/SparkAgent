@@ -472,6 +472,12 @@ def build_web_app(daemon) -> web.Application:
         return web.Response(text=REGISTRY.render_text(),
                             content_type="text/plain")
 
+    async def api_metrics_json(_request: web.Request) -> web.Response:
+        from kernel.metrics import REGISTRY
+        payload = REGISTRY.snapshot()
+        payload["uptime_s"] = int(time.time() - daemon.started_at)
+        return web.json_response(payload)
+
     async def api_approvals(_request: web.Request) -> web.Response:
         from security.approval import request_to_dict
         return web.json_response(
@@ -524,6 +530,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/health", api_health)
     app.router.add_get("/api/openapi.json", api_openapi)
     app.router.add_get("/metrics", api_metrics)
+    app.router.add_get("/api/metrics", api_metrics_json)
     app.router.add_get("/api/approvals", api_approvals)
     app.router.add_post("/api/approvals/{id}/{decision}",
                         api_approval_decide)

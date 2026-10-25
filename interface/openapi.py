@@ -174,6 +174,10 @@ def build_spec() -> dict[str, Any]:
             "/metrics": {"get": {
                 "summary": "Prometheus metrics", "responses": {
                     "200": {"description": "text/plain exposition"}}}},
+            "/api/metrics": {"get": {
+                "summary": "Metrics snapshot as JSON (counters, gauges, "
+                           "histograms)",
+                "responses": {"200": _json_response("Metrics snapshot")}}},
         },
     }
 
