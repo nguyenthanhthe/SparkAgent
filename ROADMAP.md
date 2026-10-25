@@ -1,7 +1,34 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[131/500]** commits · **645 tests green** · self-check passing.
+Progress counter: **[166/500]** commits · **808 tests green** · self-check passing.
+
+## Wave R status (complete)
+
+1. ✅ kernel: task dependencies (`depends_on`) gate `due_tasks` until deps done (ADR-0006)
+2. ✅ interface: `/api/metrics` JSON snapshot with uptime
+3. ✅ memory: graph-boosted recall (`memory_search/graph_boost.py`, wired via `memory.graph_store`)
+4. ✅ swarm: topology catalog with mermaid diagrams at `/api/swarm` + `swarm/render.py`
+5. ✅ ops: diskwatch CLI (`python -m ops.diskwatch`, severity exit codes)
+6. ✅ interface: Prometheus rendering extracted to `interface/prom.py`
+7. ✅ brain: preflight CLI (`python -m brain.preflight`, per-tier health gate)
+8. ✅ tools: `sqlite_query` — read-only agent-database lookups, static statements
+9. ✅ docs: ADR-0006 + generated topology catalog page (`docs/topologies.md`)
+10. ✅ examples: `topology_demo.py` — all five composition shapes offline
+
+## Wave S backlog (next)
+
+1. kernel: cycle detection for task dependencies (warn + fail fast on submit)
+2. swarm: dashboard topology cards rendering the mermaid from `/api/swarm`
+3. brain: per-adapter call/failure counters in `/api/adapters` (from tier stats)
+4. memory: recall endpoint `kind`+`tag` combined filters (`/api/memories`)
+5. security: quarantine REST restore-with-approval flow (approve → restore)
+6. openshell: per-program wall-clock budget veto wired into the admission gate
+7. interface: CLI `sqlite` command mapping to the sqlite_query tool
+8. ops: `python -m ops.preflight` — diskwatch + brain preflight + config check combined
+9. docs: testing guide expansion — dependency and topology test patterns
+10. examples: task-dependency chain demo (submit → blocked → released)
+
 
 ## Wave L status
 
