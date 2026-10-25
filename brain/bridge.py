@@ -320,13 +320,16 @@ class Brain:
 
     # -------------------------------------------------------------- embedding
     async def embed(self, text: str) -> list[float] | None:
-        """Best-effort embedding via Ollama; None lets memory fall back."""
+        """Best-effort embedding via Ollama; None lets memory fall back.
+
+        Any failure (unreachable server, transport misconfig) degrades to
+        the caller's fallback — recall must never crash over embeddings."""
         if not self.local_enabled:
             return None
         try:
             return await self.local.embed(
                 text, model=self.cfg.get("memory.embedding_model"))
-        except OllamaError as exc:
+        except Exception as exc:   # noqa: BLE001 — best-effort by contract
             logger.debug("embedding fell back to hashing embedder: %s", exc)
             return None
 

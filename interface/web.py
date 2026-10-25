@@ -386,7 +386,19 @@ def build_web_app(daemon) -> web.Application:
         query = request.query.get("q", "").strip()
         if not query:
             raise web.HTTPBadRequest(text="q is required")
-        hits = await daemon.memory.recall(query, k=8)
+        kinds = [k for k in request.query.get("kind", "").split(",")
+                 if k] or None
+        tag = request.query.get("tag") or None
+        if tag:
+            episodes = await daemon.memory.recent_episodes(limit=500,
+                                                           tag=tag)
+            keys = {f"episode:{e['id']}" for e in episodes}
+            if not keys:
+                return web.json_response([])
+            hits = await daemon.memory.recall(query, k=8, kinds=kinds)
+            hits = [h for h in hits if h.key in keys]
+        else:
+            hits = await daemon.memory.recall(query, k=8, kinds=kinds)
         return web.json_response([{"kind": h.kind, "key": h.key,
                                    "text": h.text, "score": round(h.score, 3),
                                    "created_at": h.created_at,
