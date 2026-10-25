@@ -91,5 +91,36 @@ class SqliteQueryTests(unittest.TestCase):
         connection.close()
 
 
+class DbEndpointTests(unittest.IsolatedAsyncioTestCase):
+    async def test_api_db_endpoint_serves_rows(self):
+        from aiohttp.test_utils import TestClient, TestServer
+        from interface.web import build_web_app
+        from kernel.config import Config
+        from kernel.daemon import AgentDaemon
+        daemon = AgentDaemon(Config.load())
+        await daemon.memory.connect()
+        await daemon.memory.submit_task("endpoint probe task", "test")
+        client = TestClient(TestServer(build_web_app(daemon)))
+        await client.start_server()
+        try:
+            response = await client.get("/api/db/tasks",
+                                        params={"limit": 5})
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertEqual(body["table"], "tasks")
+            self.assertGreaterEqual(body["count"], 1)
+
+            filtered = await (await client.get(
+                "/api/db/tasks",
+                params={"where": "goal=endpoint probe task"})).json()
+            self.assertEqual(filtered["count"], 1)
+
+            bad = await client.get("/api/db/sqlite_master")
+            self.assertEqual(bad.status, 400)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+
 if __name__ == "__main__":
     unittest.main()

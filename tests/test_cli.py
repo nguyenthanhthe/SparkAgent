@@ -114,6 +114,31 @@ class CliCommandTests(unittest.TestCase):
         text = "\n".join(lines)
         self.assertIn("gpu ran hot", text)
 
+    def test_sqlite_lists_rows(self):
+        cli, transport, lines = make_cli({"/api/db/tasks": {
+            "rows": [{"id": 1, "goal": "check gpu"}],
+            "count": 1, "table": "tasks"}})
+        cli.execute("sqlite tasks limit=5")
+        text = "\n".join(lines)
+        self.assertIn("check gpu", text)
+        url, method, _body = transport.calls[-1]
+        self.assertIn("/api/db/tasks", url)
+        self.assertIn("limit=5", url)
+        self.assertEqual(method, "GET")
+
+    def test_sqlite_where_encoding(self):
+        cli, transport, _ = make_cli({"/api/db/tasks": {"rows": [],
+                                                        "count": 0}})
+        cli.execute("sqlite tasks goal=water the plants descending")
+        url = transport.calls[-1][0]
+        self.assertIn("where=goal%3Dwater", url)
+        self.assertIn("descending=1", url)
+
+    def test_sqlite_requires_table(self):
+        cli, _, lines = make_cli({})
+        cli.execute("sqlite")
+        self.assertIn("usage:", "\n".join(lines))
+
     def test_approve_routes_decision(self):
         cli, transport, lines = make_cli(
             {"/api/approvals/abc/approve": {"id": "abc",

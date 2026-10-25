@@ -181,6 +181,14 @@ def build_spec() -> dict[str, Any]:
             "/api/swarm": {"get": {
                 "summary": "Swarm topology catalog with mermaid diagrams",
                 "responses": {"200": _json_response("Topology catalog")}}},
+            "/api/db/{table}": {"get": {
+                "summary": "Read-only rows from episodes|steps|memories|"
+                           "tasks|audit (where=col=value, order_by, limit)",
+                "parameters": [
+                    {"name": "table", "in": "path", "required": True,
+                     "schema": {"type": "string"}}],
+                "responses": {"200": _json_response("Rows"),
+                              "400": error_response}}},
         },
     }
 

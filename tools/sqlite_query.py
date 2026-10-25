@@ -56,6 +56,41 @@ def _run(db_path: Path, table: str,
     return [_trim_row(dict(row)) for row in rows]
 
 
+async def lookup(db_path: Path, table: str,
+                 columns: list[str] | None = None,
+                 where: dict[str, Any] | None = None,
+                 order_by: str | None = None,
+                 descending: bool = False,
+                 limit: int = DEFAULT_ROWS) -> dict[str, Any]:
+    """Shared read-only lookup — the tool handler and the /api/db endpoint
+    both go through this one guarded path."""
+    if table not in _TABLES:
+        raise ToolFailure(f"unknown table {table!r} — one of "
+                          + ", ".join(_TABLES))
+    if where and len(where) > MAX_WHERE_TERMS:
+        raise ToolFailure(f"at most {MAX_WHERE_TERMS} where terms")
+    limit = max(1, min(int(limit), MAX_ROWS))
+    rows = await asyncio.to_thread(_run, db_path, table, FETCH_CAP)
+
+    for column, value in (where or {}).items():
+        rows = [row for row in rows if row.get(column) == value]
+    if order_by is not None:
+        rows.sort(key=lambda row: (row.get(order_by) is None,
+                                   row.get(order_by)),
+                  reverse=descending)
+    elif descending:
+        rows.reverse()
+    if columns:
+        missing = [c for c in columns
+                   if rows and c not in rows[0]]
+        if missing:
+            raise ToolFailure(f"unknown column(s): {missing}")
+        rows = [{c: row.get(c) for c in columns} for row in rows]
+    rows = rows[:limit]
+    return {"rows": rows, "count": len(rows), "table": table,
+            "scanned": FETCH_CAP}
+
+
 def register_tools(registry: ToolRegistry, db_path: Path) -> None:
     async def sqlite_query(ctx: ToolContext, table: str,
                            columns: list[str] | None = None,
@@ -63,31 +98,9 @@ def register_tools(registry: ToolRegistry, db_path: Path) -> None:
                            order_by: str | None = None,
                            descending: bool = False,
                            limit: int = DEFAULT_ROWS) -> dict[str, Any]:
-        if table not in _TABLES:
-            raise ToolFailure(f"unknown table {table!r} — one of "
-                              + ", ".join(_TABLES))
-        if where and len(where) > MAX_WHERE_TERMS:
-            raise ToolFailure(f"at most {MAX_WHERE_TERMS} where terms")
-        limit = max(1, min(int(limit), MAX_ROWS))
-        rows = await asyncio.to_thread(_run, db_path, table, FETCH_CAP)
-
-        for column, value in (where or {}).items():
-            rows = [row for row in rows if row.get(column) == value]
-        if order_by is not None:
-            rows.sort(key=lambda row: (row.get(order_by) is None,
-                                       row.get(order_by)),
-                      reverse=descending)
-        elif descending:
-            rows.reverse()
-        if columns:
-            missing = [c for c in columns
-                       if rows and c not in rows[0]]
-            if missing:
-                raise ToolFailure(f"unknown column(s): {missing}")
-            rows = [{c: row.get(c) for c in columns} for row in rows]
-        rows = rows[:limit]
-        return {"rows": rows, "count": len(rows), "table": table,
-                "scanned": FETCH_CAP}
+        return await lookup(db_path, table, columns=columns, where=where,
+                            order_by=order_by, descending=descending,
+                            limit=limit)
 
     registry.register(Tool(
         name="sqlite_query",

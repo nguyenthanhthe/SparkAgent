@@ -30,6 +30,9 @@ HELP = """commands:
   tasks                  list tasks
   submit <goal>          submit a one-shot task
   mem <query>            semantic memory recall
+  sqlite <table> [k=v] [columns=a,b] [order_by=col] [descending] [limit=n]
+                         read-only rows from episodes|steps|memories|
+                         tasks|audit
   approvals              pending operator approvals
   approve <id> / deny <id>
   skills                 list skills
@@ -126,6 +129,8 @@ class SparkCli:
             self._cmd_skills()
         elif command == "quarantine":
             self._cmd_quarantine()
+        elif command == "sqlite":
+            self._cmd_sqlite(args)
         else:
             self._out(f"unknown command {command!r} — try 'help'")
         return True
@@ -210,6 +215,36 @@ class SparkCli:
         for item in items:
             self._out(f"{item['id']}  {item.get('reason', '')[:60]} "
                       f"({item.get('size_bytes', 0)}B)")
+
+    def _cmd_sqlite(self, args: list[str]) -> None:
+        if not args:
+            self._out("usage: sqlite <table> [k=v ...] [columns=a,b] "
+                      "[order_by=col] [descending] [limit=n]")
+            return
+        table, params, where = args[0], [], {}
+        for token in args[1:]:
+            if token == "descending":
+                params.append("descending=1")
+                continue
+            key, sep, value = token.partition("=")
+            if not sep:
+                self._out(f"ignoring token {token!r} (expected k=v)")
+                continue
+            if key in ("columns", "order_by", "limit", "descending"):
+                params.append(f"{key}={value}")
+            else:
+                where[key] = value
+        for column, value in where.items():
+            params.append("where=" + quote(f"{column}={value}"))
+        query = "&".join(params)
+        rows = self._call(f"/api/db/{quote(table)}" + ("?" + query
+                                                       if query else ""))
+        if not rows.get("rows"):
+            self._out("(no rows)")
+            return
+        for row in rows["rows"]:
+            self._out(" ".join(f"{key}={str(value)[:40]}"
+                               for key, value in row.items()))
 
     # ------------------------------------------------------------------- repl
     def repl(self) -> None:

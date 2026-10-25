@@ -507,6 +507,31 @@ def build_web_app(daemon) -> web.Application:
         from swarm.render import topology_catalog
         return web.json_response({"topologies": topology_catalog()})
 
+    async def api_db(request: web.Request) -> web.Response:
+        """Read-only database lookups — same guard path as the
+        sqlite_query tool (fixed statements, Python-side filtering)."""
+        from tools.sqlite_query import lookup
+        from kernel.errors import ToolFailure
+        table = request.match_info["table"]
+        where = {}
+        for pair in request.query.getall("where", []):
+            column, _, value = pair.partition("=")
+            if not _:
+                raise web.HTTPBadRequest(
+                    text="where terms look like col=value")
+            where[column] = value
+        columns = [c for c in request.query.get("columns", "").split(",")
+                   if c] or None
+        order_by = request.query.get("order_by") or None
+        descending = request.query.get("descending", "") in ("1", "true")
+        try:
+            limit = int(request.query.get("limit", 20))
+            return web.json_response(await lookup(
+                daemon.cfg.db_path, table, columns=columns, where=where,
+                order_by=order_by, descending=descending, limit=limit))
+        except (ValueError, ToolFailure) as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+
     async def api_approvals(_request: web.Request) -> web.Response:
         from security.approval import request_to_dict
         return web.json_response(
@@ -599,6 +624,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/metrics", api_metrics)
     app.router.add_get("/api/metrics", api_metrics_json)
     app.router.add_get("/api/swarm", api_swarm)
+    app.router.add_get("/api/db/{table}", api_db)
     app.router.add_get("/api/approvals", api_approvals)
     app.router.add_post("/api/approvals/{id}/{decision}",
                         api_approval_decide)
