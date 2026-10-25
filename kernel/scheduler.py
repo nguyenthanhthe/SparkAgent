@@ -34,6 +34,7 @@ class Scheduler:
         self._semaphore = asyncio.Semaphore(concurrency)
         self._stopping = asyncio.Event()
         self._inflight: set[asyncio.Task] = set()
+        self._blocked: dict[int, list[int]] = {}
         self.stats = {"episodes_done": 0, "episodes_failed": 0}
 
     # ------------------------------------------------------------------- loop
@@ -60,6 +61,7 @@ class Scheduler:
             await asyncio.gather(*self._inflight, return_exceptions=True)
 
     async def _tick(self) -> None:
+        await self._publish_block_changes()
         due = await self.memory.due_tasks(limit=5)
         for task in due:
             claimed = await self.memory.mark_task_running(task["id"])
@@ -68,6 +70,25 @@ class Scheduler:
             runner = asyncio.create_task(self._run_task(task))
             self._inflight.add(runner)
             runner.add_done_callback(self._inflight.discard)
+
+    async def _publish_block_changes(self) -> None:
+        """Emit task_blocked / task_released transitions on the
+        ``scheduler`` channel so /ws and the dashboard can show them."""
+        try:
+            blocked = await self.memory.blocked_pending_tasks(limit=25)
+        except Exception as exc:   # noqa: BLE001 — events are best-effort
+            logger.warning("blocked-task scan failed: %r", exc)
+            return
+        current = {task["id"]: task["blocked_by"] for task in blocked}
+        for task_id, deps in current.items():
+            if task_id not in self._blocked:
+                self.bus.publish("scheduler", {
+                    "event": "task_blocked", "task_id": task_id,
+                    "blocked_by": deps})
+        for task_id in set(self._blocked) - set(current):
+            self.bus.publish("scheduler", {
+                "event": "task_released", "task_id": task_id})
+        self._blocked = current
 
     async def _run_task(self, task: dict[str, Any]) -> None:
         task_id = task["id"]

@@ -434,6 +434,7 @@ def build_web_app(daemon) -> web.Application:
         await response.prepare(request)
         log_queue = daemon.bus.subscribe("logs")
         swarm_queue = daemon.bus.subscribe("swarm")
+        sched_queue = daemon.bus.subscribe("scheduler")
 
         def _send(payload: dict) -> bytes:
             return (f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
@@ -441,9 +442,11 @@ def build_web_app(daemon) -> web.Application:
 
         log_t = asyncio.create_task(log_queue.get())
         swarm_t = asyncio.create_task(swarm_queue.get())
+        sched_t = asyncio.create_task(sched_queue.get())
         try:
             while True:
-                done, _ = await asyncio.wait({log_t, swarm_t}, timeout=15.0,
+                done, _ = await asyncio.wait({log_t, swarm_t, sched_t},
+                                             timeout=15.0,
                                              return_when=asyncio.
                                              FIRST_COMPLETED)
                 if not done:
@@ -462,13 +465,23 @@ def build_web_app(daemon) -> web.Application:
                                  for key, value in event.items()}
                     await response.write(_send({"swarm": event}))
                     swarm_t = asyncio.create_task(swarm_queue.get())
+                if sched_t in done:
+                    event = sched_t.result()
+                    if isinstance(event, dict):
+                        event = {key: daemon.vault.redact(str(value))
+                                 if isinstance(value, str) else value
+                                 for key, value in event.items()}
+                    await response.write(_send({"scheduler": event}))
+                    sched_t = asyncio.create_task(sched_queue.get())
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
             log_t.cancel()
             swarm_t.cancel()
+            sched_t.cancel()
             daemon.bus.unsubscribe("logs", log_queue)
             daemon.bus.unsubscribe("swarm", swarm_queue)
+            daemon.bus.unsubscribe("scheduler", sched_queue)
         return response
 
     app.router.add_get("/", index)
@@ -690,6 +703,7 @@ def build_web_app(daemon) -> web.Application:
         await ws.prepare(request)
         log_queue = daemon.bus.subscribe("logs")
         swarm_queue = daemon.bus.subscribe("swarm")
+        sched_queue = daemon.bus.subscribe("scheduler")
 
         async def forward_logs() -> None:
             while True:
@@ -705,8 +719,18 @@ def build_web_app(daemon) -> web.Application:
                              for key, value in event.items()}
                 await ws.send_json({"swarm": event})
 
+        async def forward_scheduler() -> None:
+            while True:
+                event = await sched_queue.get()
+                if isinstance(event, dict):
+                    event = {key: daemon.vault.redact(str(value))
+                             if isinstance(value, str) else value
+                             for key, value in event.items()}
+                await ws.send_json({"scheduler": event})
+
         sender = asyncio.create_task(forward_logs())
         swarm_sender = asyncio.create_task(forward_swarm())
+        sched_sender = asyncio.create_task(forward_scheduler())
         try:
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
@@ -721,8 +745,10 @@ def build_web_app(daemon) -> web.Application:
         finally:
             sender.cancel()
             swarm_sender.cancel()
+            sched_sender.cancel()
             daemon.bus.unsubscribe("logs", log_queue)
             daemon.bus.unsubscribe("swarm", swarm_queue)
+            daemon.bus.unsubscribe("scheduler", sched_queue)
             if not ws.closed:
                 await ws.close()
         return ws

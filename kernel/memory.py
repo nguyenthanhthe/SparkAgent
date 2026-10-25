@@ -579,6 +579,42 @@ class Memory:
             return [dep for dep in deps if dep not in done]
         return await self._run(op)
 
+    async def blocked_pending_tasks(self, limit: int = 50) -> list[dict]:
+        """Enabled pending tasks that are dependency-blocked, each with
+        its unsatisfied dependency ids (feeds scheduler blocked/released
+        events)."""
+        def op(conn: sqlite3.Connection) -> list[dict]:
+            rows = conn.execute(
+                "SELECT id, goal, depends_on FROM tasks WHERE enabled = 1 "
+                "AND status = 'pending' ORDER BY priority ASC, id ASC "
+                "LIMIT ?", (limit * 3,)).fetchall()
+            dep_ids: set[int] = set()
+            parsed: dict[int, list[int]] = {}
+            for row in rows:
+                deps = self._parse_depends(row["depends_on"])
+                if deps:
+                    parsed[row["id"]] = deps
+                    dep_ids.update(deps)
+            if not parsed:
+                return []
+            placeholders = ", ".join("?" for _ in dep_ids)
+            done = {row["id"] for row in conn.execute(
+                f"SELECT id FROM tasks WHERE id IN ({placeholders}) "
+                f"AND status = 'done'", tuple(dep_ids))}
+            blocked = []
+            for row in rows:
+                deps = parsed.get(row["id"])
+                if deps is None:
+                    continue
+                unsatisfied = [d for d in deps if d not in done]
+                if unsatisfied:
+                    blocked.append({"id": row["id"], "goal": row["goal"],
+                                    "blocked_by": unsatisfied})
+                    if len(blocked) >= limit:
+                        break
+            return blocked
+        return await self._run(op)
+
     async def cancel_task(self, task_id: int) -> bool:
         def op(conn: sqlite3.Connection) -> bool:
             cursor = conn.execute(
