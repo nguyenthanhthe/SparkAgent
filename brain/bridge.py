@@ -293,6 +293,18 @@ class Brain:
         return {tier.value: {"requests": st.requests, "failures": st.failures}
                 for tier, st in self._state.items()}
 
+    def tier_details(self) -> dict[str, dict]:
+        """Per-tier counters including the last error, for /api/adapters."""
+        now = time.monotonic()
+        return {tier.value: {
+            "requests": st.requests, "failures": st.failures,
+            "consecutive_failures": st.consecutive_failures,
+            "cooldown_active": st.cooldown_until > now,
+            "cooldown_remaining_s": round(max(0.0, st.cooldown_until - now),
+                                          1),
+            "last_error": st.last_error,
+        } for tier, st in self._state.items()}
+
     def cost_report(self) -> dict:
         """Cost ledger snapshot: every chat (hit or miss) is recorded."""
         return self.costs.report()

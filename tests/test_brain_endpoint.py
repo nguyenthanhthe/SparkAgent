@@ -48,6 +48,11 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("hit_rate", body["cache"])
             for name in ("mock", "ollama", "openai_compat"):
                 self.assertIn(name, body["catalog"]["available"])
+            self.assertIn("stats", body)
+            for tier in ("local", "remote"):
+                self.assertIn(tier, body["stats"])
+                self.assertIn("last_error", body["stats"][tier])
+                self.assertIn("cooldown_remaining_s", body["stats"][tier])
         finally:
             await client.close()
             await daemon.memory.close()

@@ -590,6 +590,7 @@ def build_web_app(daemon) -> web.Application:
         health = await daemon.brain.health()
         return web.json_response({
             "tiers": health,
+            "stats": daemon.brain.tier_details(),
             "cache": daemon.brain.cache_stats(),
             "catalog": {"available": adapter_registry.available()},
         })
