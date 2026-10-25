@@ -50,3 +50,28 @@ by design.
 `python main.py --check` runs an offline smoke of the composed system
 (config, policy, SSRF guard, vault crypto, memory recall, ReAct parsing)
 — a fast post-install sanity probe, separate from the unit suite.
+
+## Patterns introduced in Waves R–S
+
+**Dependency tests** (`tests/test_task_dependencies.py`) build a bare
+`Memory` over a temp database, submit tasks with `depends_on`, and step
+through the state machine (`mark_task_running` → `finish_task`) to prove
+the gate: a dependent task stays out of `due_tasks` until every
+dependency settles to `done`. Corrupt `depends_on` JSON must degrade to
+"no dependencies", not block forever — there is a test for that.
+
+**Topology tests** (`tests/test_topology_render.py`) assert the catalog
+is complete and that `docs/topologies.md` matches
+`swarm.render.markdown_section()` byte-for-byte — generated docs get the
+same staleness treatment as `docs/configuration.md`.
+
+**Security-tool tests** (`tests/test_sqlite_query_tool.py`) prove the
+guard structurally: the statement text is a fixed constant per table, so
+the test asserts the API contract (unknown table/column rejected, row
+caps clamped) and that a `mode=ro` connection refuses writes even if a
+write slipped past the API.
+
+**Web endpoint tests** use the `TestClient`/`TestServer` pair against
+`build_web_app(daemon)` with a temp-database `AgentDaemon` — no network,
+no daemon thread. Copy `tests/test_memories_filters.py` for query-parameter
+endpoints and `tests/test_quarantine_restore.py` for multi-step flows.
