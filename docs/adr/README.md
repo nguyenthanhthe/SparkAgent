@@ -11,6 +11,7 @@ decision supersedes an old one via a new ADR.
 | [0003](0003-openshell-backend-layering.md) | NVIDIA OpenShell as an execution backend tier | accepted |
 | [0004](0004-per-program-cwd-allowlist.md) | Per-program working-directory allowlist | accepted |
 | 0005 | Adapter-framework migration for Brain clients | proposed |
+| [0006](0006-task-dependencies.md) | Scheduler task dependencies | accepted |
 
 Format: one file per decision, `NNNN-slug.md`, sections **Context /
 Decision / Consequences / Alternatives**.

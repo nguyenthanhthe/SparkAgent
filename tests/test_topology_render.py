@@ -2,7 +2,7 @@
 
 import unittest
 
-from swarm.render import topology_catalog, topology_mermaid
+from swarm.render import markdown_section, topology_catalog, topology_mermaid
 from swarm.topologies import map_reduce, parallel, sequential, star
 
 EXPECTED_TOPOLOGIES = {"sequential", "parallel", "star", "debate",
@@ -37,6 +37,15 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("worker 1", topology_mermaid("parallel"))
         self.assertIn("hub", topology_mermaid("star"))
         self.assertIn("reducer", topology_mermaid("map_reduce"))
+
+    def test_committed_topology_doc_in_sync(self):
+        from pathlib import Path
+        doc = Path(__file__).resolve().parents[1] / "docs" / "topologies.md"
+        self.assertTrue(doc.exists(), "docs/topologies.md missing")
+        self.assertEqual(doc.read_text(encoding="utf-8"),
+                         markdown_section(),
+                         "docs/topologies.md is stale — regenerate from "
+                         "swarm.render.markdown_section()")
 
 
 class TopologyEndpointTests(unittest.IsolatedAsyncioTestCase):

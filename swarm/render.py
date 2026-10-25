@@ -83,3 +83,20 @@ def topology_mermaid(name: str) -> str | None:
     """Mermaid flowchart for a topology, or None if unknown."""
     entry = _BY_NAME.get(name)
     return entry["mermaid"] if entry else None
+
+
+def markdown_section() -> str:
+    """The catalog as a docs section (kept in sync by a staleness test)."""
+    lines = ["## Topology catalog", "",
+             "Served as JSON (with these diagrams) at `GET /api/swarm`.",
+             ""]
+    for entry in CATALOG:
+        lines.append(f"### `{entry['name']}`")
+        lines.append("")
+        lines.append(entry["description"])
+        lines.append("")
+        lines.append("```mermaid")
+        lines.append(entry["mermaid"])
+        lines.append("```")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
