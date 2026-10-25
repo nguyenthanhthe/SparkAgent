@@ -1,8 +1,8 @@
 """In-process metrics registry: counters, gauges, histograms.
 
 Zero dependencies; fixed log-style buckets keep percentiles cheap and
-portable across platforms. ``render_text`` emits a Prometheus exposition
-string so ``interface/prom.py`` can serve it verbatim.
+portable across platforms. Prometheus exposition rendering lives in
+``interface/prom.py`` (web-layer concern); this module only stores data.
 """
 
 from __future__ import annotations
@@ -72,24 +72,6 @@ class MetricsRegistry:
                 "histograms": {name: hist.snapshot()
                                for name, hist in self._histograms.items()},
             }
-
-    def render_text(self) -> str:
-        with self._lock:
-            lines = []
-            for name, value in sorted(self._counters.items()):
-                lines.append(f"# TYPE {name} counter")
-                lines.append(f"{name} {value}")
-            for name, value in sorted(self._gauges.items()):
-                lines.append(f"# TYPE {name} gauge")
-                lines.append(f"{name} {value}")
-            for name, hist in sorted(self._histograms.items()):
-                lines.append(f"# TYPE {name} histogram")
-                for upper, count in hist.cumulative.items():
-                    label = "+Inf" if math.isinf(upper) else str(upper)
-                    lines.append(f'{name}_bucket{{le="{label}"}} {count}')
-                lines.append(f"{name}_count {hist.count}")
-                lines.append(f"{name}_sum {round(hist.total, 6)}")
-            return "\n".join(lines) + "\n"
 
 
 @dataclass

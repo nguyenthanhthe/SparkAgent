@@ -49,11 +49,12 @@ class MetricsTests(unittest.TestCase):
         self.assertGreaterEqual(hist["sum"], 0.005)
 
     def test_render_text_prometheus_format(self):
+        from interface.prom import render_text
         reg = MetricsRegistry()
         reg.incr("tasks_done")
         reg.gauge("heap_mb", 10)
         reg.observe("latency", 0.2)
-        text = reg.render_text()
+        text = render_text(reg)
         self.assertIn("tasks_done 1.0", text)
         self.assertIn("heap_mb 10.0", text)
         self.assertIn('latency_bucket{le="0.1"} 0', text)

@@ -468,8 +468,9 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response(build_spec())
 
     async def api_metrics(_request: web.Request) -> web.Response:
+        from interface.prom import render_text
         from kernel.metrics import REGISTRY
-        return web.Response(text=REGISTRY.render_text(),
+        return web.Response(text=render_text(REGISTRY),
                             content_type="text/plain")
 
     async def api_metrics_json(_request: web.Request) -> web.Response:
