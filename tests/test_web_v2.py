@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from kernel.config import Config
 from kernel.daemon import AgentDaemon
@@ -6,10 +8,13 @@ from kernel.daemon import AgentDaemon
 
 class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
     async def _setup(self):
-        from aiohttp import web
         from aiohttp.test_utils import TestClient, TestServer
         from interface.web import build_web_app
-        daemon = AgentDaemon(Config.load())
+        # hermetic: temp root keeps the real data/ dir (db, quarantine,
+        # skills) untouched by test runs
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")}},
+            root=Path(tempfile.mkdtemp())))
         await daemon.memory.connect()
         app = build_web_app(daemon)
         server = TestServer(app)

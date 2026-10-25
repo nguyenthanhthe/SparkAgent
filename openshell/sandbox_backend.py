@@ -77,7 +77,7 @@ class OpenShellExecutor(SafeExecutor):
         workdir = Path(cwd) if cwd is not None else self.policy.sandbox_root
 
         # 1. the policy layer always runs first, regardless of backend
-        admitted = self._admit(program, args, workdir=workdir)
+        admitted = self._admit(program, args, workdir=workdir, timeout=timeout)
         if admitted[0] is None:
             return admitted[1]
         exe = admitted[0]

@@ -97,7 +97,9 @@ class DbEndpointTests(unittest.IsolatedAsyncioTestCase):
         from interface.web import build_web_app
         from kernel.config import Config
         from kernel.daemon import AgentDaemon
-        daemon = AgentDaemon(Config.load())
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")}},
+            root=Path(tempfile.mkdtemp())))
         await daemon.memory.connect()
         await daemon.memory.submit_task("endpoint probe task", "test")
         client = TestClient(TestServer(build_web_app(daemon)))
