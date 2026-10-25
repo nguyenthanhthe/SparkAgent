@@ -660,12 +660,20 @@ class Memory:
         keyed on their id — the consolidation job's work queue."""
         def op(conn: sqlite3.Connection) -> list[dict]:
             rows = conn.execute(
-                "SELECT id, goal, final_answer FROM episodes "
+                "SELECT id, goal, final_answer, tags FROM episodes "
                 "WHERE status = 'done' AND created_at >= ? "
                 "AND id NOT IN (SELECT CAST(REPLACE(key, 'episode:', '') "
                 "AS INTEGER) FROM memories WHERE key LIKE 'episode:%') "
                 "ORDER BY id LIMIT ?", (since_iso, limit)).fetchall()
-            return [dict(row) for row in rows]
+            results = []
+            for row in rows:
+                item = dict(row)
+                try:
+                    item["tags"] = json.loads(item.get("tags") or "[]")
+                except (json.JSONDecodeError, TypeError):
+                    item["tags"] = []
+                results.append(item)
+            return results
         return await self._run(op)
 
     # ------------------------------------------------------------ maintenance

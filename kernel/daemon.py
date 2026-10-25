@@ -381,9 +381,19 @@ class AgentDaemon:
             return 0
         digest_text = consolidate(episodes,
                                   header="Episode consolidation")
+        # carry the episodes' tags into the digest as hashtags so tag
+        # vocabulary stays searchable after the source episodes age out
+        tags: list[str] = []
+        for episode in episodes:
+            for tag in episode.get("tags") or []:
+                if tag not in tags:
+                    tags.append(tag)
+        if tags:
+            digest_text += " " + " ".join(f"#{tag}" for tag in tags)
         await self.memory.remember(digest_text, kind="digest",
                                    key=f"digest:{episodes[0]['id']}-"
-                                       f"{episodes[-1]['id']}")
+                                       f"{episodes[-1]['id']}",
+                                   meta={"tags": tags})
         # mark each source episode as digested by its own key
         for episode in episodes:
             await self.memory.remember(

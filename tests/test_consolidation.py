@@ -76,6 +76,30 @@ class DaemonConsolidationTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await daemon.memory.close()
 
+    async def test_digest_carries_episode_tags(self):
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        daemon = AgentDaemon(Config({"memory": {"db_path": str(db)}}))
+        await daemon.memory.connect()
+        try:
+            eid = await daemon.memory.start_episode(
+                "check gpu thermals #gpu #ops", "test")
+            await daemon.memory.finish_episode(
+                eid, "done", "thermals nominal", "local", 1)
+            eid2 = await daemon.memory.start_episode(
+                "rotate logs #ops", "test")
+            await daemon.memory.finish_episode(
+                eid2, "done", "logs rotated", "local", 1)
+            digested = await daemon._consolidate_episodes()
+            self.assertEqual(digested, 2)
+            rows = await daemon.memory.recall("consolidation", k=10)
+            digests = [h for h in rows if h.kind == "digest"]
+            self.assertTrue(digests)
+            digest = digests[0]
+            self.assertIn("#gpu", digest.text)
+            self.assertIn("#ops", digest.text)
+        finally:
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()
