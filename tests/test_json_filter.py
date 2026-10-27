@@ -3,7 +3,7 @@
 import unittest
 
 from kernel.errors import ToolFailure
-from tools.json_tool import filter_rows, sort_rows
+from tools.json_tool import filter_rows, first_row, sort_rows
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -101,6 +101,50 @@ class JsonQuerySortToolTests(unittest.IsolatedAsyncioTestCase):
             await self.registry.call(
                 "json_query", {"data": '{"a": 1}', "mode": "sort",
                                "sort_by": "a"}, self.ctx)
+
+
+class FirstRowTests(unittest.TestCase):
+    def test_first_and_last(self):
+        self.assertEqual(first_row(ROWS)["name"], "alice")
+        self.assertEqual(first_row(ROWS, last=True)["name"], "carol")
+
+    def test_filter_applied_before_pick(self):
+        row = first_row(ROWS, where="status=active;age>35")
+        self.assertEqual(row["name"], "carol")
+        self.assertIsNone(first_row(ROWS, where="age>999"))
+
+    def test_empty_list_is_none(self):
+        self.assertIsNone(first_row([]))
+        self.assertIsNone(first_row([], last=True))
+
+
+class JsonQueryFirstLastToolTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        import json
+        from tools.registry import ToolContext, ToolRegistry
+        from tools import stdlib_tools
+        self.registry = ToolRegistry()
+        stdlib_tools.register_tools(self.registry)
+        self.ctx = ToolContext()
+        self.rows_json = json.dumps(ROWS)
+
+    async def test_tool_first_with_where(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "first",
+                           "where": "status=done"}, self.ctx)
+        self.assertIn("bob", result)
+
+    async def test_tool_last(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "last"},
+            self.ctx)
+        self.assertIn("carol", result)
+
+    async def test_tool_no_match_is_null(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "first",
+                           "where": "age>999"}, self.ctx)
+        self.assertIn("null", result)
 
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):

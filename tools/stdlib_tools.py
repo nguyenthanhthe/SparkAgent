@@ -82,7 +82,8 @@ def register_tools(registry: ToolRegistry,
                          descending: bool = False) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
-                     ["get", "search", "shape", "stats", "filter", "sort"])
+                     ["get", "search", "shape", "stats", "filter", "sort",
+                      "first", "last"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -128,6 +129,19 @@ def register_tools(registry: ToolRegistry,
                                   "(use path='items' or jsonl=true)")
             return {"value": json_mod.sort_rows(rows, sort_by,
                                                 descending=descending)}
+        if mode in ("first", "last"):
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure(f"mode={mode} needs a list "
+                                  "(use path='items' or jsonl=true)")
+            try:
+                return {"value": json_mod.first_row(
+                    rows, where=where, last=(mode == "last"))}
+            except ValueError as exc:
+                raise ToolFailure(str(exc))
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -139,7 +153,9 @@ def register_tools(registry: ToolRegistry,
                      "mode=stats counts keys/leaves, mode=filter keeps "
                      "list rows matching comparison terms in `where` "
                      "(e.g. 'age>=30;status!=done'), mode=sort orders a "
-                     "list by `sort_by` key (descending flips it). Set "
+                     "list by `sort_by` key (descending flips it), "
+                     "mode=first/last returns the head/tail row with an "
+                     "optional `where` filter applied first. Set "
                      "jsonl=true for newline-delimited JSON (treated as "
                      "a list of docs)."),
         parameters={"data": {"type": "string", "required": True,

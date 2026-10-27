@@ -210,3 +210,15 @@ def sort_rows(rows: list[Any], key: str, descending: bool = False) \
                     key=lambda i: key_of(values[i]), reverse=descending)
     missing = [i for i, v in enumerate(values) if v is None]
     return [rows[i] for i in ranked + missing]
+
+
+def first_row(rows: list[Any], where: str = "",
+              last: bool = False) -> Any:
+    """Head (or tail) row access, with an optional filter applied first.
+    Returns None when nothing matches — the caller decides if that's an
+    error."""
+    if where:
+        rows = filter_rows(rows, where)
+    if not rows:
+        return None
+    return rows[-1] if last else rows[0]
