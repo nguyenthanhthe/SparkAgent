@@ -245,7 +245,11 @@ class WebFetcher:
                              buckets=(10, 20, 30, 40, 50, 60, 80, 100))
             REGISTRY.incr(
                 f"promptguard_verdicts_{verdict.verdict}_total")
-            result["injection_risk"] = risk_report(verdict)
+            report = risk_report(verdict)
+            # top 3 findings: enough to justify the verdict in a tool
+            # result, without a wall of pattern matches
+            report["findings"] = report["findings"][:3]
+            result["injection_risk"] = report
             if verdict.verdict == "sanitize":
                 self.guard_stats["sanitized"] += 1
                 result["text"] = wrap_as_data(result["text"], source=url)
