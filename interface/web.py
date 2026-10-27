@@ -165,10 +165,12 @@ async function refreshStatus(){try{const s=await api('/api/status');
 async function refreshTasks(){try{const payload=await api('/api/tasks');
   const tasks=payload.items||[];
   $('tasks').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th></th></tr>'+
-   tasks.map(t=>`<tr onclick="showTask(${t.id})" style="cursor:pointer">
-    <td>${t.id}</td><td>${t.goal.slice(0,80)}</td>
+   tasks.map(t=>{const blk=(t.blocked_by||[]).length
+     ?badge('b-warn','blocked by '+(t.blocked_by||[]).map(b=>'#'+b).join(',')):'';
+     return `<tr onclick="showTask(${t.id})" style="cursor:pointer">
+    <td>${t.id}</td><td>${esc(t.goal.slice(0,80))} ${blk}</td>
     <td>${t.enabled?t.status:badge('b-dim',t.status)}</td>
-    <td>${t.enabled?`<button class="small" onclick="event.stopPropagation();cancelTask(${t.id})">cancel</button>`:''}</td></tr>`).join('');
+    <td>${t.enabled?`<button class="small" onclick="event.stopPropagation();cancelTask(${t.id})">cancel</button>`:''}</td></tr>`;}).join('');
 }catch(e){}}
 async function showTask(id){try{const t=await api('/api/tasks/'+id);
   const blocked=(t.blocked_by||[]).map(b=>`#${b}`).join(', ');
@@ -362,6 +364,11 @@ def build_web_app(daemon) -> web.Application:
         except ValueError as exc:
             raise web.HTTPBadRequest(text=str(exc))
         tasks = await daemon.memory.list_tasks(limit=offset + limit + 1)
+        blocked = {t["id"]: t["blocked_by"] for t in
+                   await daemon.memory.blocked_pending_tasks(limit=100)}
+        for row in tasks:
+            if row["id"] in blocked:
+                row["blocked_by"] = blocked[row["id"]]
         return web.json_response(paginate(tasks, offset, limit).envelope())
 
     async def api_task_detail(request: web.Request) -> web.Response:

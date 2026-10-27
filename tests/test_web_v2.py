@@ -234,6 +234,21 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_tasks_list_marks_blocked_rows(self):
+        daemon, client = await self._setup()
+        try:
+            first = await daemon.memory.submit_task("upstream", "test")
+            second = await daemon.memory.submit_task(
+                "downstream", "test", depends_on=[first])
+            response = await client.get("/api/tasks")
+            rows = {r["id"]: r
+                    for r in (await response.json())["items"]}
+            self.assertNotIn("blocked_by", rows[first])
+            self.assertEqual(rows[second]["blocked_by"], [first])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:
