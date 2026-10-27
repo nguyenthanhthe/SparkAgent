@@ -252,5 +252,37 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("(no skills)", reply)
 
 
+class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from ops.backup import create_backup
+        self.root = Path(tempfile.mkdtemp())
+        data = self.root / "data"
+        data.mkdir()
+        (data / "sparkagent.db").write_bytes(b"x")
+        create_backup(data, self.root / "backups", tag="nightly")
+        self.gateway = make_gateway()
+        self.gateway.daemon.cfg = SimpleNamespace(
+            root=self.root,
+            get=lambda dotted, default=None: default)
+
+    async def _command(self, text):
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await self.gateway._handle({"chat": {"id": 42}, "text": text})
+            return send.call_args[0][1]
+
+    async def test_backup_lists_newest(self):
+        reply = await self._command("/backup")
+        self.assertIn("sparkagent-backup-", reply)
+        self.assertIn("nightly", reply)
+        self.assertIn("old", reply)
+
+    async def test_backup_empty_dir(self):
+        import shutil
+        shutil.rmtree(self.root / "backups")
+        (self.root / "backups").mkdir()
+        reply = await self._command("/backup")
+        self.assertIn("no backups", reply)
+
+
 if __name__ == "__main__":
     unittest.main()

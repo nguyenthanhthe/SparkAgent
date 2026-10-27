@@ -186,6 +186,27 @@ def restore_drill(archive_path: Path, work_dir: Path | None = None) -> dict:
             "tag": manifest.get("tag")}
 
 
+def list_backups(backup_dir: Path, limit: int = 20) -> dict:
+    """Backup-window listing: name, age, size, manifest tag per archive,
+    newest first. Listing is best-effort (a corrupt archive shows with
+    no tag) — hash verification stays in verify_backup/verify-all."""
+    archives = []
+    for path in sorted(backup_dir.glob("sparkagent-backup-*.zip"),
+                       reverse=True):
+        entry = {"name": path.name,
+                 "age_s": round(time.time() - path.stat().st_mtime),
+                 "bytes": path.stat().st_size, "tag": None}
+        try:
+            with zipfile.ZipFile(path) as archive:
+                if MANIFEST_NAME in archive.namelist():
+                    entry["tag"] = json.loads(
+                        archive.read(MANIFEST_NAME)).get("tag")
+        except (OSError, zipfile.BadZipFile, ValueError):
+            pass
+        archives.append(entry)
+    return {"dir": str(backup_dir), "archives": archives[:limit]}
+
+
 def _verify_all(output_dir: Path) -> int:
     """Verify every archive in the retention window; exit 1 if any fails."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))

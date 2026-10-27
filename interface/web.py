@@ -345,28 +345,10 @@ def build_web_app(daemon) -> web.Application:
     async def api_backup(_request: web.Request) -> web.Response:
         """Backup window listing: newest archive, age, tag. Listing only —
         hash verification stays in `python -m ops.backup verify-all`."""
-        import time as _time
-        import zipfile as _zipfile
-        from ops.backup import MANIFEST_NAME
+        from ops.backup import list_backups
         backup_dir = daemon.cfg.root / daemon.cfg.get(
             "ops.backup_dir", "backups")
-        archives = []
-        for path in sorted(backup_dir.glob("sparkagent-backup-*.zip"),
-                           reverse=True):
-            entry = {"name": path.name,
-                     "age_s": round(_time.time() - path.stat().st_mtime),
-                     "bytes": path.stat().st_size, "tag": None}
-            try:
-                with _zipfile.ZipFile(path) as archive:
-                    if MANIFEST_NAME in archive.namelist():
-                        import json as _json
-                        entry["tag"] = _json.loads(
-                            archive.read(MANIFEST_NAME)).get("tag")
-            except (OSError, _zipfile.BadZipFile, ValueError):
-                pass   # listing is best-effort; verify-all is the gate
-            archives.append(entry)
-        return web.json_response({"dir": str(backup_dir),
-                                  "archives": archives[:20]})
+        return web.json_response(list_backups(backup_dir))
 
     async def api_tasks(request: web.Request) -> web.Response:
         from kernel.pagination import paginate, parse_paging_params

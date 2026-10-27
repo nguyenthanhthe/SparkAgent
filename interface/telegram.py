@@ -10,6 +10,7 @@ is ignored (and logged). Commands:
     /mem <query>     semantic memory recall
     /skills          list skills
     /audit           recent audit trail (redacted)
+    /backup          backup window listing (newest, age, tag)
     /blocked         tasks stalled by unfinished dependencies
     /db <table>      read-only database lookup (episodes, steps,
                      memories, tasks, audit)
@@ -125,6 +126,7 @@ class TelegramGateway:
                     "/mem <query> — search memory\n"
                     "/skills — list skills\n"
                     "/audit — recent audit trail\n"
+                    "/backup — backup window listing\n"
                     "/blocked — dependency-stalled tasks\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
                     "/pending — operator approval queue\n"
@@ -248,6 +250,24 @@ class TelegramGateway:
                 f"#{t['id']} blocked by "
                 f"{', '.join('#' + str(d) for d in t['blocked_by'])} — "
                 f"{t['goal'][:50]}" for t in stalled)
+        if command == "/backup":
+            from ops.backup import list_backups
+            backup_dir = daemon.cfg.root / daemon.cfg.get(
+                "ops.backup_dir", "backups")
+            listing = list_backups(backup_dir, limit=5)
+            archives = listing["archives"]
+            if not archives:
+                return (f"no backups in {listing['dir']} — run "
+                        "python -m ops.backup create")
+            lines = [f"backups ({len(archives)} newest):"]
+            for item in archives:
+                age = item["age_s"]
+                age_text = (f"{age // 3600}h{(age % 3600) // 60:02d}m"
+                            if age >= 3600 else f"{age // 60}m")
+                tag = f" · {item['tag']}" if item["tag"] else ""
+                lines.append(f"{item['name']} · {age_text} old"
+                             f" · {item['bytes'] // 1024} KB{tag}")
+            return "\n".join(lines)
         if command == "/pending":
             lines = []
             for skill in daemon.forge.list_skills():
