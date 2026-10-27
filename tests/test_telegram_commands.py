@@ -30,6 +30,9 @@ class FakeDaemon:
                 return [{"id": 1, "status": "pending", "goal": "g",
                          "enabled": 1}]
 
+            async def blocked_pending_tasks(self, limit=50):
+                return [{"id": 1, "goal": "g", "blocked_by": [7]}]
+
             async def recall(self, query, k=5, kinds=None):
                 return []
 
@@ -192,6 +195,14 @@ class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_limit_passed_through(self):
         self.assertEqual(await self._reply_with_limit(), 25)
+
+    async def test_tasks_show_blockers_inline(self):
+        gateway = make_gateway()
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": "/tasks"})
+            reply = send.call_args[0][1]
+        self.assertIn("#1 [pending] g", reply)
+        self.assertIn("blocked by #7", reply)
 
 
 class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):

@@ -175,9 +175,18 @@ class TelegramGateway:
             tasks = await daemon.memory.list_tasks(limit=limit)
             if not tasks:
                 return "(no tasks)"
-            return "\n".join(
-                f"#{t['id']} [{t['status'] if t['enabled'] else 'off'}] "
-                f"{t['goal'][:60]}" for t in tasks)
+            blocked = {t["id"]: t["blocked_by"] for t in
+                       await daemon.memory.blocked_pending_tasks(limit=50)}
+            lines = []
+            for t in tasks:
+                blocker = ""
+                if t["id"] in blocked:
+                    blocker = (" · blocked by "
+                               + ", ".join(f"#{d}" for d in blocked[t["id"]]))
+                lines.append(f"#{t['id']} "
+                             f"[{t['status'] if t['enabled'] else 'off'}] "
+                             f"{t['goal'][:60]}{blocker}")
+            return "\n".join(lines)
         if command == "/task":
             if not args.strip():
                 return "usage: /task <goal>"
