@@ -66,6 +66,8 @@ class Scheduler:
 
     async def _tick(self) -> None:
         await self._publish_block_changes()
+        if self._stopping.is_set():
+            return   # drain-only tail: finish inflight, claim nothing new
         due = await self.memory.due_tasks(limit=5)
         for task in due:
             claimed = await self.memory.mark_task_running(task["id"])
