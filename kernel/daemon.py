@@ -469,7 +469,13 @@ class AgentDaemon:
             {"backend": "policy"},
             "sandbox_profile": self.cfg.get("openshell.profile", "standard"),
             "vault_unlocked": self.vault.unlocked,
+            "quarantine": self._quarantine_stats(),
         }
+
+    def _quarantine_stats(self) -> dict:
+        items = self.quarantine.list(limit=10_000)
+        return {"items": len(items),
+                "bytes": sum(item.get("size_bytes", 0) for item in items)}
 
     # ------------------------------------------------------------------ stop
     async def stop(self) -> None:
