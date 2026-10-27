@@ -47,6 +47,19 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(hits2[0].key, "k8s")
         run(scenario())
 
+    def test_forget_deletes_by_key(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("transient note", kind="note",
+                                    key="temp")
+            self.assertTrue(await self.mem.forget("temp"))
+            # second call: nothing left to remove
+            self.assertFalse(await self.mem.forget("temp"))
+            self.assertFalse(await self.mem.forget(""))
+            hits = await self.mem.recall("transient note", k=5)
+            self.assertEqual(hits, [])
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()

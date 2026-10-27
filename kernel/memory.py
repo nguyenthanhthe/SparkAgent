@@ -674,6 +674,19 @@ class Memory:
             conn.commit()
         await self._run(op)
 
+    async def forget(self, key: str) -> bool:
+        """Delete every memory row carrying ``key`` (operator action;
+        callers must audit). True when something was removed."""
+        if not key:
+            return False
+
+        def op(conn: sqlite3.Connection) -> bool:
+            cursor = conn.execute("DELETE FROM memories WHERE key = ?",
+                                  (key,))
+            conn.commit()
+            return cursor.rowcount > 0
+        return await self._run(op)
+
     async def digest_markers(self) -> list[dict]:
         """All digest-marker memories (``[digested] <goal>`` rows) — the
         consolidation dedupe's view of what was already distilled."""

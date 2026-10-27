@@ -467,6 +467,15 @@ def build_web_app(daemon) -> web.Application:
                                    "created_at": h.created_at,
                                    "tags": h.tags or []} for h in hits])
 
+    async def api_memory_forget(request: web.Request) -> web.Response:
+        key = request.match_info["key"]
+        removed = await daemon.memory.forget(key)
+        await daemon.memory.audit("operator", "memory.forget",
+                                  f"key={key[:100]} removed={removed}")
+        if not removed:
+            raise web.HTTPNotFound(text=f"no memory with key {key!r}")
+        return web.json_response({"ok": True, "key": key})
+
     async def api_skills(_request: web.Request) -> web.Response:
         return web.json_response(daemon.forge.list_skills())
 
@@ -557,6 +566,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/episodes", api_episodes)
     app.router.add_get("/api/episodes/{id}", api_episode_detail)
     app.router.add_get("/api/memories", api_memories)
+    app.router.add_delete("/api/memories/{key}", api_memory_forget)
     app.router.add_get("/api/skills", api_skills)
     app.router.add_post("/api/skills", api_skills_create)
     app.router.add_post("/api/skills/{name}/approve", api_skills_approve)

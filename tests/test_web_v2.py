@@ -205,6 +205,23 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_memory_forget_endpoint_audited(self):
+        daemon, client = await self._setup()
+        try:
+            await daemon.memory.remember("note to forget", kind="note",
+                                         key="forget-me")
+            response = await client.delete("/api/memories/forget-me")
+            self.assertEqual(response.status, 200)
+            # second delete: nothing left
+            response = await client.delete("/api/memories/forget-me")
+            self.assertEqual(response.status, 404)
+            rows = await daemon.memory.recent_audit(limit=5)
+            self.assertTrue(any(r["action"] == "memory.forget"
+                                for r in rows))
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:
