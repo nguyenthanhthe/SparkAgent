@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[189/500]** commits · **854 tests green** · self-check passing.
+Progress counter: **[200/500]** commits · **873 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -29,18 +29,31 @@ Progress counter: **[189/500]** commits · **854 tests green** · self-check pas
 9. ✅ docs: ADR-0007 — read-only database access via static statements
 10. ✅ examples: sqlite_query drill-down demo (tasks → audit)
 
-## Wave U backlog (next)
+## Wave U status (complete)
 
-1. openshell: rate-limit veto counter (`exec_ratelimit_blocked_total`) beside the budget counter
-2. brain: streamed chats record cost/usage once the final chunk lands
-3. memory: consolidation seeds the entity graph from digest texts
-4. security: /api/db goes through the auth limiter when SPARKAGENT_WEB_TOKEN is set
-5. interface: telegram `/db` command for read-only lookups from chat
-6. interface: dashboard scheduler panel shows blocked-task count
-7. tools: web_fetch conditional GET (ETag/If-None-Match) with 304 short-circuit
-8. ops: backup manifest gains an optional `--tag` label surfaced in verify output
-9. docs: runbook — dependency chains (blocked tasks, manual release, failure semantics)
-10. examples: backup create/verify/restore drill demo
+1. ✅ openshell: rate-limit veto counter (`exec_ratelimit_blocked_total`) beside the budget counter
+2. ✅ brain: streamed chats record cost/usage even when abandoned or cut mid-flight
+3. ✅ memory: consolidation seeds the entity graph from digest texts (`source=consolidation`)
+4. ✅ security: /api/db pinned through the auth limiter when SPARKAGENT_WEB_TOKEN is set
+5. ✅ interface: telegram `/db` command for read-only lookups from chat
+6. ✅ interface: dashboard scheduler panel shows blocked-task count (`scheduler.stats.blocked_tasks`)
+7. ✅ tools: web_fetch conditional GET (ETag/If-None-Match) with 304 short-circuit
+8. ✅ ops: backup manifest gains an optional `--tag` label surfaced in verify output
+9. ✅ docs: runbook — dependency chains (blocked tasks, manual release, failure semantics)
+10. ✅ examples: backup create/verify/restore drill demo
+
+## Wave V backlog (next)
+
+1. kernel: task dependency depth guard — reject cycles and self-dependencies at submit
+2. brain: /api/brain cost ledger gains per-day breakdown (last 7 days)
+3. memory: recall snippet highlighting — matched query terms marked in returned text
+4. security: quarantine listing endpoint filter by reason kind
+5. interface: telegram `/blocked` command listing dependency-stalled tasks
+6. interface: dashboard cost panel shows today vs 7-day average
+7. tools: json_query numeric comparison filters (`age>=30`) alongside equality
+8. ops: backup restore drill subcommand — verify + restore into a scratch dir, never the live one
+9. docs: ADR-0008 — conditional fetch + cache semantics for web tools
+10. examples: web_fetch 304 drill demo (local http server, two rounds)
 
 ## Wave R status (complete)
 
