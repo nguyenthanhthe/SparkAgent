@@ -85,6 +85,18 @@ class MemoryTests(unittest.TestCase):
             await self.mem.remember("real note")   # unaffected
         run(scenario())
 
+    def test_recall_snippet_width_param(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("long text about gpu " * 20,
+                                    kind="note")
+            narrow = await self.mem.recall("gpu", k=1, snippet_width=60)
+            wide = await self.mem.recall("gpu", k=1, snippet_width=400)
+            self.assertLessEqual(len(narrow[0].snippet), 76)
+            self.assertGreater(len(wide[0].snippet),
+                               len(narrow[0].snippet))
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()

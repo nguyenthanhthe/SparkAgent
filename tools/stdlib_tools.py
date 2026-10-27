@@ -315,11 +315,15 @@ def register_tools(registry: ToolRegistry,
                              "desc": "note|preference|fact|episode"}},
         handler=remember))
 
-    async def recall_memory(ctx: ToolContext, query: str) -> dict:
+    async def recall_memory(ctx: ToolContext, query: str,
+                            snippet_width: int = 220) -> dict:
         query = require_str(query, "query")
         if ctx.memory is None:
             raise ToolFailure("memory is not available in this context")
-        hits = await ctx.memory.recall(query, k=5)
+        snippet_width = require_int(snippet_width, "snippet_width",
+                                    minimum=40, maximum=1000)
+        hits = await ctx.memory.recall(query, k=5,
+                                       snippet_width=snippet_width)
         return {"results": [{"kind": h.kind, "text": h.text[:300],
                              "snippet": h.snippet,
                              "score": round(h.score, 3)} for h in hits]}
