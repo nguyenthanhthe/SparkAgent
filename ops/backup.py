@@ -287,11 +287,16 @@ def main(argv: list[str] | None = None) -> int:
         result = create_backup(Path(args.data_dir), Path(args.output_dir),
                                extra_dirs=extra, tag=args.tag)
         pruned = prune_backups(Path(args.output_dir), keep=args.keep)
+        archives = sorted(Path(args.output_dir).glob(
+            "sparkagent-backup-*.zip"))
+        position = next((index for index, path in enumerate(archives, 1)
+                         if path.name == result.archive_path.name), None)
         print(json.dumps({"archive": str(result.archive_path),
                           "files": result.file_count,
                           "bytes": result.total_bytes,
                           "digest": result.digest,
                           "tag": args.tag,
+                          "retention": f"{position} of {args.keep}",
                           "pruned": pruned}))
         return 0
     if args.cmd == "verify":

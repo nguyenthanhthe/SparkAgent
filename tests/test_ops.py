@@ -203,6 +203,7 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         summary = json.loads(buffer.getvalue())
         self.assertEqual(summary["pruned"], 0)
+        self.assertEqual(summary["retention"], "1 of 5")
         self.assertTrue(Path(summary["archive"]).exists())
 
         with contextlib.redirect_stdout(buffer):
