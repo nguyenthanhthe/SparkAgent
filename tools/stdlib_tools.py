@@ -152,6 +152,11 @@ def register_tools(registry: ToolRegistry,
             if not isinstance(rows, list):
                 raise ToolFailure("group needs a list "
                                   "(use path='items' or jsonl=true)")
+            try:
+                if where:
+                    rows = json_mod.filter_rows(rows, where)
+            except ValueError as exc:
+                raise ToolFailure(str(exc))
             return {"groups": json_mod.group_rows(rows, sort_by)}
         return json_mod.stats(parsed)
 
@@ -167,7 +172,8 @@ def register_tools(registry: ToolRegistry,
                      "list by `sort_by` key (descending flips it), "
                      "mode=first/last returns the head/tail row with an "
                      "optional `where` filter applied first, mode=group "
-                     "counts rows per value of `sort_by` (the group key). "
+                     "counts rows per value of `sort_by` (the group key, "
+                     "with optional `where` filter applied first). "
                      "Set jsonl=true for newline-delimited JSON (treated "
                      "as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,

@@ -179,6 +179,14 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("active", result)
         self.assertIn("2", result)
 
+    async def test_tool_group_applies_where_first(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "group",
+                           "sort_by": "status", "where": "age>=30"},
+            self.ctx)
+        self.assertIn("active", result)
+        self.assertNotIn("done", result)
+
     async def test_tool_group_needs_list(self):
         from kernel.errors import ToolFailure
         with self.assertRaises(ToolFailure):
