@@ -74,6 +74,21 @@ class QuarantineStore:
         records.sort(key=lambda r: r.get("created_at", ""), reverse=True)
         return records[:limit]
 
+    def stats(self) -> dict:
+        """Aggregate store state: item count, total bytes, age of the
+        oldest item — the one snapshot for /api/status and dashboards."""
+        items = self.list(limit=10_000)
+        oldest = items[-1].get("created_at", "") if items else ""
+        try:
+            oldest_ts = time.mktime(
+                time.strptime(oldest, "%Y-%m-%dT%H:%M:%S"))
+            oldest_age_s = max(0, int(time.time() - oldest_ts))
+        except ValueError:
+            oldest_age_s = None
+        return {"items": len(items),
+                "bytes": sum(item.get("size_bytes", 0) for item in items),
+                "oldest_age_s": oldest_age_s}
+
     def release(self, item_id: str) -> str:
         """Return sanitized content and delete the item from quarantine."""
         item = self.get(item_id)

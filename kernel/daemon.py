@@ -473,9 +473,7 @@ class AgentDaemon:
         }
 
     def _quarantine_stats(self) -> dict:
-        items = self.quarantine.list(limit=10_000)
-        return {"items": len(items),
-                "bytes": sum(item.get("size_bytes", 0) for item in items)}
+        return self.quarantine.stats()
 
     # ------------------------------------------------------------------ stop
     async def stop(self) -> None:

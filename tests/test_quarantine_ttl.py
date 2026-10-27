@@ -50,5 +50,21 @@ class QuarantineTTLTests(unittest.TestCase):
         self.assertEqual(len(self.store.list()), 1)
 
 
+class QuarantineStatsTests(unittest.TestCase):
+    def test_stats_reports_items_bytes_age(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        store.put("body one", "r1")
+        stats = store.stats()
+        self.assertEqual(stats["items"], 1)
+        self.assertEqual(stats["bytes"], len(b"body one"))
+        self.assertGreaterEqual(stats["oldest_age_s"], 0)
+
+    def test_empty_store_stats(self):
+        stats = QuarantineStore(Path(tempfile.mkdtemp())).stats()
+        self.assertEqual(stats["items"], 0)
+        self.assertEqual(stats["bytes"], 0)
+        self.assertIsNone(stats["oldest_age_s"])
+
+
 if __name__ == "__main__":
     unittest.main()
