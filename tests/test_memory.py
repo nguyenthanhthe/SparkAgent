@@ -124,6 +124,18 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(hits[0].key, "gpu")
         run(scenario())
 
+    def test_count_by_kind(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("a note", kind="note")
+            await self.mem.remember("a fact", kind="fact")
+            await self.mem.remember("another note", kind="note")
+            self.assertEqual(await self.mem.count(), 3)
+            self.assertEqual(await self.mem.count("note"), 2)
+            self.assertEqual(await self.mem.count("fact"), 1)
+            self.assertEqual(await self.mem.count("nothing"), 0)
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()

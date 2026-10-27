@@ -722,6 +722,20 @@ class Memory:
             return cursor.rowcount
         return await self._run(op)
 
+    async def count(self, kind: str | None = None) -> int:
+        """Total memory rows, optionally restricted to one kind — the
+        cheap totals dashboards poll."""
+        def op(conn: sqlite3.Connection) -> int:
+            if kind is None:
+                row = conn.execute(
+                    "SELECT COUNT(*) AS n FROM memories").fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT COUNT(*) AS n FROM memories WHERE kind = ?",
+                    (kind,)).fetchone()
+            return int(row["n"])
+        return await self._run(op)
+
     async def digest_markers(self) -> list[dict]:
         """All digest-marker memories (``[digested] <goal>`` rows) — the
         consolidation dedupe's view of what was already distilled."""
