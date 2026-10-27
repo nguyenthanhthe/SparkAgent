@@ -242,3 +242,19 @@ def group_rows(rows: list[Any], key: str) -> dict[str, int]:
         bucket = "" if value is None else str(value)
         counts[bucket] = counts.get(bucket, 0) + 1
     return dict(sorted(counts.items(), key=lambda item: -item[1]))
+
+
+def unique_values(rows: list[Any], key: str) -> list[str]:
+    """Sorted distinct stringified values of a dotted key; rows missing
+    the key contribute nothing."""
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            value = get_path(row, key)
+        except (KeyError, IndexError, TypeError):
+            continue
+        if value is not None:
+            seen.add(str(value))
+    return sorted(seen)

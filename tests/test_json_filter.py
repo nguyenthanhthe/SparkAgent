@@ -3,7 +3,8 @@
 import unittest
 
 from kernel.errors import ToolFailure
-from tools.json_tool import filter_rows, first_row, group_rows, sort_rows
+from tools.json_tool import filter_rows, first_row, group_rows, \
+    sort_rows, unique_values
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -200,6 +201,16 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
             await self.registry.call(
                 "json_query", {"data": '{"a": 1}', "mode": "group",
                                "sort_by": "a"}, self.ctx)
+
+
+class UniqueValuesTests(unittest.TestCase):
+    def test_distinct_sorted(self):
+        rows = [{"s": "b"}, {"s": "a"}, {"s": "b"}, {"x": 1}]
+        self.assertEqual(unique_values(rows, "s"), ["a", "b"])
+
+    def test_dotted_key_and_numbers(self):
+        rows = [{"m": {"v": 2}}, {"m": {"v": 10}}, {"m": {"v": 2}}]
+        self.assertEqual(unique_values(rows, "m.v"), ["10", "2"])
 
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):

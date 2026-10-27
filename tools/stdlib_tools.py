@@ -83,7 +83,7 @@ def register_tools(registry: ToolRegistry,
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
-                      "first", "last", "group"])
+                      "first", "last", "group", "unique"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -158,6 +158,16 @@ def register_tools(registry: ToolRegistry,
             except ValueError as exc:
                 raise ToolFailure(str(exc))
             return {"groups": json_mod.group_rows(rows, sort_by)}
+        if mode == "unique":
+            sort_by = require_str(sort_by, "key", min_len=1, max_len=200)
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure("unique needs a list "
+                                  "(use path='items' or jsonl=true)")
+            return {"values": json_mod.unique_values(rows, sort_by)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -173,7 +183,8 @@ def register_tools(registry: ToolRegistry,
                      "mode=first/last returns the head/tail row with an "
                      "optional `where` filter applied first, mode=group "
                      "counts rows per value of `sort_by` (the group key, "
-                     "with optional `where` filter applied first). "
+                     "with optional `where` filter applied first), "
+                     "mode=unique lists the distinct values of `sort_by`. "
                      "Set jsonl=true for newline-delimited JSON (treated "
                      "as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
