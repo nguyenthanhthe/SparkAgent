@@ -157,6 +157,41 @@ class BackupTests(unittest.TestCase):
         verdict = json.loads(buffer.getvalue().splitlines()[-1])
         self.assertTrue(verdict["ok"])
 
+    def test_tag_label_in_manifest_and_verify(self):
+        data = make_data_dir()
+        output = data.parent / "backups"
+        result = create_backup(data, output, tag="pre-upgrade")
+        manifest = verify_backup(result.archive_path)
+        self.assertEqual(manifest["tag"], "pre-upgrade")
+        untagged = create_backup(data, output)
+        self.assertIsNone(verify_backup(untagged.archive_path).get("tag"))
+
+    def test_cli_tag_surfaces_in_verify_and_verify_all(self):
+        import contextlib
+        import io
+        import shutil
+        data = make_data_dir()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output), "--tag", "pre-migration"])
+        self.assertEqual(rc, 0)
+        archive = json.loads(buffer.getvalue())["archive"]
+
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify", archive])
+        verdict = json.loads(buffer.getvalue().splitlines()[-1])
+        self.assertEqual(verdict["tag"], "pre-migration")
+
+        shutil.copyfile(Path(archive),
+                        output / "sparkagent-backup-20980101-000000.zip")
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output)])
+        report = json.loads(buffer.getvalue().splitlines()[-1])
+        tags = {item["tag"] for item in report["archives"]}
+        self.assertEqual(tags, {"pre-migration"})
+
     def test_cli_verify_all(self):
         import contextlib
         import io

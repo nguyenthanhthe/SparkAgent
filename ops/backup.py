@@ -59,7 +59,8 @@ def _iter_files(data_dir: Path, excludes: set[str]) -> list[Path]:
 
 def create_backup(data_dir: Path, output_dir: Path,
                   excludes: set[str] | None = None,
-                  extra_dirs: list[Path] | None = None) -> BackupResult:
+                  extra_dirs: list[Path] | None = None,
+                  tag: str | None = None) -> BackupResult:
     """Zip ``data_dir`` (minus excludes) plus any ``extra_dirs`` (e.g.
     skills/) into a verified archive. Extra files are stored under their
     directory name, so restore lands them inside the data dir."""
@@ -100,6 +101,8 @@ def create_backup(data_dir: Path, output_dir: Path,
     manifest = {"created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "version": 1, "file_count": len(entries),
                 "total_bytes": total, "digest": combined, "files": entries}
+    if tag:
+        manifest["tag"] = str(tag)[:100]
     with zipfile.ZipFile(archive_path, "a") as archive:
         archive.writestr(MANIFEST_NAME, json.dumps(manifest, indent=1))
     return BackupResult(archive_path=archive_path, file_count=len(entries),
@@ -173,7 +176,8 @@ def _verify_all(output_dir: Path) -> int:
         try:
             manifest = verify_backup(archive)
             results.append({"archive": archive.name, "ok": True,
-                            "files": manifest["file_count"]})
+                            "files": manifest["file_count"],
+                            "tag": manifest.get("tag")})
         except BackupError as exc:
             results.append({"archive": archive.name, "ok": False,
                             "error": str(exc)[:200]})
@@ -196,6 +200,9 @@ def main(argv: list[str] | None = None) -> int:
                           help="optional extra directory (e.g. skills/)")
     p_create.add_argument("--output-dir", required=True)
     p_create.add_argument("--keep", type=int, default=10)
+    p_create.add_argument("--tag", default=None,
+                          help="optional label stored in the manifest "
+                               "(e.g. 'pre-upgrade')")
     p_verify = sub.add_parser("verify", help="verify an archive")
     p_verify.add_argument("archive")
     p_verify_all = sub.add_parser("verify-all",
@@ -211,18 +218,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "create":
         extra = [Path(args.skills_dir)] if args.skills_dir else None
         result = create_backup(Path(args.data_dir), Path(args.output_dir),
-                               extra_dirs=extra)
+                               extra_dirs=extra, tag=args.tag)
         pruned = prune_backups(Path(args.output_dir), keep=args.keep)
         print(json.dumps({"archive": str(result.archive_path),
                           "files": result.file_count,
                           "bytes": result.total_bytes,
                           "digest": result.digest,
+                          "tag": args.tag,
                           "pruned": pruned}))
         return 0
     if args.cmd == "verify":
         manifest = verify_backup(Path(args.archive))
         print(json.dumps({"ok": True, "files": manifest["file_count"],
-                          "digest": manifest["digest"]}))
+                          "digest": manifest["digest"],
+                          "tag": manifest.get("tag")}))
         return 0
     if args.cmd == "verify-all":
         return _verify_all(Path(args.output_dir))
