@@ -170,9 +170,16 @@ class TelegramGateway:
             task_id = await daemon.submit_task(args, source="telegram")
             return f"Task #{task_id} submitted."
         if command == "/mem":
+            args = args.strip()
+            kind = None
+            if "--kind" in args:
+                args, _, rest = args.partition("--kind")
+                kind = rest.strip().split()[0].lower() if rest.strip() \
+                    else None
             if not args.strip():
-                return "usage: /mem <query>"
-            hits = await daemon.memory.recall(args, k=5)
+                return "usage: /mem <query> [--kind note|fact|digest]"
+            hits = await daemon.memory.recall(args, k=5, kinds=[kind]
+                                              if kind else None)
             if not hits:
                 return "(no memories found)"
             return "\n\n".join(

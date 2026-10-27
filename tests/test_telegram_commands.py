@@ -133,6 +133,19 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/mem nothing matches")
         self.assertIn("no memories", reply)
 
+    async def test_mem_kind_filter_passed_through(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def recall(query, k=5, kinds=None):
+            seen["kinds"] = kinds
+            return []
+        gateway.daemon.memory.recall = recall
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/mem thermals --kind fact"})
+        self.assertEqual(seen["kinds"], ["fact"])
+
     async def test_audit_lists_redacted_rows(self):
         reply = await self._command("/audit")
         self.assertIn("executor exec.start", reply)
