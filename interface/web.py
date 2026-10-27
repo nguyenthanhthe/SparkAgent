@@ -174,10 +174,14 @@ async function refreshTasks(){try{const payload=await api('/api/tasks');
   $('tasks').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th></th></tr>'+
    tasks.map(t=>{const blk=(t.blocked_by||[]).length
      ?badge('b-warn','blocked by '+(t.blocked_by||[]).map(b=>'#'+b).join(',')):'';
-     return `<tr onclick="showTask(${t.id})" style="cursor:pointer">
+     return `<tr id="task-${t.id}" onclick="showTask(${t.id})" style="cursor:pointer">
     <td>${t.id}</td><td>${esc(t.goal.slice(0,80))} ${blk}</td>
     <td>${t.enabled?t.status:badge('b-dim',t.status)}</td>
     <td>${t.enabled?`<button class="small" onclick="event.stopPropagation();cancelTask(${t.id})">cancel</button>`:''}</td></tr>`;}).join('');
+  if(location.hash.startsWith('#task-')){
+    const row=$(location.hash.slice(1));
+    if(row){row.style.background='var(--dim)';showTask(Number(location.hash.slice(6)))}
+  }
 }catch(e){}}
 async function showTask(id){try{const t=await api('/api/tasks/'+id);
   const blocked=(t.blocked_by||[]).map(b=>`#${b}`).join(', ');
