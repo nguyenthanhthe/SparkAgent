@@ -11,7 +11,7 @@ from __future__ import annotations
 import fnmatch
 import threading
 import time
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 # model pattern -> (input $/1M, output $/1M); first matching wins (ordered)
@@ -85,6 +85,17 @@ class CostTracker:
         today = date.today().isoformat()
         with self._lock:
             return round(self._by_day.get(today, 0.0), 6)
+
+    def recent_days(self, days: int = 7) -> dict[str, float]:
+        """Per-day cost for the last ``days`` calendar days, oldest
+        first; quiet days are present with 0.0 so charts need no
+        gap-filling."""
+        with self._lock:
+            today = date.today()
+            return {(today - timedelta(offset)).isoformat():
+                    round(self._by_day.get(
+                        (today - timedelta(offset)).isoformat(), 0.0), 6)
+                    for offset in range(days - 1, -1, -1)}
 
     def total(self) -> float:
         with self._lock:

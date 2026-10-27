@@ -1,6 +1,8 @@
 import unittest
+from datetime import date, timedelta
 
 from brain.bridge import Brain, Tier
+from brain.cost import CostTracker
 from kernel.bus import EventBus
 from kernel.config import Config
 from openshell.vault import SecretVault
@@ -106,6 +108,25 @@ class BrainCostTests(unittest.TestCase):
     def run_async(coro):
         import asyncio
         return asyncio.run(coro)
+
+
+class CostTrackerRecentDaysTests(unittest.TestCase):
+    def test_recent_days_fills_quiet_days(self):
+        tracker = CostTracker()
+        tracker.record("glm-5.3-flash", 1000, 1000, tier="remote")
+        window = tracker.recent_days(7)
+        self.assertEqual(len(window), 7)
+        dates = list(window)
+        self.assertEqual(dates[-1], date.today().isoformat())
+        self.assertEqual(dates[0],
+                         (date.today() - timedelta(days=6)).isoformat())
+        self.assertGreater(window[dates[-1]], 0.0)
+        self.assertEqual(sum(1 for v in window.values() if v == 0.0), 6)
+
+    def test_recent_days_window_length(self):
+        tracker = CostTracker()
+        self.assertEqual(len(tracker.recent_days(3)), 3)
+        self.assertEqual(sum(tracker.recent_days(3).values()), 0.0)
 
 
 if __name__ == "__main__":
