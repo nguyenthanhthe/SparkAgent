@@ -75,6 +75,25 @@ class BlockedEventsTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_tick_records_inflight_gauge(self):
+        import kernel.scheduler as scheduler_mod
+        from kernel.metrics import MetricsRegistry
+        registry = MetricsRegistry()
+        original = scheduler_mod.REGISTRY
+        scheduler_mod.REGISTRY = registry
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        try:
+            await memory.connect()
+            scheduler = Scheduler(memory, lambda: None, EventBus(),
+                                  poll_seconds=1)
+            await scheduler._tick()   # nothing due: gauge lands at 0
+            self.assertEqual(registry.gauge_value("scheduler_inflight"), 0.0)
+            self.assertEqual(registry.gauge_value("scheduler_blocked"), 0.0)
+        finally:
+            scheduler_mod.REGISTRY = original
+            await memory.close()
+
     async def test_blocked_pending_tasks_lists_unsatisfied(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)

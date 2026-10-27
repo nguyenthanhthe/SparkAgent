@@ -19,6 +19,7 @@ from typing import Any
 from kernel.bus import EventBus
 from kernel.logging import get_logger
 from kernel.memory import Memory
+from kernel.metrics import REGISTRY
 from kernel.react import ReactAgent
 
 logger = get_logger("scheduler")
@@ -71,6 +72,8 @@ class Scheduler:
             runner = asyncio.create_task(self._run_task(task))
             self._inflight.add(runner)
             runner.add_done_callback(self._inflight.discard)
+        REGISTRY.gauge("scheduler_inflight", len(self._inflight))
+        REGISTRY.gauge("scheduler_blocked", self.stats["blocked_tasks"])
 
     async def _publish_block_changes(self) -> None:
         """Emit task_blocked / task_released transitions on the
