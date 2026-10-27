@@ -160,6 +160,10 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
                 "/api/quarantine?reason=prompt-injection")
             items = (await response.json())["items"]
             self.assertEqual([i["id"] for i in items], [hit["id"]])
+            # comma-separated needles act as OR
+            response = await client.get(
+                "/api/quarantine?reason=prompt-injection,oversized")
+            self.assertEqual(len((await response.json())["items"]), 2)
             response = await client.get("/api/quarantine")
             self.assertEqual(len((await response.json())["items"]), 2)
         finally:

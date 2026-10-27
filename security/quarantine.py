@@ -59,17 +59,21 @@ class QuarantineStore:
     def list(self, limit: int = 100,
              reason_contains: str | None = None) -> list[dict]:
         """Newest-first listing, optionally narrowed to items whose
-        reason contains ``reason_contains`` (case-insensitive)."""
+        reason contains any of the comma-separated ``reason_contains``
+        needles (case-insensitive)."""
         records = []
-        needle = reason_contains.lower() if reason_contains else None
+        needles = [part.strip().lower()
+                   for part in (reason_contains or "").split(",")
+                   if part.strip()]
         for meta_path in self.root.glob("*.json"):
             try:
                 record = json.loads(meta_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
-            if needle and needle not in \
-                    str(record.get("reason", "")).lower():
-                continue
+            if needles:
+                reason = str(record.get("reason", "")).lower()
+                if not any(needle in reason for needle in needles):
+                    continue
             records.append(record)
         records.sort(key=lambda r: r.get("created_at", ""), reverse=True)
         return records[:limit]
