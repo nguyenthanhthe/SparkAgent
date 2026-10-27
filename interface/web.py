@@ -299,7 +299,9 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
   for(const[name,p]of Object.entries(ping)){
     if(name==='checked_at')continue;
     const lat=p.latency_ms==null?'n/a':p.latency_ms+' ms';
-    h+=kv(name,(p.ok===false?badge('b-err','down'):p.ok?badge('b-ok','ok'):badge('b-dim','skip'))+' '+lat);
+    const model=(a.catalog&&a.catalog.models&&a.catalog.models[name])
+      ?` <span style="color:var(--dim)">${esc(a.catalog.models[name])}</span>`:'';
+    h+=kv(name,(p.ok===false?badge('b-err','down'):p.ok?badge('b-ok','ok'):p.ok===null?badge('b-dim','skip'):badge('b-warn','?'))+' '+lat+model);
   }
   const stats=a.stats||{};
   for(const[tier,st]of Object.entries(stats)){
@@ -850,13 +852,16 @@ def build_web_app(daemon) -> web.Application:
                 pings[name] = {"ok": False,
                                "detail": f"{type(exc).__name__}: {exc}",
                                "latency_ms": None}
+        models = {name: str(section.get("model") or "")
+                  for name, section in sections.items() if section.get("model")}
         return web.json_response({
             "tiers": health,
             "stats": daemon.brain.tier_details(),
             "cache": daemon.brain.cache_stats(),
             "ping": {**pings, "checked_at": time.strftime(
                 "%Y-%m-%dT%H:%M:%S")},
-            "catalog": {"available": adapter_registry.available()},
+            "catalog": {"available": adapter_registry.available(),
+                        "models": models},
         })
 
     async def api_tools(_request: web.Request) -> web.Response:
