@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[242/500]** commits · **948 tests green** · self-check passing.
+Progress counter: **[253/500]** commits · **956 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -94,18 +94,31 @@ Progress counter: **[242/500]** commits · **948 tests green** · self-check pas
 9. ✅ docs: FAQ entries — vault exclusion, digest dedupe, memory-only 304 cache
 10. ✅ examples: json_query group demo over quarantine reasons
 
-## Wave Z backlog (next)
+## Wave Z status (complete)
 
-1. kernel: `daemon.status()` includes quarantine size + item count for the dashboard header
-2. brain: /api/adapters ping section gains a `checked_at` timestamp so staleness is visible
-3. memory: recall excludes digest-marker kind by default (noise reduction), overridable via kinds
-4. security: auth limiter failure window prune runs on read too (stale lockouts age out without new failures)
-5. interface: telegram `/audit` gains a `--actor <name>` filter
-6. interface: dashboard tasks table highlights blocked rows with their blockers
-7. tools: json_query numeric term coercion for boolean fields (`enabled=1` matches true)
-8. ops: backup `verify-all` gains `--quiet` (single-line summary for cron mail)
-9. docs: runbook — quarantine triage (list, filter by reason, release vs delete, audit trail)
-10. examples: quarantine triage demo (put → filter → release → audit)
+1. ✅ kernel: daemon.status() includes quarantine item count and size
+2. ✅ brain: /api/adapters ping section carries a checked_at timestamp
+3. ✅ memory: recall excludes digest-marker bookkeeping kind by default
+4. ✅ security: auth limiter clears expired lockouts on read
+5. ✅ interface: telegram /audit gains an --actor filter
+6. ✅ interface: dashboard tasks table highlights blocked rows with their blockers
+7. ✅ tools: json_query filter coerces booleans (enabled=1 matches true)
+8. ✅ ops: backup verify-all --quiet single-line summary
+9. ✅ docs: quarantine triage runbook + GET /api/quarantine/{id} inspection endpoint
+10. ✅ examples: quarantine triage demo (put → filter → inspect → verdict → delete)
+
+## Wave AA backlog (next)
+
+1. kernel: `/api/tasks` gains a `status` query filter (parameterized, allowlisted values)
+2. brain: /api/brain lifecycle block grows `started_at` ISO timestamp
+3. memory: `Memory.remember` rejects empty text (validation, not silent store)
+4. security: quarantine store exposes `stats()` (items, bytes, oldest age) reused by daemon.status
+5. interface: telegram `/status` shows the quarantine line
+6. interface: dashboard quarantine table links reason filter clicks
+7. tools: json_query mode=unique — distinct values of a key with counts
+8. ops: diskwatch JSON output gains `bytes_total` alongside `total_mb`
+9. docs: ADR-0010 — one guarded path per capability (lookup, quarantine, backup)
+10. examples: combined operator drill (backup + quarantine + audit in one script)
 
 ## Wave R status (complete)
 
