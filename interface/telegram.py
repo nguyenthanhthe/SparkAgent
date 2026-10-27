@@ -276,7 +276,7 @@ class TelegramGateway:
                 f"{', '.join('#' + str(d) for d in t['blocked_by'])} — "
                 f"{t['goal'][:50]}" for t in stalled)
         if command == "/backup":
-            from ops.backup import list_backups
+            from ops.backup import list_backups, verify_backup, BackupError
             backup_dir = daemon.cfg.root / daemon.cfg.get(
                 "ops.backup_dir", "backups")
             listing = list_backups(backup_dir, limit=5)
@@ -292,6 +292,14 @@ class TelegramGateway:
                 tag = f" · {item['tag']}" if item["tag"] else ""
                 lines.append(f"{item['name']} · {age_text} old"
                              f" · {item['bytes'] // 1024} KB{tag}")
+            if "--verify" in args:
+                newest = backup_dir / archives[0]["name"]
+                try:
+                    manifest = verify_backup(newest)
+                    lines.append(f"verify: newest ok "
+                                 f"({manifest['file_count']} files)")
+                except BackupError as exc:
+                    lines.append(f"verify: FAILED — {exc}")
             return "\n".join(lines)
         if command == "/pending":
             lines = []

@@ -328,6 +328,10 @@ class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/backup")
         self.assertIn("no backups", reply)
 
+    async def test_backup_verify_flag(self):
+        reply = await self._command("/backup --verify")
+        self.assertIn("verify: newest ok", reply)
+
 
 if __name__ == "__main__":
     unittest.main()
