@@ -51,3 +51,24 @@ single callable) — the interface won't change.
 An exercise in atomic, always-green engineering: every feature commit
 ships with its tests and keeps `python -m unittest discover -s tests -t .`
 passing. See ROADMAP.md.
+
+**Why do backups exclude `vault.bin`?**
+The vault blob is master-key-encrypted material — API keys, tokens. A
+backup that carries it to another machine defeats the point of the
+encryption: whoever gets the archive gets the keys. Keep the vault
+separately (password manager, encrypted USB) and test *that* restore
+path too. See the backup runbook.
+
+**Why does consolidation skip repeated goals?**
+Recurring tasks produce episodes with identical goal text; without the
+dedupe, every housekeeping run mints another digest with the same
+sentence and recall returns near-duplicates that crowd out distinct
+memories. One goal, one digest. The trade-off (an identical goal's
+later outcomes are not re-digested) is documented in ADR-0009.
+
+**Why is the web_fetch 304 cache memory-only?**
+The validator cache (ETag → last result) is process-local by design:
+nothing persists to disk, so a restart revalidates from scratch and
+staleness is bounded by the server's own validator semantics, not our
+retention. A disk cache would trade a few saved MB for a stale-data
+liability that outlives the process. ADR-0008 has the full reasoning.
