@@ -3,7 +3,7 @@
 import unittest
 
 from kernel.errors import ToolFailure
-from tools.json_tool import filter_rows, first_row, sort_rows
+from tools.json_tool import filter_rows, first_row, group_rows, sort_rows
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -145,6 +145,46 @@ class JsonQueryFirstLastToolTests(unittest.IsolatedAsyncioTestCase):
             "json_query", {"data": self.rows_json, "mode": "first",
                            "where": "age>999"}, self.ctx)
         self.assertIn("null", result)
+
+
+class GroupRowsTests(unittest.TestCase):
+    def test_counts_per_value_descending(self):
+        groups = group_rows(ROWS, "status")
+        self.assertEqual(groups, {"active": 2, "done": 1})
+
+    def test_missing_key_bucket(self):
+        groups = group_rows([{"a": 1}, {"status": "x"}], "status")
+        self.assertEqual(groups.get("x"), 1)
+        self.assertEqual(groups.get(""), 1)
+
+    def test_non_dict_rows_bucket_empty(self):
+        groups = group_rows(["bare", {"status": "y"}], "status")
+        self.assertEqual(groups, {"y": 1, "": 1})
+
+
+class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        import json
+        from tools.registry import ToolContext, ToolRegistry
+        from tools import stdlib_tools
+        self.registry = ToolRegistry()
+        stdlib_tools.register_tools(self.registry)
+        self.ctx = ToolContext()
+        self.rows_json = json.dumps(ROWS)
+
+    async def test_tool_group_mode(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "group",
+                           "sort_by": "status"}, self.ctx)
+        self.assertIn("active", result)
+        self.assertIn("2", result)
+
+    async def test_tool_group_needs_list(self):
+        from kernel.errors import ToolFailure
+        with self.assertRaises(ToolFailure):
+            await self.registry.call(
+                "json_query", {"data": '{"a": 1}', "mode": "group",
+                               "sort_by": "a"}, self.ctx)
 
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):

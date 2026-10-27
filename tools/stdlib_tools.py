@@ -83,7 +83,7 @@ def register_tools(registry: ToolRegistry,
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
-                      "first", "last"])
+                      "first", "last", "group"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -142,6 +142,17 @@ def register_tools(registry: ToolRegistry,
                     rows, where=where, last=(mode == "last"))}
             except ValueError as exc:
                 raise ToolFailure(str(exc))
+        if mode == "group":
+            sort_by = require_str(sort_by, "group_by", min_len=1,
+                                  max_len=200)
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure("group needs a list "
+                                  "(use path='items' or jsonl=true)")
+            return {"groups": json_mod.group_rows(rows, sort_by)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -155,14 +166,15 @@ def register_tools(registry: ToolRegistry,
                      "(e.g. 'age>=30;status!=done'), mode=sort orders a "
                      "list by `sort_by` key (descending flips it), "
                      "mode=first/last returns the head/tail row with an "
-                     "optional `where` filter applied first. Set "
-                     "jsonl=true for newline-delimited JSON (treated as "
-                     "a list of docs)."),
+                     "optional `where` filter applied first, mode=group "
+                     "counts rows per value of `sort_by` (the group key). "
+                     "Set jsonl=true for newline-delimited JSON (treated "
+                     "as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
                              "desc": "raw JSON text"},
                     "path": {"type": "string", "required": False,
-                             "desc": "dotted path (get/filter/sort) or "
-                                     "needle (search)"},
+                             "desc": "dotted path (get/filter/sort/group) "
+                                     "or needle (search)"},
                     "mode": {"type": "string", "required": False},
                     "jsonl": {"type": "boolean", "required": False,
                               "desc": "parse input as JSON lines"},

@@ -222,3 +222,21 @@ def first_row(rows: list[Any], where: str = "",
     if not rows:
         return None
     return rows[-1] if last else rows[0]
+
+
+def group_rows(rows: list[Any], key: str) -> dict[str, int]:
+    """Count rows grouped by the value of a dotted key; rows missing the
+    key count under the empty string. Values are stringified so the
+    result is always JSON-safe."""
+    counts: dict[str, int] = {}
+    for row in rows:
+        if isinstance(row, dict):
+            try:
+                value = get_path(row, key)
+            except (KeyError, IndexError, TypeError):
+                value = None
+        else:
+            value = None
+        bucket = "" if value is None else str(value)
+        counts[bucket] = counts.get(bucket, 0) + 1
+    return dict(sorted(counts.items(), key=lambda item: -item[1]))
