@@ -21,7 +21,8 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             response = await client.get("/api/brain")
             self.assertEqual(response.status, 200)
             body = await response.json()
-            for key in ("health", "tier_stats", "cache", "costs", "budget"):
+            for key in ("health", "tier_stats", "cache", "costs",
+                        "costs_last_7_days", "budget"):
                 self.assertIn(key, body)
             self.assertIn("hit_rate", body["cache"])
             self.assertIn("bridge_hits", body["cache"])
@@ -29,6 +30,9 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("glm-5.3", body["costs"]["by_model"])
             self.assertIn("total_usd", body["costs"])
             self.assertGreaterEqual(body["budget"]["today_usd"], 0)
+            window = body["costs_last_7_days"]
+            self.assertEqual(len(window), 7)
+            self.assertGreaterEqual(window[max(window)], 0)
         finally:
             await client.close()
             await daemon.memory.close()

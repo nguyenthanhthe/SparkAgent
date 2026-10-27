@@ -252,11 +252,15 @@ async function showEpisode(id){try{const d=await api('/api/episodes/'+id);
 async function refreshCost(){try{const b=await api('/api/brain');
   const today=b.budget.today_usd;
   const cache=b.cache||{};
+  const days=Object.values(b.costs_last_7_days||{});
+  const avg=days.length?days.reduce((a,v)=>a+v,0)/days.length:0;
+  const arrow=today>avg*1.1?' ▲':(avg>0&&today<avg*0.5?' ▼':'');
   const byModel=Object.entries(b.costs.by_model||{})
     .filter(([m,r])=>r.cost_usd>0)
     .map(([m,r])=>`${m}: $${r.cost_usd.toFixed(4)} (${r.calls})`).join('<br>');
   $('cost').innerHTML=
-    kv('today','$'+today.toFixed(4))+kv('total','$'+b.costs.total_usd.toFixed(4))+
+    kv('today','$'+today.toFixed(4))+kv('7-day avg','$'+avg.toFixed(4))+arrow+
+    kv('total','$'+b.costs.total_usd.toFixed(4))+
     kv('cache hits',`${cache.hits||0} of ${(cache.hits||0)+(cache.misses||0)} · ${Math.round((cache.hit_rate||0)*100)}%`)+
     (byModel?'<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+
       byModel+'</div>':'<div style="color:var(--dim);font-size:12px">'+
