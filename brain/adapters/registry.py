@@ -46,6 +46,18 @@ class AdapterRegistry:
     def unregister(self, name: str) -> bool:
         return self._factories.pop(name, None) is not None
 
+    async def ping(self, name: str, config: dict[str, Any],
+                   vault: SecretVault) -> dict[str, Any]:
+        """Create the named adapter, take one latency sample, release it.
+
+        Raises :class:`UnknownAdapter` for unregistered names; any other
+        failure surfaces inside the returned probe (ok=False)."""
+        adapter = self.create(name, config, vault)
+        try:
+            return await adapter.ping()
+        finally:
+            await adapter.close()
+
 
 def _register_builtins(registry: AdapterRegistry) -> None:
     from brain.adapters.mock import MockAdapter

@@ -221,6 +221,34 @@ class AdapterRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(registry.unregister("x"))
         self.assertFalse(registry.unregister("x"))
 
+    async def test_ping_returns_latency_sample(self):
+        probe = await MockAdapter().ping()
+        self.assertTrue(probe["ok"])
+        self.assertGreaterEqual(probe["latency_ms"], 0.0)
+
+    async def test_ping_never_raises(self):
+        class Boom(ChatAdapter):
+            async def chat(self, messages, **kw):
+                raise RuntimeError
+
+            async def healthy(self):
+                raise RuntimeError("probe exploded")
+
+        probe = await Boom().ping()
+        self.assertFalse(probe["ok"])
+        self.assertIn("probe exploded", probe["detail"])
+        self.assertGreaterEqual(probe["latency_ms"], 0.0)
+
+    async def test_registry_ping_creates_and_probes(self):
+        registry = AdapterRegistry()
+        registry.register("x", lambda cfg, vault: MockAdapter())
+        probe = await registry.ping("x", {}, SecretVault())
+        self.assertTrue(probe["ok"])
+
+    async def test_registry_ping_unknown_name(self):
+        with self.assertRaises(UnknownAdapter):
+            await adapter_registry.ping("nope", {}, SecretVault())
+
 
 if __name__ == "__main__":
     unittest.main()

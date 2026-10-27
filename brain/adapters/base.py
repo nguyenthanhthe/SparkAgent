@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+import time
 from typing import Any, AsyncIterator
 
 
@@ -44,6 +45,18 @@ class ChatAdapter(ABC):
     @abstractmethod
     async def healthy(self) -> tuple[bool, str]:
         """Cheap liveness probe: (ok, human detail)."""
+
+    async def ping(self) -> dict[str, Any]:
+        """One latency sample around :meth:`healthy` — the per-adapter
+        probe surfaced in /api/adapters. Never raises: a probe failure
+        is a result (ok=False), not an error."""
+        started = time.monotonic()
+        try:
+            ok, detail = await self.healthy()
+        except Exception as exc:   # noqa: BLE001 — probes must not throw
+            ok, detail = False, f"{type(exc).__name__}: {exc}"
+        return {"ok": ok, "detail": detail,
+                "latency_ms": round((time.monotonic() - started) * 1000, 1)}
 
     async def chat_stream(self, messages: list[dict[str, str]],
                           *, temperature: float | None = None,

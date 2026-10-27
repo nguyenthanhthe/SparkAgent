@@ -695,10 +695,25 @@ def build_web_app(daemon) -> web.Application:
     async def api_adapters(_request: web.Request) -> web.Response:
         from brain.adapters import adapter_registry
         health = await daemon.brain.health()
+        # one latency sample per builtin adapter (mock + whatever the
+        # config sections can construct); probes never raise
+        sections = {"mock": {},
+                    "ollama": dict(daemon.cfg.section("brain.local")),
+                    "openai_compat": dict(daemon.cfg.section("brain.remote"))}
+        pings = {}
+        for name, section in sections.items():
+            try:
+                pings[name] = await adapter_registry.ping(name, section,
+                                                          daemon.vault)
+            except Exception as exc:   # noqa: BLE001 — probes never raise
+                pings[name] = {"ok": False,
+                               "detail": f"{type(exc).__name__}: {exc}",
+                               "latency_ms": None}
         return web.json_response({
             "tiers": health,
             "stats": daemon.brain.tier_details(),
             "cache": daemon.brain.cache_stats(),
+            "ping": pings,
             "catalog": {"available": adapter_registry.available()},
         })
 

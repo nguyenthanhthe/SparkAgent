@@ -57,6 +57,11 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(tier, body["stats"])
                 self.assertIn("last_error", body["stats"][tier])
                 self.assertIn("cooldown_remaining_s", body["stats"][tier])
+            # per-adapter latency probes: mock always answers, the others
+            # report honestly whatever their liveness is
+            self.assertIn("ping", body)
+            self.assertTrue(body["ping"]["mock"]["ok"])
+            self.assertIn("latency_ms", body["ping"]["mock"])
         finally:
             await client.close()
             await daemon.memory.close()
