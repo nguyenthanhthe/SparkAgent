@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[253/500]** commits · **956 tests green** · self-check passing.
+Progress counter: **[264/500]** commits · **962 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -107,18 +107,31 @@ Progress counter: **[253/500]** commits · **956 tests green** · self-check pas
 9. ✅ docs: quarantine triage runbook + GET /api/quarantine/{id} inspection endpoint
 10. ✅ examples: quarantine triage demo (put → filter → inspect → verdict → delete)
 
-## Wave AA backlog (next)
+## Wave AA status (complete)
 
-1. kernel: `/api/tasks` gains a `status` query filter (parameterized, allowlisted values)
-2. brain: /api/brain lifecycle block grows `started_at` ISO timestamp
-3. memory: `Memory.remember` rejects empty text (validation, not silent store)
-4. security: quarantine store exposes `stats()` (items, bytes, oldest age) reused by daemon.status
-5. interface: telegram `/status` shows the quarantine line
-6. interface: dashboard quarantine table links reason filter clicks
-7. tools: json_query mode=unique — distinct values of a key with counts
-8. ops: diskwatch JSON output gains `bytes_total` alongside `total_mb`
-9. docs: ADR-0010 — one guarded path per capability (lookup, quarantine, backup)
-10. examples: combined operator drill (backup + quarantine + audit in one script)
+1. ✅ interface: /api/tasks gains an allowlisted status filter
+2. ✅ brain: /api/brain lifecycle block carries the daemon start timestamp
+3. ✅ memory: remember rejects empty/whitespace text
+4. ✅ security: QuarantineStore.stats() (items, bytes, oldest age) reused by daemon.status
+5. ✅ interface: telegram /status shows the quarantine item count
+6. ✅ interface: dashboard quarantine reasons clickable to toggle the reason filter
+7. ✅ tools: json_query mode=unique — distinct values of a key
+8. ✅ ops: diskwatch JSON carries bytes_total
+9. ✅ docs: ADR-0010 — one guarded path per capability
+10. ✅ examples: combined operator drill (backup + quarantine + audit)
+
+## Wave AB backlog (next)
+
+1. kernel: `python main.py --check` includes a quarantine/budget sanity line
+2. brain: tier cooldowns expose the reason (last error) in /api/adapters breaker display
+3. memory: recall snippet honors a max-width parameter from callers (tool + telegram)
+4. security: promptguard findings list exposed in the webfetch injection_risk report (top 3)
+5. interface: telegram /help groups commands by audience (operator vs agent)
+6. interface: dashboard header shows quarantine size badge next to the count
+7. tools: json_query mode=stats gains a per-level nesting summary for dicts
+8. ops: backup create prints the archive's retention position (n of keep)
+9. docs: architecture.md gains a capability→guarded-path table (ADR-0010 companion)
+10. examples: status page demo — daemon.status() rendered as text offline
 
 ## Wave R status (complete)
 
