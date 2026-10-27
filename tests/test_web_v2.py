@@ -186,6 +186,25 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_pause_resume_publish_scheduler_events(self):
+        daemon, client = await self._setup()
+        try:
+            task_id = await daemon.memory.submit_task("demo", "test")
+            queue = daemon.bus.subscribe("scheduler")
+            for action, event in (("pause", "task_paused"),
+                                  ("resume", "task_resumed")):
+                response = await client.post(
+                    f"/api/tasks/{task_id}/{action}")
+                self.assertEqual(response.status, 200)
+                events = []
+                while not queue.empty():
+                    events.append(queue.get_nowait())
+                self.assertEqual([e["event"] for e in events], [event])
+                self.assertEqual(events[0]["task_id"], task_id)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:

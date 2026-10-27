@@ -414,6 +414,11 @@ def build_web_app(daemon) -> web.Application:
             raise web.HTTPNotFound
         if not ok:
             raise web.HTTPBadRequest(text=f"could not {action} task {task_id}")
+        if action in ("pause", "resume"):
+            daemon.bus.publish("scheduler", {
+                "event": {"pause": "task_paused",
+                          "resume": "task_resumed"}[action],
+                "task_id": task_id})
         return web.json_response({"ok": True})
 
     async def api_episodes(request: web.Request) -> web.Response:
