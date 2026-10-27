@@ -176,6 +176,24 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(reply.index("/db"), reply.index("agent:"))
 
 
+class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
+    async def _reply_with_limit(self) -> int:
+        gateway = make_gateway()
+        seen = {}
+
+        async def list_tasks(limit=10):
+            seen["limit"] = limit
+            return []
+        gateway.daemon.memory.list_tasks = list_tasks
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/tasks --limit 25"})
+        return seen["limit"]
+
+    async def test_limit_passed_through(self):
+        self.assertEqual(await self._reply_with_limit(), 25)
+
+
 class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.db = Path(tempfile.mkdtemp()) / "t.db"

@@ -166,7 +166,13 @@ class TelegramGateway:
                              f"item(s)")
             return "\n".join(lines)
         if command == "/tasks":
-            tasks = await daemon.memory.list_tasks(limit=10)
+            limit = 10
+            if "--limit" in args:
+                args, _, rest = args.partition("--limit")
+                token = rest.strip().split()[0] if rest.strip() else ""
+                if token.isdigit():
+                    limit = min(50, max(1, int(token)))
+            tasks = await daemon.memory.list_tasks(limit=limit)
             if not tasks:
                 return "(no tasks)"
             return "\n".join(
