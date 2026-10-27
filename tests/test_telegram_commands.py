@@ -251,6 +251,14 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._reply_with([])
         self.assertIn("(no skills)", reply)
 
+    async def test_long_list_truncated_with_hint(self):
+        reply = await self._reply_with(
+            [{"name": f"skill_{i:02d}", "status": "active"}
+             for i in range(25)])
+        self.assertIn("…and 5 more", reply)
+        self.assertIn("skill_19", reply)
+        self.assertNotIn("skill_24", reply)
+
 
 class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):

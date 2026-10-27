@@ -196,8 +196,11 @@ class TelegramGateway:
                 lines.append("pending approval (use /approve <name>):")
                 lines.extend(f"  {s['name']}" for s in pending)
                 lines.append("active:")
-            lines.extend(f"{s['name']} — {s['status']}"
-                         for s in skills if s["status"] != "pending_approval")
+            active = [s for s in skills
+                      if s["status"] != "pending_approval"]
+            lines.extend(f"{s['name']} — {s['status']}" for s in active[:20])
+            if len(active) > 20:
+                lines.append(f"…and {len(active) - 20} more")
             return "\n".join(lines)
         if command == "/audit":
             rows = await daemon.memory.recent_audit(limit=15)
