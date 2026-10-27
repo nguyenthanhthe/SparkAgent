@@ -58,6 +58,13 @@ class FilterRowsTests(unittest.TestCase):
         # substring of the needle never matches
         self.assertEqual(filter_rows(ROWS, "name~=zorro"), [])
 
+    def test_starts_with_operator(self):
+        result = filter_rows(ROWS, "name^=al")
+        self.assertEqual([r["name"] for r in result], ["alice"])
+        result = filter_rows(ROWS, "name^=C")
+        self.assertEqual([r["name"] for r in result], ["carol"])
+        self.assertEqual(filter_rows(ROWS, "name^=z"), [])
+
     def test_bad_term_rejected(self):
         with self.assertRaises(ValueError):
             filter_rows(ROWS, "age 30")

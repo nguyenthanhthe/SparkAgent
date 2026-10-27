@@ -157,7 +157,7 @@ def safe_dump(data: Any, indent: int | None = 2) -> str:
 
 
 # --------------------------------------------------------------- row filter
-_TERM_RE = re.compile(r"^\s*([\w.*\[\]-]+)\s*(>=|<=|!=|~=|>|<|=)\s*(.*?)\s*$")
+_TERM_RE = re.compile(r"^\s*([\w.*\[\]-]+)\s*(>=|<=|!=|~=|\^=|>|<|=)\s*(.*?)\s*$")
 _OPS = {
     "=": lambda a, b: a == b,
     "!=": lambda a, b: a != b,
@@ -166,6 +166,7 @@ _OPS = {
     ">=": lambda a, b: a >= b,
     "<=": lambda a, b: a <= b,
     "~=": lambda a, b: str(b).lower() in str(a).lower(),
+    "^=": lambda a, b: str(a).lower().startswith(str(b).lower()),
 }
 MAX_FILTER_TERMS = 8
 
