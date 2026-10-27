@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[298/500]** commits · **987 tests green** · self-check passing.
+Progress counter: **[310/500]** commits · **991 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -159,18 +159,31 @@ Progress counter: **[298/500]** commits · **987 tests green** · self-check pas
 9. ✅ docs: api.md full endpoint table
 10. ✅ examples: combined json drill (stats → filter → sort → pluck → group)
 
-## Wave AE backlog (next)
+## Wave AE status (complete)
 
-1. kernel: task finish publishes `task_finished` with status + duration on the scheduler channel
-2. brain: /api/brain budget block exposes the configured daily limit, not just today's spend
-3. memory: `Memory.rename_key(old, new)` — operator repair for mistyped memory keys (audited)
-4. security: quarantine reason filter supports multiple comma-separated reasons
-5. interface: telegram /tasks shows blocked_by inline like the dashboard
-6. interface: dashboard adapters card shows the adapter's model name
-7. tools: json_query filter gains `^=` (starts-with) for string fields
-8. ops: backup verify-all prints per-archive duration (slow-disk signal)
-9. docs: tools.md documents the full json_query mode matrix
-10. examples: operator handoff demo — status, backups, quarantine, audit in a single report
+1. ✅ kernel: task_finished event with status + duration
+2. ✅ brain: /api/brain budget block exposes the configured daily limit
+3. ✅ memory: Memory.rename_key — operator key repair (validated, testable)
+4. ✅ security: quarantine reason filter accepts comma-separated needles (OR)
+5. ✅ interface: telegram /tasks shows blocked_by inline
+6. ✅ interface: adapters card shows live model names from the catalog
+7. ✅ tools: json_query filter gains ^= (case-insensitive starts-with)
+8. ✅ ops: verify-all reports per-archive duration
+9. ✅ docs: tools.md — full json_query mode matrix
+10. ✅ examples: operator handoff demo (status, backups, quarantine, audit)
+
+## Wave AF backlog (next)
+
+1. kernel: daemon.stop() publishes a `daemon_stopping` event so surfaces can announce shutdown
+2. brain: response cache clear() returns the evicted key count and logs it at debug
+3. memory: episodes_without_digest also excludes episodes whose goal is whitespace-only
+4. security: promptguard scan() accepts an explicit max-findings cap (default none)
+5. interface: telegram /health shows the overall check count, not just status
+6. interface: dashboard quarantine delete button asks for a second click (confirm pattern)
+7. tools: json_query mode=where-doc — return filter help text for the agent
+8. ops: diskwatch prints a human tip when level is critical (prune logs/quarantine)
+9. docs: runbook-dependencies links ADR-0006 and the /api/tasks status filter
+10. examples: json_query operator one-liner cheat sheet demo
 
 ## Wave R status (complete)
 
