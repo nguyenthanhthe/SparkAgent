@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[310/500]** commits · **991 tests green** · self-check passing.
+Progress counter: **[321/500]** commits · **996 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -172,18 +172,31 @@ Progress counter: **[310/500]** commits · **991 tests green** · self-check pas
 9. ✅ docs: tools.md — full json_query mode matrix
 10. ✅ examples: operator handoff demo (status, backups, quarantine, audit)
 
-## Wave AF backlog (next)
+## Wave AF status (complete)
 
-1. kernel: daemon.stop() publishes a `daemon_stopping` event so surfaces can announce shutdown
-2. brain: response cache clear() returns the evicted key count and logs it at debug
-3. memory: episodes_without_digest also excludes episodes whose goal is whitespace-only
-4. security: promptguard scan() accepts an explicit max-findings cap (default none)
-5. interface: telegram /health shows the overall check count, not just status
-6. interface: dashboard quarantine delete button asks for a second click (confirm pattern)
-7. tools: json_query mode=where-doc — return filter help text for the agent
-8. ops: diskwatch prints a human tip when level is critical (prune logs/quarantine)
-9. docs: runbook-dependencies links ADR-0006 and the /api/tasks status filter
-10. examples: json_query operator one-liner cheat sheet demo
+1. ✅ kernel: daemon.stop() publishes daemon_stopping on the lifecycle channel
+2. ✅ brain: response cache clear() logs the evicted entry count
+3. ✅ memory: consolidation skips whitespace-only goal episodes
+4. ✅ security: promptguard scan() accepts a max-findings cap (score stays whole)
+5. ✅ interface: telegram /health shows the ok/total check count
+6. ✅ interface: quarantine delete needs a second confirming click
+7. ✅ tools: json_query mode=help — self-describing filter grammar
+8. ✅ ops: diskwatch prints a remediation tip when level is critical
+9. ✅ docs: dependency runbook links ADR-0006 and the status filter
+10. ✅ examples: json_query operator one-liner cheat sheet demo
+
+## Wave AG backlog (next)
+
+1. kernel: scheduler stops claiming new tasks once _stopping is set (drain-only tail)
+2. brain: /api/brain exposes cache age of the oldest live entry
+3. memory: recall snippet omits the marker chars from its reported length contract (test)
+4. security: quarantine put() rejects whitespace-only content
+5. interface: telegram /blocked gains a --limit option like /tasks
+6. interface: dashboard adapters card truncates long last_error strings with a title tooltip
+7. tools: json_query mode=keys — top-level keys of a dict with their value types
+8. ops: backup verify-all --quiet carries the slowest archive name (duration outlier)
+9. docs: index.md gains a one-line "what changed lately" pointer to ROADMAP
+10. examples: lifecycle demo — daemon_stopping event observed by a subscriber
 
 ## Wave R status (complete)
 
