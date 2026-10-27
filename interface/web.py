@@ -277,6 +277,11 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
     const lat=p.latency_ms==null?'n/a':p.latency_ms+' ms';
     h+=kv(name,(p.ok?badge('b-ok','ok'):badge('b-err','down'))+' '+lat);
   }
+  const stats=a.stats||{};
+  for(const[tier,st]of Object.entries(stats)){
+    if(st.cooldown_active)h+=kv(tier+' breaker',
+      badge('b-warn','cooldown '+st.cooldown_remaining_s+'s'));
+  }
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
 
