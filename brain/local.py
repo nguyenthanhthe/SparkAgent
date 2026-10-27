@@ -101,24 +101,28 @@ class OllamaClient:
                     raise OllamaError(f"/api/chat HTTP {resp.status}: {body}")
                 produced = 0
                 prompt_toks = eval_toks = 0
-                async for raw_line in resp.content:
-                    line = raw_line.decode("utf-8", errors="replace").strip()
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                    except ValueError:
-                        continue
-                    delta = (chunk.get("message") or {}).get("content")
-                    if delta:
-                        produced += 1
-                        yield delta
-                    if chunk.get("done"):
-                        prompt_toks = int(chunk.get("prompt_eval_count") or 0)
-                        eval_toks = int(chunk.get("eval_count") or 0)
-                self.last_usage = {"prompt_tokens": prompt_toks,
-                                   "completion_tokens": eval_toks,
-                                   "total_tokens": prompt_toks + eval_toks}
+                try:
+                    async for raw_line in resp.content:
+                        line = raw_line.decode("utf-8", errors="replace").strip()
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except ValueError:
+                            continue
+                        delta = (chunk.get("message") or {}).get("content")
+                        if delta:
+                            produced += 1
+                            yield delta
+                        if chunk.get("done"):
+                            prompt_toks = int(chunk.get("prompt_eval_count") or 0)
+                            eval_toks = int(chunk.get("eval_count") or 0)
+                finally:
+                    # recorded even when the consumer abandons the stream,
+                    # so a partial run never leaves stale prior-call counts
+                    self.last_usage = {"prompt_tokens": prompt_toks,
+                                       "completion_tokens": eval_toks,
+                                       "total_tokens": prompt_toks + eval_toks}
                 if produced == 0:
                     raise OllamaError("empty stream from local model")
         except asyncio.TimeoutError as exc:

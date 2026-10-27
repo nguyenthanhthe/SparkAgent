@@ -239,6 +239,19 @@ class Brain:
             model = client.model
             started = time.monotonic()
             produced = 0
+
+            def _record_cost() -> None:
+                # runs in finally: once the final chunk lands OR the
+                # consumer abandons / the stream dies mid-flight, the
+                # call still shows up in the ledger (usage may be partial)
+                if produced == 0:
+                    return
+                usage = getattr(client, "last_usage", {}) or {}
+                self.costs.record(model,
+                                  int(usage.get("prompt_tokens") or 0),
+                                  int(usage.get("completion_tokens") or 0),
+                                  tier=tier.value)
+
             try:
                 async for delta in client.chat_stream(messages):
                     if produced == 0:
@@ -247,11 +260,6 @@ class Brain:
                         state.cooldown_until = 0.0
                     produced += 1
                     yield delta
-                usage = getattr(client, "last_usage", {}) or {}
-                self.costs.record(model,
-                                  int(usage.get("prompt_tokens") or 0),
-                                  int(usage.get("completion_tokens") or 0),
-                                  tier=tier.value)
                 logger.debug("streamed %d chunks from %s in %.1fs",
                              produced, model, time.monotonic() - started)
                 return
@@ -268,6 +276,8 @@ class Brain:
                     state.cooldown_until = time.monotonic() + self._cooldown_seconds
                 if force is not None:
                     raise
+            finally:
+                _record_cost()
         raise BrainUnavailable(errors)
 
     # ----------------------------------------------------------------- health

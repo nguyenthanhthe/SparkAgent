@@ -71,6 +71,25 @@ class BrainStreamTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(row["prompt_tokens"], 7)
         self.assertEqual(row["completion_tokens"], 3)
 
+    async def test_abandoned_stream_records_call(self):
+        brain = make_brain(StreamClient(), StreamClient(chunks=["r"]))
+        stream = brain.chat_stream([{"role": "user", "content": "q"}])
+        async for _delta in stream:
+            break                      # consumer walks away mid-answer
+        await stream.aclose()
+        row = brain.cost_report()["by_model"]["fake-model"]
+        self.assertEqual(row["calls"], 1)
+
+    async def test_mid_stream_failure_records_usage(self):
+        brain = make_brain(StreamClient(mid_error="connection reset"),
+                           StreamClient(chunks=["r"]))
+        with self.assertRaises(RuntimeError):
+            [d async for d in brain.chat_stream([{"role": "user",
+                                                  "content": "q"}])]
+        row = brain.cost_report()["by_model"]["fake-model"]
+        self.assertEqual(row["calls"], 1)
+        self.assertEqual(row["prompt_tokens"], 7)
+
     async def test_disabled_tier_skipped(self):
         brain = make_brain(StreamClient(pre_error="x"),
                            StreamClient(chunks=["r"]))
