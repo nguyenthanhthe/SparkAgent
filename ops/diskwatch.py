@@ -102,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"warn at  : {report.warn_threshold_mb:g} MB")
         print(f"critical : {report.critical_threshold_mb:g} MB")
         print(f"level    : {report.level}")
+        if report.level == "critical":
+            print("tip      : prune logs/quarantine, then rerun; a "
+                  "runaway skill is the usual cause (check the audit "
+                  "trail for loops)")
     return {"ok": 0, "warn": 1, "critical": 2}[report.level]
 
 

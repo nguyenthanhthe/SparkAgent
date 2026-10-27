@@ -42,6 +42,15 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("level    : critical", out)
 
+    def test_critical_prints_tip(self):
+        data = self.tmp / "data"
+        data.mkdir(parents=True, exist_ok=True)
+        (data / "blob").write_bytes(b"x" * 1024)
+        code, out = run_main("--data-dir", str(data),
+                             "--warn-mb", "0", "--critical-mb", "0.0001")
+        self.assertEqual(code, 2)
+        self.assertIn("tip", out)
+
     def test_json_output(self):
         code, out = run_main("--data-dir", str(self.tmp / "data"),
                              "--json")
