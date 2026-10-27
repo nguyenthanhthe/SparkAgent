@@ -774,7 +774,9 @@ def build_web_app(daemon) -> web.Application:
             "health": health,
             "tier_stats": daemon.brain.stats(),
             "lifecycle": {"shutdown_drained_tasks": int(
-                REGISTRY.counter("shutdown_drained_tasks"))},
+                REGISTRY.counter("shutdown_drained_tasks")),
+                "started_at": time.strftime(
+                    "%Y-%m-%dT%H:%M:%S", time.localtime(daemon.started_at))},
             "cache": daemon.brain.cache_stats(),
             "cache_top_hits": daemon.brain.cache.top_hits(limit=5),
             "costs": daemon.costs.report(),

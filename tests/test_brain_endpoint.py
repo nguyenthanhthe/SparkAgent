@@ -27,6 +27,7 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("shutdown_drained_tasks", body["lifecycle"])
             self.assertGreaterEqual(body["lifecycle"]["shutdown_drained_tasks"],
                                     0)
+            self.assertIn("T", body["lifecycle"]["started_at"])
             self.assertIn("hit_rate", body["cache"])
             self.assertIn("bridge_hits", body["cache"])
             self.assertIn("local", body["health"])
