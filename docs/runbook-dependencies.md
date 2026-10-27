@@ -2,7 +2,9 @@
 
 How `depends_on` chains behave — what "blocked" means, how to release a
 chain by hand, and what happens when a link in the chain fails. See
-ADR-0006 for the design rationale.
+ADR-0006 for the design rationale. Filter the task list server-side
+with `GET /api/tasks?status=failed` (allowlisted values) to find stuck
+upstream tasks quickly.
 
 ## Semantics at a glance
 
