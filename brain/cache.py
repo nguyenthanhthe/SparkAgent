@@ -15,6 +15,10 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any
 
+from kernel.logging import get_logger
+
+logger = get_logger("brain.cache")
+
 from kernel.clock import Clock
 
 
@@ -87,7 +91,9 @@ class ResponseCache:
         with self._lock:
             count = len(self._entries)
             self._entries.clear()
-            return count
+        logger.debug("response cache cleared: %d entr%s evicted",
+                     count, "y" if count == 1 else "ies")
+        return count
 
     @property
     def size(self) -> int:
