@@ -291,9 +291,15 @@ async function refreshCost(){try{const b=await api('/api/brain');
 
 async function refreshAdapters(){try{const a=await api('/api/adapters');
   const ping=a.ping||{};let h='';
+  let checked='';
+  if(ping.checked_at){
+    const age=Math.max(0,(Date.now()-new Date(ping.checked_at).getTime())/1000);
+    checked=` · probed ${age<60?Math.round(age)+'s':Math.round(age/60)+'m'} ago`;
+  }
   for(const[name,p]of Object.entries(ping)){
+    if(name==='checked_at')continue;
     const lat=p.latency_ms==null?'n/a':p.latency_ms+' ms';
-    h+=kv(name,(p.ok?badge('b-ok','ok'):badge('b-err','down'))+' '+lat);
+    h+=kv(name,(p.ok===false?badge('b-err','down'):p.ok?badge('b-ok','ok'):badge('b-dim','skip'))+' '+lat);
   }
   const stats=a.stats||{};
   for(const[tier,st]of Object.entries(stats)){
@@ -302,6 +308,7 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
       ' <span style="color:var(--dim);font-size:11px">'+
       esc(String(st.last_error||'').slice(0,60))+'</span>');
   }
+  h+=`<div style="margin-top:4px;font-size:11px;color:var(--dim)">${esc(checked.trim())}</div>`;
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
 
