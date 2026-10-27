@@ -84,7 +84,7 @@ def register_tools(registry: ToolRegistry,
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
                       "first", "last", "group", "unique", "pluck",
-                      "help"])
+                      "help", "keys"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -161,6 +161,8 @@ def register_tools(registry: ToolRegistry,
                                              sort_by)}
         if mode == "help":
             return {"where_filter": json_mod.where_help()}
+        if mode == "keys":
+            return {"keys": json_mod.top_keys(parsed)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(

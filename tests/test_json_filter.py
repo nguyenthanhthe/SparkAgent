@@ -4,7 +4,7 @@ import unittest
 
 from kernel.errors import ToolFailure
 from tools.json_tool import filter_rows, first_row, group_rows, \
-    pluck, sort_rows, stats, unique_values
+    pluck, sort_rows, stats, top_keys, unique_values
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -241,6 +241,23 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
             self.ctx)
         self.assertIn("~=", result)
         self.assertIn("starts with", result)
+
+    async def test_tool_keys_maps_types(self):
+        result = await self.registry.call(
+            "json_query", {"data": '{"a": 1, "b": "s", "c": [1]}',
+                           "mode": "keys"}, self.ctx)
+        self.assertIn("'a': 'int'", result)
+        self.assertIn("'b': 'str'", result)
+        self.assertIn("'c': 'list'", result)
+
+
+class TopKeysTests(unittest.TestCase):
+    def test_maps_value_types(self):
+        self.assertEqual(top_keys({"a": 1, "b": "s", "c": None}),
+                         {"a": "int", "b": "str", "c": "NoneType"})
+
+    def test_non_dict_is_empty(self):
+        self.assertEqual(top_keys([1, 2]), {})
 
     async def test_tool_group_needs_list(self):
         from kernel.errors import ToolFailure

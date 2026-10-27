@@ -160,6 +160,15 @@ def where_help() -> dict:
     }
 
 
+def top_keys(data: Any) -> dict[str, str]:
+    """Top-level dict keys mapped to their value type names — the
+    fastest way to answer 'what's in this object?'."""
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): type(value).__name__
+            for key, value in list(data.items())[:20]}
+
+
 def _leaf_count(node: Any) -> int:
     if isinstance(node, dict):
         return sum(_leaf_count(v) for v in node.values())
