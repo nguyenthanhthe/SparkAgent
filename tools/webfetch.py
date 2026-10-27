@@ -243,6 +243,8 @@ class WebFetcher:
             self.guard_stats["scanned"] += 1
             REGISTRY.observe("promptguard_score", float(verdict.score),
                              buckets=(10, 20, 30, 40, 50, 60, 80, 100))
+            REGISTRY.incr(
+                f"promptguard_verdicts_{verdict.verdict}_total")
             result["injection_risk"] = risk_report(verdict)
             if verdict.verdict == "sanitize":
                 self.guard_stats["sanitized"] += 1
