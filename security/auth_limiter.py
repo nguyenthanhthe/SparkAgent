@@ -31,7 +31,9 @@ class AuthRateLimiter:
 
     # ------------------------------------------------------------------- api
     def allowed(self, client_id: str) -> bool:
-        """True when the client may attempt authentication now."""
+        """True when the client may attempt authentication now. An
+        expired lockout clears the client's state on read — no new
+        failures are needed for the lockout to age out."""
         with self._lock:
             entry = self._clients.get(client_id)
             if entry is None:
@@ -39,6 +41,8 @@ class AuthRateLimiter:
             _, locked_until = entry
             if locked_until and self._now() < locked_until:
                 return False
+            if locked_until:
+                del self._clients[client_id]
             return True
 
     def retry_after(self, client_id: str) -> float:
