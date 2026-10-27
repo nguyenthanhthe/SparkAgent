@@ -119,6 +119,7 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
             started = [e for e in events if e["event"] == "task_started"]
             self.assertEqual(len(started), 1)
             self.assertEqual(started[0]["task_id"], task_id)
+            self.assertEqual(started[0]["source"], "test")
         finally:
             await memory.close()
 
