@@ -36,7 +36,8 @@ class UsageReport:
         return "ok"
 
     def to_dict(self) -> dict:
-        return {"total_mb": round(self.total_mb, 1), "level": self.level,
+        return {"bytes_total": self.total_bytes,
+                "total_mb": round(self.total_mb, 1), "level": self.level,
                 "warn_threshold_mb": self.warn_threshold_mb,
                 "critical_threshold_mb": self.critical_threshold_mb}
 
