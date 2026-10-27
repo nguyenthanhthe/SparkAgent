@@ -306,6 +306,12 @@ class StatsNestingTests(unittest.TestCase):
         self.assertIn("l1.l2.l3", nesting)      # depth 3 is the cap
         self.assertNotIn("l1.l2.l3.l4", nesting)
 
+    def test_list_root_carries_sample(self):
+        self.assertEqual(stats([{"id": 1}, {"id": 2}])["sample"],
+                         {"id": 1})
+        self.assertIsNone(stats([])["sample"])
+        self.assertIsNone(stats({"a": 1})["sample"])
+
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):

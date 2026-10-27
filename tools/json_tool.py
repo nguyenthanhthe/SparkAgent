@@ -123,7 +123,8 @@ def stats(data: Any) -> dict:
             "dict_keys": len(data) if isinstance(data, dict) else None,
             "list_len": len(data) if isinstance(data, list) else None,
             "leaf_count": _leaf_count(data),
-            "nesting": _nesting(data) if isinstance(data, dict) else {}}
+            "nesting": _nesting(data) if isinstance(data, dict) else {},
+            "sample": data[0] if isinstance(data, list) and data else None}
 
 
 def _nesting(data: Any, max_depth: int = 3) -> dict[str, int]:
