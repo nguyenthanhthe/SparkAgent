@@ -179,8 +179,17 @@ class TelegramGateway:
                 f"[{h.kind}] {h.snippet or h.text[:250]}" for h in hits)
         if command == "/skills":
             skills = daemon.forge.list_skills()
-            return "\n".join(f"{s['name']} — {s['status']}" for s in skills) \
-                or "(no skills)"
+            if not skills:
+                return "(no skills)"
+            pending = [s for s in skills if s["status"] == "pending_approval"]
+            lines = []
+            if pending:
+                lines.append("pending approval (use /approve <name>):")
+                lines.extend(f"  {s['name']}" for s in pending)
+                lines.append("active:")
+            lines.extend(f"{s['name']} — {s['status']}"
+                         for s in skills if s["status"] != "pending_approval")
+            return "\n".join(lines)
         if command == "/audit":
             rows = await daemon.memory.recent_audit(limit=15)
             if not rows:

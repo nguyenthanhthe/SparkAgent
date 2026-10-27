@@ -213,5 +213,31 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("no dependency-stalled", reply)
 
 
+class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def _reply_with(self, skills):
+        gateway = make_gateway()
+        gateway.daemon.forge.list_skills = lambda: skills
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": "/skills"})
+            return send.call_args[0][1]
+
+    async def test_pending_skills_come_first_with_hint(self):
+        reply = await self._reply_with(
+            [{"name": "word_count", "status": "active"},
+             {"name": "disk_tool", "status": "pending_approval"}])
+        self.assertLess(reply.index("/approve"), reply.index("word_count"))
+        self.assertIn("disk_tool", reply)
+
+    async def test_no_pending_shows_plain_list(self):
+        reply = await self._reply_with(
+            [{"name": "word_count", "status": "active"}])
+        self.assertNotIn("/approve", reply)
+        self.assertIn("word_count — active", reply)
+
+    async def test_empty(self):
+        reply = await self._reply_with([])
+        self.assertIn("(no skills)", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
