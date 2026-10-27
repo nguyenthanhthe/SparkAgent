@@ -70,7 +70,8 @@ padding:8px;height:280px;overflow-y:auto;font:12px var(--mono);white-space:pre-w
 border:1px solid var(--accent);border-radius:8px;padding:8px 14px;display:none}
 details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 </style></head><body>
-<h1>&#9889; SparkAgent <span id="uptime">—</span></h1>
+<h1>&#9889; SparkAgent <span id="uptime">—</span>
+  <span id="quarbadge" class="badge b-warn" style="display:none"></span></h1>
 <div class="grid">
   <div class="card"><h2>Brain</h2><div id="brain"></div></div>
   <div class="card"><h2>GPU / System</h2><div id="system"></div></div>
@@ -145,6 +146,11 @@ function badge(cls,text){return `<span class="badge ${cls}">${text}</span>`}
 
 async function refreshStatus(){try{const s=await api('/api/status');
   $('uptime').textContent=`· up ${Math.floor(s.uptime_s/60)} min · ${s.agent}`;
+  const qb=$('quarbadge');
+  if(s.quarantine&&s.quarantine.items>0){
+    qb.style.display='inline';
+    qb.textContent=`quarantine ${s.quarantine.items} · ${(s.quarantine.bytes/1024).toFixed(0)} KB`;
+  } else qb.style.display='none';
   const b=s.brain||{};let h='';
   if(b.local)h+=kv('tier 1 · local',`${b.local.model} ${b.local.ok?badge('b-ok','ok'):badge('b-err',b.local.detail||'down')}`);
   if(b.remote)h+=kv('tier 2 · remote',`${b.remote.model} ${b.remote.ok?badge('b-ok','ok'):badge('b-warn',b.remote.detail)}`);
