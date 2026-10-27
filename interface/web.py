@@ -821,7 +821,9 @@ def build_web_app(daemon) -> web.Application:
             "cache_top_hits": daemon.brain.cache.top_hits(limit=5),
             "costs": daemon.costs.report(),
             "costs_last_7_days": daemon.costs.recent_days(7),
-            "budget": {"today_usd": daemon.costs.today_total()},
+            "budget": {"today_usd": daemon.costs.today_total(),
+                       "daily_limit_usd": float(daemon.cfg.get(
+                           "brain.daily_budget_usd", 5.0))},
 
         })
 

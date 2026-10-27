@@ -34,6 +34,7 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("glm-5.3", body["costs"]["by_model"])
             self.assertIn("total_usd", body["costs"])
             self.assertGreaterEqual(body["budget"]["today_usd"], 0)
+            self.assertGreater(body["budget"]["daily_limit_usd"], 0)
             window = body["costs_last_7_days"]
             self.assertEqual(len(window), 7)
             self.assertGreaterEqual(window[max(window)], 0)
