@@ -191,6 +191,27 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(prune_backups(output, keep=0), 1)
         self.assertEqual(list(output.glob("*.zip")), [])
 
+    def test_cli_create_verify_immediately(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output),
+                       "--verify-immediately"])
+        self.assertEqual(rc, 0)
+        summary = json.loads(buffer.getvalue())
+        self.assertTrue(summary["verified"])
+        # without the flag the field says so honestly
+        output2 = data.parent / "backups2"
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output2)])
+        self.assertEqual(rc, 0)
+        self.assertFalse(json.loads(buffer.getvalue())["verified"])
+
     def test_cli_create_verify(self):
         import contextlib
         import io

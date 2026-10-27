@@ -256,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:
     p_create.add_argument("--tag", default=None,
                           help="optional label stored in the manifest "
                                "(e.g. 'pre-upgrade')")
+    p_create.add_argument("--verify-immediately", action="store_true",
+                          help="read the archive back and verify all "
+                               "hashes right after writing")
     p_verify = sub.add_parser("verify", help="verify an archive")
     p_verify.add_argument("archive")
     p_verify_all = sub.add_parser("verify-all",
@@ -286,6 +289,10 @@ def main(argv: list[str] | None = None) -> int:
         extra = [Path(args.skills_dir)] if args.skills_dir else None
         result = create_backup(Path(args.data_dir), Path(args.output_dir),
                                extra_dirs=extra, tag=args.tag)
+        verified = False
+        if args.verify_immediately:
+            verify_backup(result.archive_path)   # raises on corruption
+            verified = True
         pruned = prune_backups(Path(args.output_dir), keep=args.keep)
         archives = sorted(Path(args.output_dir).glob(
             "sparkagent-backup-*.zip"))
@@ -296,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
                           "bytes": result.total_bytes,
                           "digest": result.digest,
                           "tag": args.tag,
+                          "verified": verified,
                           "retention": f"{position} of {args.keep}",
                           "pruned": pruned}))
         return 0
