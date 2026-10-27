@@ -182,6 +182,9 @@ class BackupTests(unittest.TestCase):
         self.assertTrue(report["ok"])
         self.assertEqual(report["count"], 2)
         self.assertEqual(report["failed"], [])
+        self.assertEqual(report["slowest"]["archive"],
+                         Path(report["slowest"]["archive"]).name)
+        self.assertGreaterEqual(report["slowest"]["seconds"], 0)
         self.assertNotIn("archives", report)
 
     def test_cli_verify_all_reports_duration(self):
