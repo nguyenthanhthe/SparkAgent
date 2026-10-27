@@ -141,6 +141,7 @@ class SafeExecutor:
 
         if self._limiters is not None and \
                 not self._limiters.try_take(program.lower()):
+            REGISTRY.incr("exec_ratelimit_blocked_total")
             reason = (f"rate limit: {program!r} exceeded its per-minute "
                       "execution budget")
             logger.warning(reason)

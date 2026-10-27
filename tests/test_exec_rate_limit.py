@@ -48,6 +48,21 @@ class ExecutorRateLimitTests(unittest.IsolatedAsyncioTestCase):
         # only the first (allowed) run became a tracked process
         self.assertEqual(executor.registry.stats()["completed"], 1)
 
+    async def test_veto_increments_metrics_counter(self):
+        import openshell.executor as executor_mod
+        from kernel.metrics import MetricsRegistry
+        registry = MetricsRegistry()
+        original = executor_mod.REGISTRY
+        executor_mod.REGISTRY = registry
+        try:
+            executor = make_executor(execs_per_minute=1)
+            await executor.run("python", ["-c", "print(1)"])
+            await executor.run("python", ["-c", "print(1)"])   # rate-limited
+            self.assertGreaterEqual(
+                registry.counter("exec_ratelimit_blocked_total"), 1.0)
+        finally:
+            executor_mod.REGISTRY = original
+
 
 if __name__ == "__main__":
     unittest.main()
