@@ -567,11 +567,17 @@ class Memory:
         return await self._run(op)
 
     async def list_tasks(self, task_id: int | None = None,
-                         limit: int = 50) -> list[dict]:
+                         limit: int = 50,
+                         status: str | None = None) -> list[dict]:
         def op(conn: sqlite3.Connection) -> list[dict]:
             if task_id is not None:
                 rows = conn.execute("SELECT * FROM tasks WHERE id = ?",
                                     (task_id,)).fetchall()
+            elif status is not None:
+                rows = conn.execute(
+                    "SELECT * FROM tasks WHERE status = ? "
+                    "ORDER BY enabled DESC, priority ASC, id DESC LIMIT ?",
+                    (status, limit)).fetchall()
             else:
                 rows = conn.execute(
                     "SELECT * FROM tasks ORDER BY enabled DESC, priority ASC, "

@@ -363,7 +363,15 @@ def build_web_app(daemon) -> web.Application:
             offset, limit = parse_paging_params(dict(request.query))
         except ValueError as exc:
             raise web.HTTPBadRequest(text=str(exc))
-        tasks = await daemon.memory.list_tasks(limit=offset + limit + 1)
+        status = request.query.get("status")
+        if status is not None and status not in ("pending", "running",
+                                                 "done", "failed",
+                                                 "cancelled"):
+            raise web.HTTPBadRequest(
+                text="status must be one of pending, running, done, "
+                     "failed, cancelled")
+        tasks = await daemon.memory.list_tasks(limit=offset + limit + 1,
+                                               status=status)
         blocked = {t["id"]: t["blocked_by"] for t in
                    await daemon.memory.blocked_pending_tasks(limit=100)}
         for row in tasks:

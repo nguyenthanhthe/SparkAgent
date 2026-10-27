@@ -263,6 +263,21 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_tasks_list_status_filter(self):
+        daemon, client = await self._setup()
+        try:
+            tid = await daemon.memory.submit_task("filtered", "test")
+            response = await client.get("/api/tasks?status=pending")
+            rows = (await response.json())["items"]
+            self.assertIn(tid, {r["id"] for r in rows})
+            response = await client.get("/api/tasks?status=done")
+            self.assertEqual((await response.json())["items"], [])
+            response = await client.get("/api/tasks?status=weird")
+            self.assertEqual(response.status, 400)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:
