@@ -49,6 +49,21 @@ Environment → encrypted vault (HMAC-SHA256 stream envelope, constant-time
 tag compare) → consumers. Redaction masks known values plus generic key
 patterns at every log/output boundary; child processes never see them.
 
+## Observability of the guards
+
+The guard pipeline reports itself in the metrics registry (rendered at
+`/metrics` and `/api/metrics`):
+
+- `promptguard_score` — histogram of every fetched page's risk score;
+- `promptguard_band` — gauge of the latest verdict (0 pass, 1 sanitize,
+  2 quarantine);
+- `promptguard_verdicts_{pass,sanitize,quarantine}_total` — lifetime
+  verdict counters;
+- `exec_timebudget_blocked_total` / `exec_ratelimit_blocked_total` —
+  admission-gate vetoes;
+- `auth` block in `/api/status` — lockout counts plus the configured
+  thresholds (never per-client detail).
+
 ## Honest limits
 
 The sandbox is policy + confinement, not a VM: an allowlisted `python`
