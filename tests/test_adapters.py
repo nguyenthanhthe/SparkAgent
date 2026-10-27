@@ -249,6 +249,16 @@ class AdapterRegistryTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(UnknownAdapter):
             await adapter_registry.ping("nope", {}, SecretVault())
 
+    async def test_registry_ping_keeps_last_five_samples(self):
+        registry = AdapterRegistry()
+        registry.register("x", lambda cfg, vault: MockAdapter())
+        for _ in range(7):
+            await registry.ping("x", {}, SecretVault())
+        history = registry.latency_history["x"]
+        self.assertEqual(len(history), 5)
+        probe = await registry.ping("x", {}, SecretVault())
+        self.assertEqual(len(probe["recent_ms"]), 5)
+
 
 if __name__ == "__main__":
     unittest.main()

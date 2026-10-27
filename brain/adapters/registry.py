@@ -23,6 +23,8 @@ class UnknownAdapter(ValueError):
 class AdapterRegistry:
     def __init__(self) -> None:
         self._factories: dict[str, Factory] = {}
+        # name -> last-5 latency samples (ms), recorded by ping()
+        self.latency_history: dict[str, list[float]] = {}
 
     def register(self, name: str, factory: Factory,
                  *, replace: bool = False) -> None:
@@ -51,12 +53,19 @@ class AdapterRegistry:
         """Create the named adapter, take one latency sample, release it.
 
         Raises :class:`UnknownAdapter` for unregistered names; any other
-        failure surfaces inside the returned probe (ok=False)."""
+        failure surfaces inside the returned probe (ok=False). The last
+        five samples per name are kept in ``latency_history``."""
         adapter = self.create(name, config, vault)
         try:
-            return await adapter.ping()
+            probe = await adapter.ping()
         finally:
             await adapter.close()
+        if probe.get("latency_ms") is not None:
+            history = self.latency_history.setdefault(name, [])
+            history.append(float(probe["latency_ms"]))
+            self.latency_history[name] = history[-5:]
+            probe["recent_ms"] = list(self.latency_history[name])
+        return probe
 
 
 def _register_builtins(registry: AdapterRegistry) -> None:
