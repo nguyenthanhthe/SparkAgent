@@ -291,7 +291,9 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
   const stats=a.stats||{};
   for(const[tier,st]of Object.entries(stats)){
     if(st.cooldown_active)h+=kv(tier+' breaker',
-      badge('b-warn','cooldown '+st.cooldown_remaining_s+'s'));
+      badge('b-warn','cooldown '+st.cooldown_remaining_s+'s')+
+      ' <span style="color:var(--dim);font-size:11px">'+
+      esc(String(st.last_error||'').slice(0,60))+'</span>');
   }
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
