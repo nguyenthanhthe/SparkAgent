@@ -1,4 +1,8 @@
+import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from interface.telegram import TelegramGateway
@@ -138,6 +142,52 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/help")
         self.assertIn("/pending", reply)
         self.assertIn("/deny", reply)
+
+
+class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.db = Path(tempfile.mkdtemp()) / "t.db"
+        conn = sqlite3.connect(self.db)
+        conn.execute("CREATE TABLE tasks (id INTEGER PRIMARY KEY, goal TEXT,"
+                     " status TEXT)")
+        conn.execute("INSERT INTO tasks (goal, status) VALUES "
+                     "('water plants', 'pending'),"
+                     "('feed cat', 'done')")
+        conn.commit()
+        conn.close()
+        self.gateway = make_gateway()
+        self.gateway.daemon.cfg = SimpleNamespace(db_path=self.db)
+
+    async def _command(self, text):
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await self.gateway._handle({"chat": {"id": 42}, "text": text})
+            return send.call_args[0][1]
+
+    async def test_db_lists_rows(self):
+        reply = await self._command("/db tasks")
+        self.assertIn("tasks: 2 row(s)", reply)
+        self.assertIn("water plants", reply)
+
+    async def test_db_where_filter(self):
+        reply = await self._command("/db tasks status=done")
+        self.assertIn("feed cat", reply)
+        self.assertNotIn("water plants", reply)
+
+    async def test_db_no_rows(self):
+        reply = await self._command("/db tasks goal=nothing")
+        self.assertIn("no matching rows", reply)
+
+    async def test_db_unknown_table(self):
+        reply = await self._command("/db secrets")
+        self.assertIn("error", reply)
+
+    async def test_db_bad_term(self):
+        reply = await self._command("/db tasks oops")
+        self.assertIn("error", reply)
+
+    async def test_db_usage(self):
+        reply = await self._command("/db")
+        self.assertIn("usage: /db", reply)
 
 
 if __name__ == "__main__":

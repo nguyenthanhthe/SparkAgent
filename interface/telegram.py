@@ -10,6 +10,8 @@ is ignored (and logged). Commands:
     /mem <query>     semantic memory recall
     /skills          list skills
     /audit           recent audit trail (redacted)
+    /db <table>      read-only database lookup (episodes, steps,
+                     memories, tasks, audit)
     /pending         operator approval queue (skills + questions)
     /approve <id>    approve a pending skill or approval request
     /deny <id>       deny a pending approval request
@@ -122,6 +124,7 @@ class TelegramGateway:
                     "/mem <query> — search memory\n"
                     "/skills — list skills\n"
                     "/audit — recent audit trail\n"
+                    "/db <table> [col=value ...] — read-only db lookup\n"
                     "/pending — operator approval queue\n"
                     "/approve <skill or id> — approve\n"
                     "/deny <id> — deny an approval request\n"
@@ -184,6 +187,39 @@ class TelegramGateway:
                 detail = daemon.vault.redact(row.get("detail") or "")[:60]
                 lines.append(f"{row['created_at'][11:]} {row['actor']} "
                              f"{row['action']} {detail}")
+            return "\n".join(lines)
+        if command == "/db":
+            from tools.sqlite_query import lookup
+            from kernel.errors import ToolFailure
+            table, _, rest = args.strip().partition(" ")
+            table = table.strip().lower()
+            if not table:
+                return ("usage: /db <table> [col=value ...] — tables: "
+                        "episodes, steps, memories, tasks, audit")
+            where: dict[str, str] = {}
+            limit = 10
+            for token in rest.split():
+                column, sep, value = token.partition("=")
+                if sep and column.lower() != "limit":
+                    where[column] = value
+                elif column.lower() == "limit" and value.isdigit():
+                    limit = int(value)
+                else:
+                    return f"error: bad term {token!r} (want col=value or limit=N)"
+            try:
+                result = await lookup(daemon.cfg.db_path, table,
+                                      where=where, limit=limit)
+            except ToolFailure as exc:
+                return f"error: {exc}"
+            rows = result.get("rows", [])
+            if not rows:
+                return f"({table}: no matching rows)"
+            lines = [f"{table}: {len(rows)} row(s)"]
+            for row in rows[:limit]:
+                compact = " ".join(
+                    f"{key}={str(value)[:40]}"
+                    for key, value in list(row.items())[:6])
+                lines.append(compact[:300])
             return "\n".join(lines)
         if command == "/pending":
             lines = []
