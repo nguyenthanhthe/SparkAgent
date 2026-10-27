@@ -278,3 +278,18 @@ def unique_values(rows: list[Any], key: str) -> list[str]:
         if value is not None:
             seen.add(str(value))
     return sorted(seen)
+
+
+def pluck(rows: list[Any], key: str) -> list[Any]:
+    """Extract one dotted key from every row as a flat array (dict.get
+    semantics: missing keys become None, order preserved)."""
+    out: list[Any] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            out.append(None)
+            continue
+        try:
+            out.append(get_path(row, key))
+        except (KeyError, IndexError, TypeError):
+            out.append(None)
+    return out

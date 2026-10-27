@@ -4,7 +4,7 @@ import unittest
 
 from kernel.errors import ToolFailure
 from tools.json_tool import filter_rows, first_row, group_rows, \
-    sort_rows, stats, unique_values
+    pluck, sort_rows, stats, unique_values
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -220,6 +220,20 @@ class UniqueValuesTests(unittest.TestCase):
     def test_dotted_key_and_numbers(self):
         rows = [{"m": {"v": 2}}, {"m": {"v": 10}}, {"m": {"v": 2}}]
         self.assertEqual(unique_values(rows, "m.v"), ["10", "2"])
+
+
+class PluckTests(unittest.TestCase):
+    def test_extracts_in_order(self):
+        rows = [{"n": 3}, {"n": 1}, {"n": 2}]
+        self.assertEqual(pluck(rows, "n"), [3, 1, 2])
+
+    def test_missing_keys_become_none(self):
+        self.assertEqual(pluck([{"n": 1}, {"x": 2}, "bare"], "n"),
+                         [1, None, None])
+
+    def test_dotted_key(self):
+        rows = [{"m": {"v": "a"}}, {"m": {"v": "b"}}]
+        self.assertEqual(pluck(rows, "m.v"), ["a", "b"])
 
 
 class StatsNestingTests(unittest.TestCase):
