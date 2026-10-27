@@ -278,6 +278,20 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_docs_endpoint_allowlisted(self):
+        daemon, client = await self._setup()
+        try:
+            # temp test root has no docs/ — deployed installs get the text
+            response = await client.get("/api/docs/runbook-backups")
+            self.assertEqual(response.status, 404)
+            response = await client.get("/api/docs/../../secrets")
+            self.assertEqual(response.status, 404)
+            response = await client.get("/api/docs/not-a-runbook")
+            self.assertEqual(response.status, 404)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:

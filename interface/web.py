@@ -81,7 +81,8 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 <div class="card" style="margin-bottom:12px"><h2>Spend today</h2>
   <div id="cost"><span style="color:var(--dim)">loading…</span></div>
 </div>
-<div class="card" style="margin-bottom:12px"><h2>Backups</h2>
+<div class="card" style="margin-bottom:12px"><h2>Backups
+  <a href="/api/docs/runbook-backups" style="font-size:11px;font-weight:normal">runbook</a></h2>
   <div id="backups"><span style="color:var(--dim)">loading…</span></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>New task</h2>
@@ -374,6 +375,20 @@ def build_web_app(daemon) -> web.Application:
             "ops.backup_dir", "backups")
         return web.json_response(list_backups(backup_dir))
 
+    async def api_doc(request: web.Request) -> web.Response:
+        """Read-only runbook/docs serving — allowlisted names only, so
+        the dashboard can link the runbooks it references."""
+        name = request.match_info["name"]
+        allowed = {"runbook-backups", "runbook-dependencies",
+                   "runbook-failover", "runbook-quarantine"}
+        if name not in allowed:
+            raise web.HTTPNotFound(text="unknown document")
+        path = daemon.cfg.root / "docs" / f"{name}.md"
+        if not path.is_file():
+            raise web.HTTPNotFound(text=f"{name}.md not deployed")
+        return web.Response(text=path.read_text(encoding="utf-8"),
+                            content_type="text/plain")
+
     async def api_tasks(request: web.Request) -> web.Response:
         from kernel.pagination import paginate, parse_paging_params
         try:
@@ -596,6 +611,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/api/status", api_status)
     app.router.add_get("/api/backup", api_backup)
+    app.router.add_get("/api/docs/{name}", api_doc)
     app.router.add_get("/api/tasks", api_tasks)
     app.router.add_get("/api/tasks/{id}", api_task_detail)
     app.router.add_post("/api/tasks", api_tasks_create)
