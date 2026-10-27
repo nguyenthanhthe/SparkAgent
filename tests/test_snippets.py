@@ -40,6 +40,14 @@ class SnippetUnitTests(unittest.TestCase):
                                     "verified")
         self.assertIn("**VERIFIED**", snippet)
 
+    def test_length_contract_excludes_markers(self):
+        # the underlying text obeys the width budget; the ** markers are
+        # overhead on top, never part of it
+        text = ("filler " * 60) + "cache responses live in the brain " \
+            + ("filler " * 60)
+        snippet = highlight_snippet(text, "brain cache", width=120)
+        self.assertLessEqual(len(snippet.replace("**", "")), 136)
+
 
 class RecallSnippetTests(unittest.IsolatedAsyncioTestCase):
     async def test_recall_hits_carry_snippet(self):
