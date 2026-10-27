@@ -852,8 +852,8 @@ def build_web_app(daemon) -> web.Application:
                 pings[name] = {"ok": False,
                                "detail": f"{type(exc).__name__}: {exc}",
                                "latency_ms": None}
-        models = {name: str(section.get("model") or "")
-                  for name, section in sections.items() if section.get("model")}
+        models = {"ollama": daemon.brain.local.model,
+                  "openai_compat": daemon.brain.remote.model}
         return web.json_response({
             "tiers": health,
             "stats": daemon.brain.tier_details(),
