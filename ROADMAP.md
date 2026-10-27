@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[334/500]** commits · **1004 tests green** · self-check passing.
+Progress counter: **[346/500]** commits · **1009 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -198,18 +198,31 @@ Progress counter: **[334/500]** commits · **1004 tests green** · self-check pa
 9. ✅ docs: index.md points to ROADMAP for recent changes
 10. ✅ examples: lifecycle demo — daemon_stopping observed by a subscriber
 
-## Wave AH backlog (next)
+## Wave AH status (complete)
 
-1. kernel: `/api/status` uptime grows a humanized `uptime_human` field
-2. brain: adapter ping records a rolling last-5 latency history per adapter
-3. memory: `Memory.count(kind)` — cheap per-kind totals for dashboards
-4. security: auth limiter snapshot includes the configured thresholds
-5. interface: telegram /status adds the cache hit-rate line
-6. interface: dashboard tasks table row click deep-links `#task-<id>`
-7. tools: json_query mode=stats gains a `sample` (first row) for list roots
-8. ops: backup drill prints the scratch dir path before deleting (verbose mode)
-9. docs: security.md documents the promptguard band gauge and verdict counters
-10. examples: cache demo — put/hit/expire across a fake clock
+1. ✅ kernel: /api/status uptime grows a humanized field
+2. ✅ brain: adapter pings keep a rolling last-5 latency history
+3. ✅ memory: snippet width contract pinned (markers excluded)
+4. ✅ security: auth limiter snapshot includes configured thresholds
+5. ✅ interface: telegram /status adds the cache hit-rate line
+6. ✅ interface: task rows carry #task-<id> anchors with highlight
+7. ✅ tools: json_query stats carries a sample (first row) for list roots
+8. ✅ ops: backup drill --verbose reports the scratch dir path
+9. ✅ docs: security.md documents the guard metrics surface
+10. ✅ examples: cache demo — put/hit/TTL expiry across a fake clock
+
+## Wave AI backlog (next)
+
+1. kernel: scheduler stats gains `started_at` mirroring the daemon's
+2. brain: /api/brain adapters section merges the ping history (recent_ms)
+3. memory: recall accepts an explicit `exclude_kinds` complement to kinds
+4. security: quarantine release() audits the content length, not the content
+5. interface: telegram /skills accepts a name filter argument
+6. interface: dashboard backups panel shows the newest archive's verified state when drilled
+7. tools: json_query mode=shape honors a caller max_depth
+8. ops: preflight --json includes per-check duration_ms
+9. docs: operations.md links the backup + quarantine runbooks inline
+10. examples: metrics demo — REGISTRY snapshot rendered as text offline
 
 ## Wave R status (complete)
 
