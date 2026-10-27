@@ -62,6 +62,48 @@ class WebAuthRateLimitTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_db_lookups_require_token(self):
+        daemon, client = await self._setup()
+        try:
+            response = await client.get("/api/db/tasks")
+            self.assertEqual(response.status, 401)
+            response = await client.get(
+                "/api/db/tasks",
+                headers={"Authorization": "Bearer wrong"})
+            self.assertEqual(response.status, 401)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+    async def test_db_failures_lock_out_db_too(self):
+        daemon, client = await self._setup(max_failures=3)
+        try:
+            for _ in range(3):
+                response = await client.get(
+                    "/api/db/tasks",
+                    headers={"Authorization": "Bearer nope"})
+                self.assertEqual(response.status, 401)
+            # lockout is client-wide: a valid token on /api/db gets 429
+            response = await client.get(
+                "/api/db/tasks",
+                headers={"Authorization": "Bearer sekrit"})
+            self.assertEqual(response.status, 429)
+            self.assertIn("Retry-After", response.headers)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+    async def test_db_lookup_with_valid_token(self):
+        daemon, client = await self._setup()
+        try:
+            response = await client.get(
+                "/api/db/tasks",
+                headers={"Authorization": "Bearer sekrit"})
+            self.assertEqual(response.status, 200)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()
