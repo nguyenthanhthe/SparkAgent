@@ -221,14 +221,17 @@ def _verify_all(output_dir: Path, quiet: bool = False) -> int:
         return 1
     results = []
     for archive in archives:
+        started = time.monotonic()
         try:
             manifest = verify_backup(archive)
             results.append({"archive": archive.name, "ok": True,
                             "files": manifest["file_count"],
-                            "tag": manifest.get("tag")})
+                            "tag": manifest.get("tag"),
+                            "seconds": round(time.monotonic() - started, 2)})
         except BackupError as exc:
             results.append({"archive": archive.name, "ok": False,
-                            "error": str(exc)[:200]})
+                            "error": str(exc)[:200],
+                            "seconds": round(time.monotonic() - started, 2)})
     ok = all(item["ok"] for item in results)
     if quiet:
         failed = [item["archive"] for item in results if not item["ok"]]

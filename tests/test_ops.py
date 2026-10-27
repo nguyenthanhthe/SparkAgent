@@ -184,6 +184,24 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(report["failed"], [])
         self.assertNotIn("archives", report)
 
+    def test_cli_verify_all_reports_duration(self):
+        import contextlib
+        import io
+        import shutil
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        original = next(output.glob("sparkagent-backup-*.zip"))
+        shutil.copyfile(original,
+                        output / "sparkagent-backup-20980101-000000.zip")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output)])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue().splitlines()[-1])
+        for item in report["archives"]:
+            self.assertGreaterEqual(item["seconds"], 0)
+
     def test_prune_zero_keeps_nothing(self):
         data = make_data_dir()
         output = data.parent / "backups"
