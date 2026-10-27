@@ -65,6 +65,7 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("ping", body)
             self.assertTrue(body["ping"]["mock"]["ok"])
             self.assertIn("latency_ms", body["ping"]["mock"])
+            self.assertIn("checked_at", body["ping"])
         finally:
             await client.close()
             await daemon.memory.close()

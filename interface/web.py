@@ -781,7 +781,8 @@ def build_web_app(daemon) -> web.Application:
             "tiers": health,
             "stats": daemon.brain.tier_details(),
             "cache": daemon.brain.cache_stats(),
-            "ping": pings,
+            "ping": {**pings, "checked_at": time.strftime(
+                "%Y-%m-%dT%H:%M:%S")},
             "catalog": {"available": adapter_registry.available()},
         })
 
