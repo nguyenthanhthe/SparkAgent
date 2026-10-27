@@ -274,6 +274,19 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._reply_with([])
         self.assertIn("no dependency-stalled", reply)
 
+    async def test_blocked_limit_passthrough(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def blocked_pending_tasks(limit=50):
+            seen["limit"] = limit
+            return []
+        gateway.daemon.memory.blocked_pending_tasks = blocked_pending_tasks
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/blocked --limit 7"})
+        self.assertEqual(seen["limit"], 7)
+
 
 class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
     async def _reply_with(self, skills):

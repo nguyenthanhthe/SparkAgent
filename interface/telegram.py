@@ -280,7 +280,13 @@ class TelegramGateway:
                 lines.append(compact[:300])
             return "\n".join(lines)
         if command == "/blocked":
-            stalled = await daemon.memory.blocked_pending_tasks(limit=15)
+            limit = 15
+            if "--limit" in args:
+                args, _, rest = args.partition("--limit")
+                token = rest.strip().split()[0] if rest.strip() else ""
+                if token.isdigit():
+                    limit = min(50, max(1, int(token)))
+            stalled = await daemon.memory.blocked_pending_tasks(limit=limit)
             if not stalled:
                 return "(no dependency-stalled tasks)"
             return "\n".join(
