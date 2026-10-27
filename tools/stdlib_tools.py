@@ -77,9 +77,11 @@ def register_tools(registry: ToolRegistry,
 
     # ------------------------------------------------------------ json_query
     async def json_query(ctx: ToolContext, data: str, path: str = "",
-                         mode: str = "get", jsonl: bool = False) -> dict:
+                         mode: str = "get", jsonl: bool = False,
+                         where: str = "") -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
-        require_enum(mode, "mode", ["get", "search", "shape", "stats"])
+        require_enum(mode, "mode",
+                     ["get", "search", "shape", "stats", "filter"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -100,6 +102,20 @@ def register_tools(registry: ToolRegistry,
             return {"matches": json_mod.search(parsed, needle)}
         if mode == "shape":
             return {"shape": json_mod.shape(parsed)}
+        if mode == "filter":
+            where = require_str(where, "where", min_len=1, max_len=500)
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure("filter needs a list "
+                                  "(use path='items' or jsonl=true)")
+            try:
+                return {"matches": json_mod.filter_rows(rows, where),
+                        "count": len(rows)}
+            except ValueError as exc:
+                raise ToolFailure(str(exc))
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -108,15 +124,21 @@ def register_tools(registry: ToolRegistry,
                      "(e.g. 'items.0.name'; '*' spreads lists/dicts, "
                      "like 'items.*.name'), mode=search finds paths "
                      "containing a needle, mode=shape summarizes structure, "
-                     "mode=stats counts keys/leaves. Set jsonl=true for "
+                     "mode=stats counts keys/leaves, mode=filter keeps "
+                     "list rows matching comparison terms in `where` "
+                     "(e.g. 'age>=30;status!=done'). Set jsonl=true for "
                      "newline-delimited JSON (treated as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
                              "desc": "raw JSON text"},
                     "path": {"type": "string", "required": False,
-                             "desc": "dotted path (get) or needle (search)"},
+                             "desc": "dotted path (get/filter) or "
+                                     "needle (search)"},
                     "mode": {"type": "string", "required": False},
                     "jsonl": {"type": "boolean", "required": False,
-                              "desc": "parse input as JSON lines"}},
+                              "desc": "parse input as JSON lines"},
+                    "where": {"type": "string", "required": False,
+                              "desc": "filter terms, ';' separated "
+                                      "(mode=filter)"}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze

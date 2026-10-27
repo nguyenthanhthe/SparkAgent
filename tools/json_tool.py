@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 
@@ -134,3 +135,54 @@ def _leaf_count(node: Any) -> int:
 
 def safe_dump(data: Any, indent: int | None = 2) -> str:
     return json.dumps(data, ensure_ascii=False, indent=indent, default=str)
+
+
+# --------------------------------------------------------------- row filter
+_TERM_RE = re.compile(r"^\s*([\w.*\[\]-]+)\s*(>=|<=|!=|>|<|=)\s*(.*?)\s*$")
+_OPS = {
+    "=": lambda a, b: a == b,
+    "!=": lambda a, b: a != b,
+    ">": lambda a, b: a > b,
+    "<": lambda a, b: a < b,
+    ">=": lambda a, b: a >= b,
+    "<=": lambda a, b: a <= b,
+}
+MAX_FILTER_TERMS = 8
+
+
+def filter_rows(rows: list[Any], where: str) -> list[Any]:
+    """Filter a list of dicts with ``;``-separated comparison terms
+    (``age>=30``, ``name=alice``, ``status!=done``). Numeric comparison
+    kicks in when the field value is a number; otherwise terms compare
+    as strings. Rows missing the key never match."""
+    terms = [term for term in (part.strip()
+                               for part in where.split(";")) if term]
+    if len(terms) > MAX_FILTER_TERMS:
+        raise ValueError(f"at most {MAX_FILTER_TERMS} filter terms")
+    for term in terms:
+        match = _TERM_RE.match(term)
+        if not match:
+            raise ValueError(f"bad filter term {term!r} — want key>=value")
+        key, op, raw = match.groups()
+        rows = [row for row in rows if _matches(row, key, op, raw)]
+    return rows
+
+
+def _matches(row: Any, key: str, op: str, raw: str) -> bool:
+    if not isinstance(row, dict):
+        return False
+    try:
+        value = get_path(row, key)
+    except (KeyError, IndexError, TypeError):
+        return False
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        expected: Any = raw
+    else:
+        try:
+            expected = float(raw)
+        except ValueError:
+            expected = raw
+    try:
+        return _OPS[op](value, expected)
+    except TypeError:
+        return False
