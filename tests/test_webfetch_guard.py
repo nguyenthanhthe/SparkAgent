@@ -108,6 +108,20 @@ class FetcherGuardTests(unittest.IsolatedAsyncioTestCase):
         finally:
             webfetch_mod.REGISTRY = original
 
+    async def test_band_gauge_tracks_verdict(self):
+        from kernel.metrics import MetricsRegistry
+        import tools.webfetch as webfetch_mod
+        registry = MetricsRegistry()
+        original = webfetch_mod.REGISTRY
+        webfetch_mod.REGISTRY = registry
+        try:
+            fetcher = make_fetcher("configuration follows\n"
+                                   "system: check these")
+            await fetcher.fetch("http://8.8.8.8/")
+            self.assertEqual(registry.gauge_value("promptguard_band"), 1.0)
+        finally:
+            webfetch_mod.REGISTRY = original
+
     async def test_findings_capped_at_three(self):
         from security.promptguard import scan
         # four distinct injection patterns in one page

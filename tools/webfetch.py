@@ -245,6 +245,9 @@ class WebFetcher:
                              buckets=(10, 20, 30, 40, 50, 60, 80, 100))
             REGISTRY.incr(
                 f"promptguard_verdicts_{verdict.verdict}_total")
+            band = {"pass": 0, "sanitize": 1, "quarantine": 2}
+            REGISTRY.gauge("promptguard_band",
+                           float(band.get(verdict.verdict, 0)))
             report = risk_report(verdict)
             # top 3 findings: enough to justify the verdict in a tool
             # result, without a wall of pattern matches
