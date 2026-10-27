@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[232/500]** commits · **936 tests green** · self-check passing.
+Progress counter: **[242/500]** commits · **948 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -81,18 +81,31 @@ Progress counter: **[232/500]** commits · **936 tests green** · self-check pas
 9. ✅ docs: ADR-0009 — digest dedupe and consolidation idempotency
 10. ✅ examples: backup end-to-end demo (create → list → verify window → drill → tamper)
 
-## Wave Y backlog (next)
+## Wave Y status (complete)
 
-1. kernel: task pause/resume emits `task_paused`/`task_resumed` on the scheduler channel
-2. brain: /api/brain exposes `shutdown_drained_tasks` alongside tier stats
-3. memory: `Memory.forget(key)` — operator-callable delete of a single memory by key, audited
-4. security: quarantine put() records the source URL in meta for webfetch quarantines (audit trail)
-5. interface: telegram `/skills` pagination hint when list exceeds 20 entries
-6. interface: dashboard adapters card shows circuit-breaker state per tier
-7. tools: json_query mode=group — count rows grouped by a key's value
-8. ops: backup prune gains a `--dry-run` flag listing what would be removed
-9. docs: FAQ entries — why backups exclude vault.bin, why digests dedupe, why 304 caching is memory-only
-10. examples: json_query group demo over quarantine reasons
+1. ✅ kernel: task pause/resume emits `task_paused`/`task_resumed` on the scheduler channel
+2. ✅ brain: /api/brain exposes `shutdown_drained_tasks` in a lifecycle block
+3. ✅ memory: `Memory.forget(key)` + audited `DELETE /api/memories/{key}`
+4. ✅ security: quarantine meta carries the source URL for webfetch quarantines (already in place — verified)
+5. ✅ interface: telegram `/skills` truncates at 20 entries with a more-hint
+6. ✅ interface: dashboard adapters card shows per-tier cooldown (breaker) state
+7. ✅ tools: json_query mode=group — counts per key value, optional `where` applied first
+8. ✅ ops: backup `prune` subcommand with `--dry-run`
+9. ✅ docs: FAQ entries — vault exclusion, digest dedupe, memory-only 304 cache
+10. ✅ examples: json_query group demo over quarantine reasons
+
+## Wave Z backlog (next)
+
+1. kernel: `daemon.status()` includes quarantine size + item count for the dashboard header
+2. brain: /api/adapters ping section gains a `checked_at` timestamp so staleness is visible
+3. memory: recall excludes digest-marker kind by default (noise reduction), overridable via kinds
+4. security: auth limiter failure window prune runs on read too (stale lockouts age out without new failures)
+5. interface: telegram `/audit` gains a `--actor <name>` filter
+6. interface: dashboard tasks table highlights blocked rows with their blockers
+7. tools: json_query numeric term coercion for boolean fields (`enabled=1` matches true)
+8. ops: backup `verify-all` gains `--quiet` (single-line summary for cron mail)
+9. docs: runbook — quarantine triage (list, filter by reason, release vs delete, audit trail)
+10. examples: quarantine triage demo (put → filter → release → audit)
 
 ## Wave R status (complete)
 
