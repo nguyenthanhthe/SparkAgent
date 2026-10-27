@@ -133,6 +133,7 @@ class MemoryHit:
     score: float
     created_at: str
     tags: list[str] | None = None   # episode tags for episode-linked hits
+    snippet: str | None = None      # excerpt with matched terms marked
 
 
 class Memory:
@@ -368,6 +369,9 @@ class Memory:
                 hits.sort(key=lambda h: h.score, reverse=True)
             hits = hits[:k]
             self._attach_episode_tags(conn, hits)
+            from memory_search.snippets import highlight_snippet
+            for hit in hits:
+                hit.snippet = highlight_snippet(hit.text, query)
             return hits
         return await self._run(op)
 

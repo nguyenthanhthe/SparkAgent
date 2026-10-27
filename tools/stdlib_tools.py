@@ -237,6 +237,7 @@ def register_tools(registry: ToolRegistry,
             raise ToolFailure("memory is not available in this context")
         hits = await ctx.memory.recall(query, k=5)
         return {"results": [{"kind": h.kind, "text": h.text[:300],
+                             "snippet": h.snippet,
                              "score": round(h.score, 3)} for h in hits]}
 
     registry.register(Tool(

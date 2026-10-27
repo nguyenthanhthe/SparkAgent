@@ -173,7 +173,8 @@ class TelegramGateway:
             hits = await daemon.memory.recall(args, k=5)
             if not hits:
                 return "(no memories found)"
-            return "\n\n".join(f"[{h.kind}] {h.text[:250]}" for h in hits)
+            return "\n\n".join(
+                f"[{h.kind}] {h.snippet or h.text[:250]}" for h in hits)
         if command == "/skills":
             skills = daemon.forge.list_skills()
             return "\n".join(f"{s['name']} — {s['status']}" for s in skills) \
