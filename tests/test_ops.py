@@ -266,6 +266,17 @@ class BackupTests(unittest.TestCase):
         self.assertEqual((data / "sparkagent.db").read_bytes(),
                          b"database-bytes-0123")
 
+    def test_restore_drill_verbose_reports_scratch(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        result = create_backup(data, data.parent / "backups")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            summary = restore_drill(result.archive_path, verbose=True)
+        self.assertIn("drill scratch:", buffer.getvalue())
+        self.assertTrue(summary["ok"])
+
     def test_restore_drill_refuses_corrupt_archive(self):
         data = make_data_dir()
         result = create_backup(data, data.parent / "backups")

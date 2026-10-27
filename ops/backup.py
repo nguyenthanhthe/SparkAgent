@@ -169,15 +169,18 @@ def restore_backup(archive_path: Path, data_dir: Path,
             "total_bytes": manifest["total_bytes"]}
 
 
-def restore_drill(archive_path: Path, work_dir: Path | None = None) -> dict:
+def restore_drill(archive_path: Path, work_dir: Path | None = None,
+                  verbose: bool = False) -> dict:
     """Restore drill: verify, then restore into a throwaway scratch
     directory and remove it. Never touches the live data dir — run this
     periodically; a backup you have never restored is a hope, not a
-    backup."""
+    backup. ``verbose`` prints the scratch path before cleanup."""
     manifest = verify_backup(archive_path)
     scratch = Path(work_dir or Path(tempfile.mkdtemp())) / \
         f"sparkagent-drill-{time.strftime('%Y%m%d-%H%M%S')}"
     try:
+        if verbose:
+            print(f"drill scratch: {scratch}")
         outcome = restore_backup(archive_path, scratch, overwrite=False)
         restored_bytes = sum(
             (scratch / entry["path"]).stat().st_size
@@ -291,6 +294,8 @@ def main(argv: list[str] | None = None) -> int:
     p_drill.add_argument("archive")
     p_drill.add_argument("--work-dir", default=None,
                          help="parent for the scratch dir (default: temp)")
+    p_drill.add_argument("--verbose", action="store_true",
+                         help="print the scratch dir path before cleanup")
     args = parser.parse_args(argv)
 
     if args.cmd == "create":
@@ -333,7 +338,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             result = restore_drill(Path(args.archive),
                                    work_dir=Path(args.work_dir)
-                                   if args.work_dir else None)
+                                   if args.work_dir else None,
+                                   verbose=args.verbose)
         except BackupError as exc:
             print(json.dumps({"ok": False, "error": str(exc)[:200]}))
             return 1
