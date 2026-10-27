@@ -68,6 +68,13 @@ class QuarantineStatsTests(unittest.TestCase):
         self.assertEqual(top, {"prompt-injection": 3,
                                "oversized": 1})
 
+    def test_put_rejects_blank_content(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        with self.assertRaises(ValueError):
+            store.put("", "reason")
+        with self.assertRaises(ValueError):
+            store.put("   \n", "reason")
+
     def test_empty_store_stats(self):
         stats = QuarantineStore(Path(tempfile.mkdtemp())).stats()
         self.assertEqual(stats["items"], 0)

@@ -28,6 +28,8 @@ class QuarantineStore:
 
     # ------------------------------------------------------------------- api
     def put(self, content: str, reason: str, meta: dict | None = None) -> dict:
+        if not (content or "").strip():
+            raise ValueError("quarantined content must be non-empty")
         item_id = new_id()
         data = content.encode("utf-8", errors="replace")
         if len(data) > MAX_ITEM_BYTES:
