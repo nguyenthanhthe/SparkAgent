@@ -88,6 +88,7 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         reply = await self._command("/health", gateway)
         self.assertIn("overall: ok", reply)
+        self.assertIn("0/0 checks ok", reply)
 
     async def test_status(self):
         reply = await self._command("/status")

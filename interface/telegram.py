@@ -137,8 +137,11 @@ class TelegramGateway:
                     "plain text — submit a task")
         if command == "/health":
             report = await daemon.health.check_all()
-            lines = [f"overall: {report['status']}"]
-            for check in report.get("checks", []):
+            checks = report.get("checks", [])
+            ok_count = sum(1 for c in checks if c["status"] == "ok")
+            lines = [f"overall: {report['status']} "
+                     f"({ok_count}/{len(checks)} checks ok)"]
+            for check in checks:
                 detail = f" — {check['detail'][:40]}" if check["detail"] \
                     else ""
                 lines.append(f"{check['name']}: {check['status']}{detail}")
