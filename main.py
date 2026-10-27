@@ -47,6 +47,7 @@ def run_check() -> int:
     from kernel.memory import Memory
     from kernel.react import extract_json
     from openshell import SecurityError, SecretVault, SecurityPolicy
+    from security.quarantine import MAX_TOTAL_BYTES, QuarantineStore
     from tools.webfetch import BlockedURLError, validate_url
     from pathlib import Path
     import tempfile
@@ -126,6 +127,19 @@ def run_check() -> int:
         assert extract_json('prose {"thought": "t"} prose')["thought"] == "t"
         assert extract_json("garbage") is None
     check("ReAct JSON extraction", json_extraction)
+
+    def quarantine_and_budget():
+        store = QuarantineStore(Path(tempfile.mkdtemp()) / "q")
+        store.put("check payload", "selftest")
+        stats = store.stats()
+        assert stats["items"] == 1 and stats["bytes"] > 0
+        store.delete(next(iter(store.list()))["id"])
+        assert store.stats()["items"] == 0
+        # budget store cap invariant: putting beyond the total cap evicts
+        store.put("x" * 1000, "selftest")
+        store.put("y" * 1000, "selftest")
+        assert store.stats()["bytes"] <= MAX_TOTAL_BYTES
+    check("quarantine store + budget sanity", quarantine_and_budget)
 
     if failures:
         print(f"\n{len(failures)} check(s) FAILED")
