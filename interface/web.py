@@ -75,6 +75,7 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   <div class="card"><h2>Brain</h2><div id="brain"></div></div>
   <div class="card"><h2>GPU / System</h2><div id="system"></div></div>
   <div class="card"><h2>Scheduler</h2><div id="sched"></div></div>
+  <div class="card"><h2>Adapters</h2><div id="adapters"></div></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Spend today</h2>
   <div id="cost"><span style="color:var(--dim)">loading…</span></div>
@@ -270,6 +271,15 @@ async function refreshCost(){try{const b=await api('/api/brain');
       'no spend recorded yet (local tier is free)</div>');
 }catch(e){}}
 
+async function refreshAdapters(){try{const a=await api('/api/adapters');
+  const ping=a.ping||{};let h='';
+  for(const[name,p]of Object.entries(ping)){
+    const lat=p.latency_ms==null?'n/a':p.latency_ms+' ms';
+    h+=kv(name,(p.ok?badge('b-ok','ok'):badge('b-err','down'))+' '+lat);
+  }
+  $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
+}catch(e){}}
+
 async function refreshBackup(){try{const b=await api('/api/backup');
   const items=b.archives||[];
   if(!items.length){$('backups').innerHTML=
@@ -307,11 +317,11 @@ async function refreshTopologies(){try{const data=await api('/api/swarm');
     <pre style="white-space:pre-wrap;margin:0">${esc(t.mermaid)}</pre></details>`).join('');
 }catch(e){$('topologies').innerHTML=`<span style="color:var(--dim)">${esc(e.message)}</span>`}};
 refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
-refreshQuarantine();refreshCost();refreshEpisodes();refreshTopologies();refreshBackup();
+refreshQuarantine();refreshCost();refreshEpisodes();refreshTopologies();refreshBackup();refreshAdapters();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
 setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
 setInterval(refreshQuarantine,15000);setInterval(refreshCost,10000);
-setInterval(refreshBackup,60000);
+setInterval(refreshBackup,60000);setInterval(refreshAdapters,15000);
 setInterval(refreshEpisodes,10000);
 </script></body></html>"""
 
