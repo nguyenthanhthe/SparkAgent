@@ -63,3 +63,24 @@ def register_tools(registry: ToolRegistry) -> None:
 
 Register in `kernel/daemon.py` and it appears in the model's tool list
 and the dashboard automatically.
+
+## json_query mode matrix
+
+All row modes accept `path` (selects the list; jsonl=true treats input
+as one row per line) and an optional `where` filter applied **first** —
+comparison terms separated by `;`, operators `=` `!=` `>` `<` `>=` `<=`
+`~=` (contains) `^=` (starts with), boolean coercion (`enabled=1`
+matches true), numeric comparison when the field is numeric.
+
+| Mode | Extra params | Returns |
+|---|---|---|
+| `get` | `path` (dotted, `*` spreads) | value at path |
+| `search` | `path` = needle | dotted paths whose key/value contains it |
+| `shape` | — | structure summary, depth-capped |
+| `stats` | — | root type, counts, nesting map (dict roots, depth ≤ 3) |
+| `filter` | `where` | matching rows + scanned count |
+| `sort` | `sort_by`, `descending` | ordered rows (missing keys last) |
+| `first` / `last` | `where` | head/tail row, or null when nothing matches |
+| `group` | `sort_by` = group key | value → count, biggest first |
+| `unique` | `sort_by` = key | sorted distinct stringified values |
+| `pluck` | `sort_by` = key | flat array (missing keys → null) |
