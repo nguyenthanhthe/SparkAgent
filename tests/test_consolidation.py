@@ -100,6 +100,25 @@ class DaemonConsolidationTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await daemon.memory.close()
 
+    async def test_digest_seeds_entity_graph(self):
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        daemon = AgentDaemon(Config({"memory": {"db_path": str(db)}}))
+        await daemon.memory.connect()
+        try:
+            eid = await daemon.memory.start_episode(
+                "sparkagent uses ollama for daily inference", "test")
+            await daemon.memory.finish_episode(
+                eid, "done", "task completed", "local", 1)
+            digested = await daemon._consolidate_episodes()
+            self.assertEqual(digested, 1)
+            facts = daemon.entity_graph.facts_about("ollama")
+            self.assertTrue(facts)
+            sources = {edge.source for edge in
+                       daemon.entity_graph.neighbors("ollama")}
+            self.assertIn("consolidation", sources)
+        finally:
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()

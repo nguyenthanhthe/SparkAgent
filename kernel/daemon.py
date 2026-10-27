@@ -394,6 +394,12 @@ class AgentDaemon:
                                    key=f"digest:{episodes[0]['id']}-"
                                        f"{episodes[-1]['id']}",
                                    meta={"tags": tags})
+        # seed the entity graph from the digest so relations stated in
+        # episodes survive even after the raw episodes age out
+        from tools.graph_tools import extract_triples
+        for subject, predicate, obj in extract_triples(digest_text):
+            self.entity_graph.add(subject, predicate, obj,
+                                  source="consolidation")
         # mark each source episode as digested by its own key
         for episode in episodes:
             await self.memory.remember(
