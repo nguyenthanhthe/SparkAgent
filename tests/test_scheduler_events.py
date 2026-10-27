@@ -124,6 +124,8 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(finished), 1)
             self.assertEqual(finished[0]["status"], "done")
             self.assertGreaterEqual(finished[0]["duration_s"], 0)
+        finally:
+            await memory.close()
 
     async def test_tick_claims_nothing_once_stopping(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
@@ -138,8 +140,6 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["status"], "pending")   # unclaimed
             self.assertEqual(scheduler.stats["episodes_done"], 0)
-        finally:
-            await memory.close()
         finally:
             await memory.close()
 
