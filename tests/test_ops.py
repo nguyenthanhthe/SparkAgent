@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 
 from ops.backup import (BackupError, create_backup, main, prune_backups,
-                        restore_backup, verify_backup)
+                        restore_backup, restore_drill, verify_backup)
 
 
 def make_data_dir() -> Path:
@@ -156,6 +156,44 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         verdict = json.loads(buffer.getvalue().splitlines()[-1])
         self.assertTrue(verdict["ok"])
+
+    def test_restore_drill_roundtrip_in_scratch(self):
+        data = make_data_dir()
+        result = create_backup(data, data.parent / "backups", tag="drill")
+        summary = restore_drill(result.archive_path)
+        self.assertTrue(summary["ok"])
+        self.assertEqual(summary["files"], 3)
+        self.assertEqual(summary["tag"], "drill")
+        # live data dir untouched, scratch dir gone
+        self.assertEqual((data / "sparkagent.db").read_bytes(),
+                         b"database-bytes-0123")
+
+    def test_restore_drill_refuses_corrupt_archive(self):
+        data = make_data_dir()
+        result = create_backup(data, data.parent / "backups")
+        with zipfile.ZipFile(result.archive_path) as archive:
+            entries = {name: archive.read(name) for name in archive.namelist()}
+        entries["sandbox/note.txt"] = b"tampered"
+        corrupt = data.parent / "corrupt.zip"
+        with zipfile.ZipFile(corrupt, "w") as archive:
+            for name, blob in entries.items():
+                archive.writestr(name, blob)
+        with self.assertRaises(BackupError):
+            restore_drill(corrupt)
+
+    def test_cli_drill(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        created = create_backup(data, output)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["drill", str(created.archive_path)])
+        self.assertEqual(rc, 0)
+        summary = json.loads(buffer.getvalue().splitlines()[-1])
+        self.assertTrue(summary["ok"])
+        self.assertEqual(summary["files"], 3)
 
     def test_tag_label_in_manifest_and_verify(self):
         data = make_data_dir()

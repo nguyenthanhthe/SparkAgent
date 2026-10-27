@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import tempfile
 import time
 import zipfile
 from dataclasses import dataclass
@@ -164,6 +165,27 @@ def restore_backup(archive_path: Path, data_dir: Path,
             "total_bytes": manifest["total_bytes"]}
 
 
+def restore_drill(archive_path: Path, work_dir: Path | None = None) -> dict:
+    """Restore drill: verify, then restore into a throwaway scratch
+    directory and remove it. Never touches the live data dir — run this
+    periodically; a backup you have never restored is a hope, not a
+    backup."""
+    manifest = verify_backup(archive_path)
+    scratch = Path(work_dir or Path(tempfile.mkdtemp())) / \
+        f"sparkagent-drill-{time.strftime('%Y%m%d-%H%M%S')}"
+    try:
+        outcome = restore_backup(archive_path, scratch, overwrite=False)
+        restored_bytes = sum(
+            (scratch / entry["path"]).stat().st_size
+            for entry in manifest["files"])
+        byte_ok = restored_bytes == manifest["total_bytes"]
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    return {"ok": byte_ok, "files": outcome["restored_files"],
+            "bytes": manifest["total_bytes"],
+            "tag": manifest.get("tag")}
+
+
 def _verify_all(output_dir: Path) -> int:
     """Verify every archive in the retention window; exit 1 if any fails."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
@@ -213,6 +235,12 @@ def main(argv: list[str] | None = None) -> int:
     p_restore.add_argument("archive")
     p_restore.add_argument("--data-dir", required=True)
     p_restore.add_argument("--overwrite", action="store_true")
+    p_drill = sub.add_parser(
+        "drill", help="verify + restore into a scratch dir (never the "
+                      "live one), then clean up")
+    p_drill.add_argument("archive")
+    p_drill.add_argument("--work-dir", default=None,
+                         help="parent for the scratch dir (default: temp)")
     args = parser.parse_args(argv)
 
     if args.cmd == "create":
@@ -235,6 +263,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "verify-all":
         return _verify_all(Path(args.output_dir))
+    if args.cmd == "drill":
+        try:
+            result = restore_drill(Path(args.archive),
+                                   work_dir=Path(args.work_dir)
+                                   if args.work_dir else None)
+        except BackupError as exc:
+            print(json.dumps({"ok": False, "error": str(exc)[:200]}))
+            return 1
+        print(json.dumps(result))
+        return 0 if result["ok"] else 1
     result = restore_backup(Path(args.archive), Path(args.data_dir),
                             overwrite=args.overwrite)
     print(json.dumps({"ok": True, **result}))
