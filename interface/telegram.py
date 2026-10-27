@@ -175,7 +175,8 @@ class TelegramGateway:
                         f"cache: {cache['hits']} hit(s) / "
                         f"{cache['hits'] + cache['misses']} "
                         f"({round(cache['hit_rate'] * 100)}%)")
-            return "\n".join(lines)        if command == "/tasks":
+            return "\n".join(lines)
+        if command == "/tasks":
             limit = 10
             if "--limit" in args:
                 args, _, rest = args.partition("--limit")
