@@ -451,10 +451,15 @@ class AgentDaemon:
         return await self._agent.run(goal, source=source)
 
     def status(self) -> dict:
+        uptime = int(time.time() - self.started_at)
+        hours, remainder = divmod(uptime, 3600)
+        minutes = remainder // 60
         return {
             "agent": self.cfg.get("agent.name"),
             "version": "0.2.0",
-            "uptime_s": int(time.time() - self.started_at),
+            "uptime_s": uptime,
+            "uptime_human": (f"{hours}h{minutes:02d}m" if hours
+                             else f"{minutes}m{uptime % 60:02d}s"),
             "system": self._snapshot,
             "brain": self._brain_health or self.brain.stats(),
             "scheduler": dict(self.scheduler.stats),

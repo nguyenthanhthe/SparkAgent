@@ -231,9 +231,11 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         try:
             daemon.quarantine.put("payload body", "test reason")
             response = await client.get("/api/status")
-            stats = (await response.json())["quarantine"]
+            body = await response.json()
+            stats = body["quarantine"]
             self.assertEqual(stats["items"], 1)
             self.assertEqual(stats["bytes"], len(b"payload body"))
+            self.assertRegex(body["uptime_human"], r"^\d+[hm]")
         finally:
             await client.close()
             await daemon.memory.close()
