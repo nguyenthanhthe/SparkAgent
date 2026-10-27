@@ -206,11 +206,12 @@ class BackupTests(unittest.TestCase):
         self.assertTrue(summary["verified"])
         # without the flag the field says so honestly
         output2 = data.parent / "backups2"
-        with contextlib.redirect_stdout(buffer):
+        buffer2 = io.StringIO()
+        with contextlib.redirect_stdout(buffer2):
             rc = main(["create", "--data-dir", str(data),
                        "--output-dir", str(output2)])
         self.assertEqual(rc, 0)
-        self.assertFalse(json.loads(buffer.getvalue())["verified"])
+        self.assertFalse(json.loads(buffer2.getvalue())["verified"])
 
     def test_cli_create_verify(self):
         import contextlib
