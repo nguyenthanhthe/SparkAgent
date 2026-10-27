@@ -204,6 +204,30 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("active", result)
         self.assertNotIn("done", result)
 
+    async def test_tool_sort_applies_where_first(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "sort",
+                           "sort_by": "age", "where": "status=done"},
+            self.ctx)
+        self.assertIn("bob", result)
+        self.assertNotIn("alice", result)
+
+    async def test_tool_pluck_applies_where_first(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "pluck",
+                           "sort_by": "name", "where": "status=done"},
+            self.ctx)
+        self.assertIn("bob", result)
+        self.assertNotIn("alice", result)
+
+    async def test_tool_unique_applies_where_first(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "unique",
+                           "sort_by": "name", "where": "age>=30"},
+            self.ctx)
+        self.assertIn("alice", result)
+        self.assertNotIn("bob", result)
+
     async def test_tool_group_needs_list(self):
         from kernel.errors import ToolFailure
         with self.assertRaises(ToolFailure):

@@ -118,66 +118,46 @@ def register_tools(registry: ToolRegistry,
                         "count": len(rows)}
             except ValueError as exc:
                 raise ToolFailure(str(exc))
+        async def _rows(mode_label: str) -> list:
+            """Shared row access for the list modes: dotted path into a
+            list, optional `where` filter applied first."""
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure(f"{mode_label} needs a list "
+                                  "(use path='items' or jsonl=true)")
+            if where:
+                try:
+                    rows = json_mod.filter_rows(rows, where)
+                except ValueError as exc:
+                    raise ToolFailure(str(exc))
+            return rows
         if mode == "sort":
             sort_by = require_str(sort_by, "sort_by", min_len=1, max_len=200)
-            try:
-                rows = json_mod.get_path(parsed, path) if path else parsed
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
-            if not isinstance(rows, list):
-                raise ToolFailure("sort needs a list "
-                                  "(use path='items' or jsonl=true)")
-            return {"value": json_mod.sort_rows(rows, sort_by,
-                                                descending=descending)}
+            return {"value": json_mod.sort_rows(await _rows("sort"),
+                                               sort_by,
+                                               descending=descending)}
         if mode in ("first", "last"):
             try:
-                rows = json_mod.get_path(parsed, path) if path else parsed
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
-            if not isinstance(rows, list):
-                raise ToolFailure(f"mode={mode} needs a list "
-                                  "(use path='items' or jsonl=true)")
-            try:
                 return {"value": json_mod.first_row(
-                    rows, where=where, last=(mode == "last"))}
+                    await _rows(mode), where="", last=(mode == "last"))}
             except ValueError as exc:
                 raise ToolFailure(str(exc))
         if mode == "group":
             sort_by = require_str(sort_by, "group_by", min_len=1,
                                   max_len=200)
-            try:
-                rows = json_mod.get_path(parsed, path) if path else parsed
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
-            if not isinstance(rows, list):
-                raise ToolFailure("group needs a list "
-                                  "(use path='items' or jsonl=true)")
-            try:
-                if where:
-                    rows = json_mod.filter_rows(rows, where)
-            except ValueError as exc:
-                raise ToolFailure(str(exc))
-            return {"groups": json_mod.group_rows(rows, sort_by)}
+            return {"groups": json_mod.group_rows(await _rows("group"),
+                                                  sort_by)}
         if mode == "unique":
             sort_by = require_str(sort_by, "key", min_len=1, max_len=200)
-            try:
-                rows = json_mod.get_path(parsed, path) if path else parsed
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
-            if not isinstance(rows, list):
-                raise ToolFailure("unique needs a list "
-                                  "(use path='items' or jsonl=true)")
-            return {"values": json_mod.unique_values(rows, sort_by)}
+            return {"values": json_mod.unique_values(await _rows("unique"),
+                                                     sort_by)}
         if mode == "pluck":
             sort_by = require_str(sort_by, "key", min_len=1, max_len=200)
-            try:
-                rows = json_mod.get_path(parsed, path) if path else parsed
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
-            if not isinstance(rows, list):
-                raise ToolFailure("pluck needs a list "
-                                  "(use path='items' or jsonl=true)")
-            return {"values": json_mod.pluck(rows, sort_by)}
+            return {"values": json_mod.pluck(await _rows("pluck"),
+                                             sort_by)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -188,15 +168,9 @@ def register_tools(registry: ToolRegistry,
                      "containing a needle, mode=shape summarizes structure, "
                      "mode=stats counts keys/leaves, mode=filter keeps "
                      "list rows matching comparison terms in `where` "
-                     "(e.g. 'age>=30;status!=done'), mode=sort orders a "
-                     "list by `sort_by` key (descending flips it), "
-                     "mode=first/last returns the head/tail row with an "
-                     "optional `where` filter applied first, mode=group "
-                     "counts rows per value of `sort_by` (the group key, "
-                     "with optional `where` filter applied first), "
-                     "mode=unique lists the distinct values of `sort_by`, "
-                     "mode=pluck extracts `sort_by` from every row as a "
-                     "flat array (missing keys become null). "
+                     "(e.g. 'age>=30;status!=done'), and the row modes "
+                     "sort/first/last/group/unique/pluck all honor an "
+                     "optional `where` filter applied first. "
                      "Set jsonl=true for newline-delimited JSON (treated "
                      "as a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
