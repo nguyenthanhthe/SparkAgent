@@ -166,6 +166,26 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_backup_listing_endpoint(self):
+        from ops.backup import create_backup
+        daemon, client = await self._setup()
+        try:
+            data = daemon.cfg.root / "data"
+            data.mkdir(parents=True, exist_ok=True)
+            (data / "sparkagent.db").write_bytes(b"x")
+            create_backup(data, daemon.cfg.root / "backups", tag="nightly")
+            response = await client.get("/api/backup")
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertEqual(len(body["archives"]), 1)
+            archive = body["archives"][0]
+            self.assertTrue(archive["name"].startswith("sparkagent-backup-"))
+            self.assertEqual(archive["tag"], "nightly")
+            self.assertGreaterEqual(archive["age_s"], 0)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:

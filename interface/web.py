@@ -79,6 +79,9 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 <div class="card" style="margin-bottom:12px"><h2>Spend today</h2>
   <div id="cost"><span style="color:var(--dim)">loading…</span></div>
 </div>
+<div class="card" style="margin-bottom:12px"><h2>Backups</h2>
+  <div id="backups"><span style="color:var(--dim)">loading…</span></div>
+</div>
 <div class="card" style="margin-bottom:12px"><h2>New task</h2>
   <textarea id="goal" placeholder="Describe a goal for the agent…"></textarea>
   <div class="row">
@@ -267,6 +270,23 @@ async function refreshCost(){try{const b=await api('/api/brain');
       'no spend recorded yet (local tier is free)</div>');
 }catch(e){}}
 
+async function refreshBackup(){try{const b=await api('/api/backup');
+  const items=b.archives||[];
+  if(!items.length){$('backups').innerHTML=
+    '<div style="color:var(--dim);font-size:12px">no backups found in '+
+    esc(b.dir)+' — run python -m ops.backup create</div>';return}
+  const newest=items[0];
+  const age=newest.age_s<3600?Math.round(newest.age_s/60)+' min'
+    :Math.round(newest.age_s/3600)+' h';
+  const rows=items.slice(0,5).map(a=>
+    `${esc(a.name)} · ${(a.bytes/1024).toFixed(0)} KB`+
+    (a.tag?` · ${esc(a.tag)}`:'')).join('<br>');
+  $('backups').innerHTML=
+    kv('newest',`${esc(newest.name)} (${age} old)`)+
+    (newest.tag?kv('tag',esc(newest.tag)):'')+
+    '<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+rows+'</div>';
+}catch(e){}}
+
 const log=$('log');const lines=[];
 const swarmFeed=$('swarm');const swarmEvents=[];
 const es=new EventSource('/api/stream');
@@ -287,10 +307,11 @@ async function refreshTopologies(){try{const data=await api('/api/swarm');
     <pre style="white-space:pre-wrap;margin:0">${esc(t.mermaid)}</pre></details>`).join('');
 }catch(e){$('topologies').innerHTML=`<span style="color:var(--dim)">${esc(e.message)}</span>`}};
 refreshStatus();refreshTasks();refreshSkills();refreshApprovals();
-refreshQuarantine();refreshCost();refreshEpisodes();refreshTopologies();
+refreshQuarantine();refreshCost();refreshEpisodes();refreshTopologies();refreshBackup();
 setInterval(refreshStatus,5000);setInterval(refreshTasks,5000);
 setInterval(refreshSkills,15000);setInterval(refreshApprovals,5000);
 setInterval(refreshQuarantine,15000);setInterval(refreshCost,10000);
+setInterval(refreshBackup,60000);
 setInterval(refreshEpisodes,10000);
 </script></body></html>"""
 
@@ -310,6 +331,32 @@ def build_web_app(daemon) -> web.Application:
             # aggregate lockout state only — never per-client detail
             payload["auth"] = limiter.snapshot()
         return web.json_response(payload)
+
+    async def api_backup(_request: web.Request) -> web.Response:
+        """Backup window listing: newest archive, age, tag. Listing only —
+        hash verification stays in `python -m ops.backup verify-all`."""
+        import time as _time
+        import zipfile as _zipfile
+        from ops.backup import MANIFEST_NAME
+        backup_dir = daemon.cfg.root / daemon.cfg.get(
+            "ops.backup_dir", "backups")
+        archives = []
+        for path in sorted(backup_dir.glob("sparkagent-backup-*.zip"),
+                           reverse=True):
+            entry = {"name": path.name,
+                     "age_s": round(_time.time() - path.stat().st_mtime),
+                     "bytes": path.stat().st_size, "tag": None}
+            try:
+                with _zipfile.ZipFile(path) as archive:
+                    if MANIFEST_NAME in archive.namelist():
+                        import json as _json
+                        entry["tag"] = _json.loads(
+                            archive.read(MANIFEST_NAME)).get("tag")
+            except (OSError, _zipfile.BadZipFile, ValueError):
+                pass   # listing is best-effort; verify-all is the gate
+            archives.append(entry)
+        return web.json_response({"dir": str(backup_dir),
+                                  "archives": archives[:20]})
 
     async def api_tasks(request: web.Request) -> web.Response:
         from kernel.pagination import paginate, parse_paging_params
@@ -505,6 +552,7 @@ def build_web_app(daemon) -> web.Application:
 
     app.router.add_get("/", index)
     app.router.add_get("/api/status", api_status)
+    app.router.add_get("/api/backup", api_backup)
     app.router.add_get("/api/tasks", api_tasks)
     app.router.add_get("/api/tasks/{id}", api_task_detail)
     app.router.add_post("/api/tasks", api_tasks_create)
