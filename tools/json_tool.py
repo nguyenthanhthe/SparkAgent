@@ -122,7 +122,26 @@ def stats(data: Any) -> dict:
     return {"root_type": type(data).__name__,
             "dict_keys": len(data) if isinstance(data, dict) else None,
             "list_len": len(data) if isinstance(data, list) else None,
-            "leaf_count": _leaf_count(data)}
+            "leaf_count": _leaf_count(data),
+            "nesting": _nesting(data) if isinstance(data, dict) else {}}
+
+
+def _nesting(data: Any, max_depth: int = 3) -> dict[str, int]:
+    """Dotted prefix -> direct-child count for nested dicts, depth-capped
+    and width-capped so pathological inputs stay bounded."""
+    out: dict[str, int] = {}
+
+    def walk(node: Any, prefix: str, depth: int) -> None:
+        if depth >= max_depth or not isinstance(node, dict):
+            return
+        if prefix:
+            out[prefix] = len(node)
+        for key, value in list(node.items())[:20]:
+            walk(value, f"{prefix}.{key}" if prefix else str(key),
+                 depth + 1)
+
+    walk(data, "", 0)
+    return out
 
 
 def _leaf_count(node: Any) -> int:

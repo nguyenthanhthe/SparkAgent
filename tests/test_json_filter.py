@@ -4,7 +4,7 @@ import unittest
 
 from kernel.errors import ToolFailure
 from tools.json_tool import filter_rows, first_row, group_rows, \
-    sort_rows, unique_values
+    sort_rows, stats, unique_values
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -211,6 +211,22 @@ class UniqueValuesTests(unittest.TestCase):
     def test_dotted_key_and_numbers(self):
         rows = [{"m": {"v": 2}}, {"m": {"v": 10}}, {"m": {"v": 2}}]
         self.assertEqual(unique_values(rows, "m.v"), ["10", "2"])
+
+
+class StatsNestingTests(unittest.TestCase):
+    def test_nesting_summarizes_nested_dicts(self):
+        data = {"a": {"b": {"c": 1}}, "d": 2}
+        nesting = stats(data)["nesting"]
+        self.assertEqual(nesting["a"], 1)
+        self.assertEqual(nesting["a.b"], 1)
+        self.assertNotIn("d", nesting)          # scalar, not a dict
+        self.assertEqual(stats([1, 2])["nesting"], {})
+
+    def test_nesting_depth_capped(self):
+        deep = {"l1": {"l2": {"l3": {"l4": {"l5": 1}}}}}
+        nesting = stats(deep)["nesting"]
+        self.assertIn("l1.l2.l3", nesting)      # depth 3 is the cap
+        self.assertNotIn("l1.l2.l3.l4", nesting)
 
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):
