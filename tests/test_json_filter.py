@@ -49,6 +49,15 @@ class FilterRowsTests(unittest.TestCase):
         self.assertEqual(len(filter_rows(rows, "enabled=0")), 1)
         self.assertEqual(len(filter_rows(rows, "enabled!=1")), 1)
 
+    def test_contains_operator(self):
+        result = filter_rows(ROWS, "name~=lic")
+        self.assertEqual([r["name"] for r in result], ["alice"])
+        # case-insensitive
+        result = filter_rows(ROWS, "name~=BOB")
+        self.assertEqual([r["name"] for r in result], ["bob"])
+        # substring of the needle never matches
+        self.assertEqual(filter_rows(ROWS, "name~=zorro"), [])
+
     def test_bad_term_rejected(self):
         with self.assertRaises(ValueError):
             filter_rows(ROWS, "age 30")
