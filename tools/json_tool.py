@@ -175,13 +175,15 @@ def _matches(row: Any, key: str, op: str, raw: str) -> bool:
         value = get_path(row, key)
     except (KeyError, IndexError, TypeError):
         return False
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        expected: Any = raw
-    else:
+    if isinstance(value, bool):
+        expected: Any = raw.strip().lower() in ("1", "true", "yes", "on")
+    elif isinstance(value, (int, float)):
         try:
             expected = float(raw)
         except ValueError:
             expected = raw
+    else:
+        expected = raw
     try:
         return _OPS[op](value, expected)
     except TypeError:

@@ -41,6 +41,13 @@ class FilterRowsTests(unittest.TestCase):
         result = filter_rows([{"age": None}, {"age": 5}], "age>0")
         self.assertEqual(len(result), 1)
 
+    def test_boolean_coercion(self):
+        rows = [{"enabled": True}, {"enabled": False}]
+        self.assertEqual(len(filter_rows(rows, "enabled=1")), 1)
+        self.assertEqual(len(filter_rows(rows, "enabled=true")), 1)
+        self.assertEqual(len(filter_rows(rows, "enabled=0")), 1)
+        self.assertEqual(len(filter_rows(rows, "enabled!=1")), 1)
+
     def test_bad_term_rejected(self):
         with self.assertRaises(ValueError):
             filter_rows(ROWS, "age 30")
