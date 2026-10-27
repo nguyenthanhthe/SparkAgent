@@ -41,6 +41,22 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_adapters_ping_opt_out(self):
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(db)},
+             "interface": {"ping_skip": ["mock"]}}))
+        await daemon.memory.connect()
+        client = TestClient(TestServer(build_web_app(daemon)))
+        await client.start_server()
+        try:
+            body = await (await client.get("/api/adapters")).json()
+            self.assertIsNone(body["ping"]["mock"]["ok"])
+            self.assertIn("skipped", body["ping"]["mock"]["detail"])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_adapters_endpoint_aggregates_router_status(self):
         db = Path(tempfile.mkdtemp()) / "t.db"
         daemon = AgentDaemon(Config({"memory": {"db_path": str(db)}}))

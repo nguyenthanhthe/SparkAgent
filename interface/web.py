@@ -822,12 +822,18 @@ def build_web_app(daemon) -> web.Application:
         from brain.adapters import adapter_registry
         health = await daemon.brain.health()
         # one latency sample per builtin adapter (mock + whatever the
-        # config sections can construct); probes never raise
+        # config sections can construct); probes never raise. A probe
+        # can be opted out per adapter via interface.ping_skip
+        skip = set(daemon.cfg.get("interface.ping_skip", []) or [])
         sections = {"mock": {},
                     "ollama": dict(daemon.cfg.section("brain.local")),
                     "openai_compat": dict(daemon.cfg.section("brain.remote"))}
         pings = {}
         for name, section in sections.items():
+            if name in skip:
+                pings[name] = {"ok": None, "detail": "skipped by config",
+                               "latency_ms": None}
+                continue
             try:
                 pings[name] = await adapter_registry.ping(name, section,
                                                           daemon.vault)
