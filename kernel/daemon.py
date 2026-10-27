@@ -377,6 +377,18 @@ class AgentDaemon:
         ).isoformat(timespec="seconds")
         episodes = await self.memory.episodes_without_digest(since,
                                                              limit=batch)
+        if episodes:
+            # dedupe: a goal already distilled into an earlier digest
+            # (recurring tasks repeat their goal text) is skipped, so
+            # repeated housekeeping runs don't mint duplicate digests
+            already: set[str] = set()
+            for marker in await self.memory.digest_markers():
+                text = marker.get("text") or ""
+                if text.startswith("[digested] "):
+                    already.add(text[len("[digested] "):].strip().lower())
+            episodes = [episode for episode in episodes
+                        if str(episode.get("goal", "")).strip().lower()
+                        not in already]
         if not episodes:
             return 0
         digest_text = consolidate(episodes,

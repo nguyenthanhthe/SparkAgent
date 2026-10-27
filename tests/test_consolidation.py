@@ -119,6 +119,22 @@ class DaemonConsolidationTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await daemon.memory.close()
 
+    async def test_repeated_goal_not_digest_twice(self):
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        daemon = AgentDaemon(Config({"memory": {"db_path": str(db)}}))
+        await daemon.memory.connect()
+        try:
+            goal = "rotate the logs and check disk usage"
+            first = await daemon.memory.start_episode(goal, "test")
+            await daemon.memory.finish_episode(first, "done", "ok", "l", 1)
+            self.assertEqual(await daemon._consolidate_episodes(), 1)
+            # a later episode with the identical goal is deduped away
+            second = await daemon.memory.start_episode(goal, "test")
+            await daemon.memory.finish_episode(second, "done", "ok", "l", 1)
+            self.assertEqual(await daemon._consolidate_episodes(), 0)
+        finally:
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()

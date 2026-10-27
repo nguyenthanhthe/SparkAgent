@@ -674,6 +674,16 @@ class Memory:
             conn.commit()
         await self._run(op)
 
+    async def digest_markers(self) -> list[dict]:
+        """All digest-marker memories (``[digested] <goal>`` rows) — the
+        consolidation dedupe's view of what was already distilled."""
+        def op(conn: sqlite3.Connection) -> list[dict]:
+            rows = conn.execute(
+                "SELECT key, text FROM memories WHERE kind = "
+                "'digest-marker' ORDER BY id ASC").fetchall()
+            return [dict(row) for row in rows]
+        return await self._run(op)
+
     async def recent_audit(self, limit: int = 100) -> list[dict]:
         def op(conn: sqlite3.Connection) -> list[dict]:
             rows = conn.execute(
