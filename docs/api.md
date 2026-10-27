@@ -4,17 +4,26 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/status` | daemon status (uptime, brain tiers, tools, approvals) |
-| GET | `/api/tasks` · POST `/api/tasks` | list / submit goals (`interval_seconds` ≥ 60 for recurring) |
-| POST | `/api/tasks/{id}/{cancel\|pause\|resume}` | task control |
+| GET | `/api/status` | daemon status (uptime, brain tiers, tools, approvals, quarantine stats) |
+| GET | `/api/tasks?status=&limit=` · POST `/api/tasks` | list (allowlisted `status` filter) / submit goals (`interval_seconds` ≥ 60 for recurring, `depends_on` for chains) |
+| GET | `/api/tasks/{id}` | task detail with `blocked_by` |
+| POST | `/api/tasks/{id}/{cancel\|pause\|resume}` | task control (emits scheduler events) |
 | GET | `/api/episodes?limit=` | recent episodes with outcomes |
+| GET | `/api/episodes/{id}` | episode detail + step replay + `step_count` |
 | GET | `/api/memories?q=` | hybrid semantic recall |
+| DELETE | `/api/memories/{key}` | operator forget (audited) |
 | GET | `/api/skills` · POST `/api/skills` | list / create (operator source) |
 | POST | `/api/skills/{name}/approve` | activate a pending skill |
 | GET | `/api/approvals` | operator approval queue |
 | POST | `/api/approvals/{id}/{approve\|deny}` | decide |
-| GET | `/api/quarantine` | quarantined content |
-| POST | `/api/quarantine/{id}/{release\|delete}` | sanitized release / deletion |
+| GET | `/api/quarantine?reason=` | quarantined content (reason filter) |
+| GET | `/api/quarantine/{id}` | one item: record + content |
+| POST | `/api/quarantine/{id}/{release\|restore\|delete}` | sanitized release / two-step restore / deletion |
+| GET | `/api/backup` | backup window listing (name, age, tag) |
+| GET | `/api/docs/{name}` | allowlisted runbook text (e.g. `runbook-backups`) |
+| GET | `/api/brain` | tier health, stats, cache, costs (`costs_last_7_days`), lifecycle |
+| GET | `/api/adapters` | tier stats + per-adapter ping latency (`interface.ping_skip` opts out) |
+| GET | `/api/db/{table}` | read-only lookups (episodes, steps, memories, tasks, audit) |
 | GET | `/api/health` | subsystem health report |
 | GET | `/metrics` | Prometheus exposition |
 | GET | `/api/stream` | SSE: live redacted log lines |
