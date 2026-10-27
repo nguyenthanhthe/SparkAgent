@@ -303,8 +303,13 @@ def build_web_app(daemon) -> web.Application:
     async def index(_request: web.Request) -> web.Response:
         return web.Response(text=_DASHBOARD_HTML, content_type="text/html")
 
-    async def api_status(_request: web.Request) -> web.Response:
-        return web.json_response(daemon.status())
+    async def api_status(request: web.Request) -> web.Response:
+        payload = daemon.status()
+        limiter = request.app.get("auth_limiter")
+        if limiter is not None:
+            # aggregate lockout state only — never per-client detail
+            payload["auth"] = limiter.snapshot()
+        return web.json_response(payload)
 
     async def api_tasks(request: web.Request) -> web.Response:
         from kernel.pagination import paginate, parse_paging_params

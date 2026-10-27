@@ -104,6 +104,22 @@ class WebAuthRateLimitTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_status_exposes_lockout_state(self):
+        daemon, client = await self._setup(max_failures=3)
+        try:
+            for _ in range(2):
+                await client.get("/api/status",
+                                 headers={"Authorization": "Bearer bad"})
+            response = await client.get(
+                "/api/status",
+                headers={"Authorization": "Bearer sekrit"})
+            auth = (await response.json())["auth"]
+            self.assertEqual(auth["locked_now"], 0)
+            self.assertEqual(auth["failures_recorded"], 2)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()
