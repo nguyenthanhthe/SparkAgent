@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[200/500]** commits · **873 tests green** · self-check passing.
+Progress counter: **[211/500]** commits · **906 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -42,18 +42,31 @@ Progress counter: **[200/500]** commits · **873 tests green** · self-check pas
 9. ✅ docs: runbook — dependency chains (blocked tasks, manual release, failure semantics)
 10. ✅ examples: backup create/verify/restore drill demo
 
-## Wave V backlog (next)
+## Wave V status (complete)
 
-1. kernel: task dependency depth guard — reject cycles and self-dependencies at submit
-2. brain: /api/brain cost ledger gains per-day breakdown (last 7 days)
-3. memory: recall snippet highlighting — matched query terms marked in returned text
-4. security: quarantine listing endpoint filter by reason kind
-5. interface: telegram `/blocked` command listing dependency-stalled tasks
-6. interface: dashboard cost panel shows today vs 7-day average
-7. tools: json_query numeric comparison filters (`age>=30`) alongside equality
-8. ops: backup restore drill subcommand — verify + restore into a scratch dir, never the live one
-9. docs: ADR-0008 — conditional fetch + cache semantics for web tools
-10. examples: web_fetch 304 drill demo (local http server, two rounds)
+1. ✅ kernel: submit-time dependency guard — transitive closure walk rejects cycles and dangling ids
+2. ✅ brain: /api/brain gains a gap-free 7-day cost breakdown (`costs_last_7_days`)
+3. ✅ memory: recall snippets — matched query terms highlighted (`memory_search/snippets.py`)
+4. ✅ security: quarantine listing filter by reason substring (`/api/quarantine?reason=`)
+5. ✅ interface: telegram `/blocked` command listing dependency-stalled tasks
+6. ✅ interface: dashboard cost panel shows today vs 7-day average
+7. ✅ tools: json_query mode=filter — numeric/string comparison terms over list rows
+8. ✅ ops: backup `drill` subcommand — verify + restore into a scratch dir, never the live one
+9. ✅ docs: ADR-0008 — conditional fetch and cache semantics for web tools
+10. ✅ examples: web_fetch 304 drill demo (local server, two rounds)
+
+## Wave W backlog (next)
+
+1. kernel: scheduler concurrency metric (`scheduler_inflight` gauge) exposed via /api/metrics
+2. brain: adapter registry gains a ping probe (per-adapter latency sample in /api/adapters)
+3. memory: digest dedupe — consolidation skips episodes whose goal text already appears in a digest
+4. security: auth limiter exposes lockout state in /api/status (count + retry-after, no client detail)
+5. interface: telegram `/skills` shows pending-approval skills with hint to use /approve
+6. interface: dashboard backup panel fed from /api/backup status (last archive, age, tag)
+7. tools: json_query mode=sort — order list rows by a key, ascending/descending
+8. ops: diskwatch gains a `--json` output mode for machine-readable checks
+9. docs: runbook — backup drills (create, tag, verify-all, drill, restore-for-real)
+10. examples: json_query filter+sort drill demo over task rows
 
 ## Wave R status (complete)
 
