@@ -74,3 +74,18 @@ subsystems. This page is the map; each package has its own page.
 - Every byte of untrusted text passes the prompt guard before reaching a
   model prompt; high-risk content is quarantined, not delivered.
 - Every SQL statement is parameter-bound; no exceptions.
+
+## Capability → guarded path (ADR-0010)
+
+Every capability has exactly one guarded implementation; the tool, HTTP
+endpoint, CLI, and Telegram surfaces are thin adapters over it.
+
+| Capability | Guarded implementation | Guards that live inside |
+|---|---|---|
+| Read-only db lookups | `tools/sqlite_query.lookup()` | static statements, `mode=ro`, Python-side filtering |
+| Backup lifecycle | `ops/backup.py` functions | hash verification before restore, size cap, retention |
+| Quarantine | `security/quarantine.QuarantineStore` | total-size budget, TTL sweep, sanitize-on-release |
+| Web fetch | `tools/webfetch.WebFetcher.fetch` | SSRF validation per hop, size cap, prompt guard |
+| Auth | `security/auth_limiter.AuthRateLimiter` | failure window, lockout, expired-lockout cleanup |
+| Task write path | `kernel/memory.py` task methods | parameter-bound SQL, dependency cycle walk |
+| Agent memory | `kernel/memory.py` remember/recall/forget | empty-text validation, kind scoping |
