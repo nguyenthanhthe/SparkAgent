@@ -127,10 +127,18 @@ class Scheduler:
                     await self._memory_shift_next_run(task_id, backoff)
                 logger.info("task %s %s in %.1fs", task_id, result.status,
                             time.monotonic() - started)
+                self.bus.publish("scheduler", {
+                    "event": "task_finished", "task_id": task_id,
+                    "status": result.status,
+                    "duration_s": round(time.monotonic() - started, 1)})
             except Exception as exc:  # noqa: BLE001 — record and reschedule
                 logger.exception("task %s crashed", task_id)
                 self.stats["episodes_failed"] += 1
                 await self.memory.finish_task(task_id, success=False)
+                self.bus.publish("scheduler", {
+                    "event": "task_finished", "task_id": task_id,
+                    "status": "failed",
+                    "duration_s": round(time.monotonic() - started, 1)})
 
     async def _memory_shift_next_run(self, task_id: int,
                                      delay_seconds: float) -> None:
