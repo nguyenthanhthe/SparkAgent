@@ -709,6 +709,19 @@ class Memory:
             return cursor.rowcount > 0
         return await self._run(op)
 
+    async def rename_key(self, old: str, new: str) -> int:
+        """Re-key memories from ``old`` to ``new`` (operator repair for
+        mistyped keys; callers must audit). Returns the row count."""
+        if not old or not new or old == new:
+            raise ValueError("rename_key needs two distinct non-empty keys")
+
+        def op(conn: sqlite3.Connection) -> int:
+            cursor = conn.execute(
+                "UPDATE memories SET key = ? WHERE key = ?", (new, old))
+            conn.commit()
+            return cursor.rowcount
+        return await self._run(op)
+
     async def digest_markers(self) -> list[dict]:
         """All digest-marker memories (``[digested] <goal>`` rows) — the
         consolidation dedupe's view of what was already distilled."""

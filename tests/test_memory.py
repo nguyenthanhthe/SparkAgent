@@ -109,6 +109,21 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(len(keys), 1)   # best score kept, dupe dropped
         run(scenario())
 
+    def test_rename_key_repairs_mistyped_key(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("note one", kind="note", key="gppu")
+            await self.mem.remember("note two", kind="fact", key="gppu")
+            moved = await self.mem.rename_key("gppu", "gpu")
+            self.assertEqual(moved, 2)
+            with self.assertRaises(ValueError):
+                await self.mem.rename_key("gpu", "gpu")
+            with self.assertRaises(ValueError):
+                await self.mem.rename_key("", "x")
+            hits = await self.mem.recall("note one", k=5)
+            self.assertEqual(hits[0].key, "gpu")
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()
