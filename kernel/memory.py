@@ -431,14 +431,38 @@ class Memory:
                 raise ValueError("depends_on must contain positive task ids")
 
             def check(conn: sqlite3.Connection) -> None:
-                placeholders = ", ".join("?" for _ in deps)
-                found = {row["id"] for row in conn.execute(
-                    f"SELECT id FROM tasks WHERE id IN ({placeholders})",
-                    tuple(deps))}
-                missing = sorted(set(deps) - found)
-                if missing:
+                # walk the full transitive closure: the new task must not
+                # join (or hang off) a dependency cycle — a stuck chain is
+                # invisible until someone wonders why nothing runs
+                frontier = list(deps)
+                graph: dict[int, list[int]] = {}
+                seen: set[int] = set()
+                while frontier:
+                    placeholders = ", ".join("?" for _ in frontier)
+                    rows = conn.execute(
+                        f"SELECT id, depends_on FROM tasks "
+                        f"WHERE id IN ({placeholders})",
+                        tuple(frontier)).fetchall()
+                    missing = sorted(set(frontier)
+                                     - {row["id"] for row in rows})
+                    if missing:
+                        raise ValueError(
+                            f"unknown dependency task id(s): {missing}")
+                    nxt: list[int] = []
+                    for row in rows:
+                        edges = self._parse_depends(row["depends_on"])
+                        graph[row["id"]] = edges
+                        if row["id"] in seen:
+                            continue
+                        seen.add(row["id"])
+                        nxt.extend(d for d in edges if d not in seen)
+                    frontier = nxt
+                graph[_NEW_TASK_NODE] = deps   # sentinel: the task to create
+                cycle = find_cycle(graph)
+                if cycle:
                     raise ValueError(
-                        f"unknown dependency task id(s): {missing}")
+                        "dependency cycle detected: "
+                        + " -> ".join(str(node) for node in cycle))
             await self._run(check)
             deps_json = json.dumps(deps)
 
@@ -693,6 +717,47 @@ class Memory:
 
 _WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4,
              "sat": 5, "sun": 6}
+
+# sentinel node id standing for "the task being created" during the
+# submit-time cycle walk (real ids are always positive)
+_NEW_TASK_NODE = -1
+
+
+def find_cycle(edges: dict[int, list[int]]) -> list[int] | None:
+    """Return the first dependency cycle as a node path, or None.
+
+    Iterative DFS over ``node -> its dependencies``; a node listed as its
+    own dependency comes back as a single-element cycle. Nodes referenced
+    but absent from ``edges`` are treated as leaves.
+    """
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color: dict[int, int] = dict.fromkeys(edges, WHITE)
+    for root in edges:
+        if color[root] != WHITE:
+            continue
+        color[root] = GRAY
+        path = [root]
+        stack = [(root, iter(edges[root]))]
+        while stack:
+            node, children = stack[-1]
+            descended = False
+            for child in children:
+                if child not in edges:
+                    continue
+                state = color.get(child, WHITE)
+                if state == GRAY:
+                    return path[path.index(child):]
+                if state == WHITE:
+                    color[child] = GRAY
+                    path.append(child)
+                    stack.append((child, iter(edges[child])))
+                    descended = True
+                    break
+            if not descended:
+                color[node] = BLACK
+                path.pop()
+                stack.pop()
+    return None
 
 
 _TAG_RE = re.compile(r"#([a-z][a-z0-9_-]{0,31})", re.IGNORECASE)

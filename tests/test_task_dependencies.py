@@ -52,6 +52,65 @@ class DependencySubmitTests(unittest.TestCase):
             "PRAGMA table_info(tasks)")}
         self.assertIn("depends_on", cols)
 
+    def test_submit_detects_cycle_in_existing_rows(self):
+        # hand-corrupted rows (e.g. manual db edit) forming a cycle:
+        # submitting anything that hangs off it must refuse loudly
+        a = run(self.mem.submit_task("a", "test"))
+        b = run(self.mem.submit_task("b", "test"))
+        self.mem._conn.execute(
+            "UPDATE tasks SET depends_on = ? WHERE id = ?", (f"[{b}]", a))
+        self.mem._conn.execute(
+            "UPDATE tasks SET depends_on = ? WHERE id = ?", (f"[{a}]", b))
+        self.mem._conn.commit()
+        with self.assertRaises(ValueError) as ctx:
+            run(self.mem.submit_task("c", "test", depends_on=[a]))
+        self.assertIn("dependency cycle", str(ctx.exception))
+
+    def test_submit_walks_transitive_deps(self):
+        # a -> b -> c chain; d depends on a, so the walk pulls the whole
+        # closure — a dangling id deep in the chain is rejected at submit
+        c = run(self.mem.submit_task("c", "test"))
+        b = run(self.mem.submit_task("b", "test", depends_on=[c]))
+        a = run(self.mem.submit_task("a", "test", depends_on=[b]))
+        d = run(self.mem.submit_task("d", "test", depends_on=[a]))
+        row = run(self.mem.list_tasks(task_id=d))[0]
+        self.assertEqual(row["depends_on"], f"[{a}]")
+        # now corrupt the deep link and try again
+        self.mem._conn.execute(
+            "UPDATE tasks SET depends_on = '[999]' WHERE id = ?", (c,))
+        self.mem._conn.commit()
+        with self.assertRaises(ValueError) as ctx:
+            run(self.mem.submit_task("e", "test", depends_on=[a]))
+        self.assertIn("unknown dependency", str(ctx.exception))
+
+
+class FindCycleTests(unittest.TestCase):
+    def test_acyclic_returns_none(self):
+        from kernel.memory import find_cycle
+        self.assertIsNone(find_cycle({1: [2], 2: [3], 3: []}))
+
+    def test_self_loop(self):
+        from kernel.memory import find_cycle
+        self.assertEqual(find_cycle({7: [7]}), [7])
+
+    def test_two_node_cycle(self):
+        from kernel.memory import find_cycle
+        cycle = find_cycle({1: [2], 2: [1]})
+        self.assertEqual(len(cycle), 2)
+        self.assertIn(1, cycle)
+        self.assertIn(2, cycle)
+
+    def test_dangling_reference_is_leaf(self):
+        from kernel.memory import find_cycle
+        self.assertIsNone(find_cycle({1: [99]}))
+
+    def test_deep_cycle_found_from_unrelated_root(self):
+        from kernel.memory import find_cycle
+        # 5 -> 6 -> 5 cycle, discovered while walking from 1
+        cycle = find_cycle({1: [2], 2: [], 3: [5], 5: [6], 6: [5]})
+        self.assertIn(5, cycle)
+        self.assertIn(6, cycle)
+
 
 class DependencyGateTests(unittest.IsolatedAsyncioTestCase):
     async def test_blocked_until_dependency_done(self):
