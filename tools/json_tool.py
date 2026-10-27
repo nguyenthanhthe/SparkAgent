@@ -132,7 +132,7 @@ def _nesting(data: Any, max_depth: int = 3) -> dict[str, int]:
     out: dict[str, int] = {}
 
     def walk(node: Any, prefix: str, depth: int) -> None:
-        if depth >= max_depth or not isinstance(node, dict):
+        if depth > max_depth or not isinstance(node, dict):
             return
         if prefix:
             out[prefix] = len(node)
