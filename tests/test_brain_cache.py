@@ -55,6 +55,15 @@ class BrainCacheTests(unittest.IsolatedAsyncioTestCase):
         snapshot = brain.cache.snapshot()
         self.assertIn("hit_rate", snapshot)
 
+    async def test_hits_broken_down_by_model(self):
+        brain = make_brain(cache_responses=True, cache_entries=8,
+                           cache_ttl=60)
+        messages = [{"role": "user", "content": "repeat me"}]
+        await brain.chat(messages)
+        await brain.chat(messages)
+        hits = brain.cache.snapshot()["hits_by_model"]
+        self.assertEqual(hits.get("fake-local"), 1)
+
     async def test_fallback_result_cached(self):
         # local fails, remote answers -> the remote answer is cached and
         # served next time without retrying the dead local tier

@@ -41,6 +41,7 @@ class ResponseCache:
         self.clock = clock or Clock()
         self._lock = threading.Lock()
         self._entries: OrderedDict[str, CacheEntry] = OrderedDict()
+        self._hits_by_model: dict[str, int] = {}
         self.stats = {"hits": 0, "misses": 0, "stored": 0,
                       "evictions": 0, "expired": 0,
                       "saved_tokens": 0}
@@ -60,6 +61,9 @@ class ResponseCache:
             self._entries.move_to_end(key)
             self.stats["hits"] += 1
             entry.hits += 1
+            model = str(entry.usage.get("model") or "unknown")
+            self._hits_by_model[model] = \
+                self._hits_by_model.get(model, 0) + 1
             self.stats["saved_tokens"] += int(
                 entry.usage.get("total_tokens") or 0)
             return entry
@@ -96,7 +100,10 @@ class ResponseCache:
 
     def snapshot(self) -> dict:
         return {**self.stats, "size": self.size,
-                "hit_rate": round(self.hit_rate(), 3)}
+                "hit_rate": round(self.hit_rate(), 3),
+                "hits_by_model": dict(sorted(
+                    self._hits_by_model.items(),
+                    key=lambda item: -item[1]))}
 
     def top_hits(self, limit: int = 5) -> list[dict]:
         """Most-hit live entries, keyed by a digest of the cache key
