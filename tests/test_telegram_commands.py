@@ -36,7 +36,10 @@ class FakeDaemon:
             async def recent_audit(self, limit=15):
                 return [{"created_at": "2026-10-24T10:00:00", "actor":
                          "executor", "action": "exec.start",
-                         "detail": "python -c print(1)"}]
+                         "detail": "python -c print(1)"},
+                        {"created_at": "2026-10-24T10:00:05", "actor":
+                         "operator", "action": "memory.forget",
+                         "detail": "key=temp"}]
 
         self.forge = FakeForge()
         self.memory = FakeMemory()
@@ -150,6 +153,11 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/audit")
         self.assertIn("executor exec.start", reply)
         self.assertIn("print(1)", reply)
+
+    async def test_audit_actor_filter(self):
+        reply = await self._command("/audit --actor operator")
+        self.assertIn("memory.forget", reply)
+        self.assertNotIn("exec.start", reply)
 
     async def test_help_lists_new_commands(self):
         reply = await self._command("/help")

@@ -203,7 +203,17 @@ class TelegramGateway:
                 lines.append(f"…and {len(active) - 20} more")
             return "\n".join(lines)
         if command == "/audit":
-            rows = await daemon.memory.recent_audit(limit=15)
+            args = args.strip()
+            actor = None
+            if "--actor" in args:
+                args, _, rest = args.partition("--actor")
+                actor = rest.strip().split()[0].lower() if rest.strip() \
+                    else None
+            rows = await daemon.memory.recent_audit(limit=100)
+            if actor:
+                rows = [row for row in rows
+                        if str(row.get("actor", "")).lower() == actor]
+            rows = rows[:15]
             if not rows:
                 return "(audit trail empty)"
             lines = []
