@@ -167,8 +167,15 @@ class TelegramGateway:
             if quarantine is not None:
                 lines.append(f"quarantine: {quarantine.get('items', 0)} "
                              f"item(s)")
-            return "\n".join(lines)
-        if command == "/tasks":
+            brain = getattr(daemon, "brain", None)
+            if brain is not None:
+                cache = brain.cache_stats()
+                if cache.get("hits", 0) + cache.get("misses", 0):
+                    lines.append(
+                        f"cache: {cache['hits']} hit(s) / "
+                        f"{cache['hits'] + cache['misses']} "
+                        f"({round(cache['hit_rate'] * 100)}%)")
+            return "\n".join(lines)        if command == "/tasks":
             limit = 10
             if "--limit" in args:
                 args, _, rest = args.partition("--limit")
