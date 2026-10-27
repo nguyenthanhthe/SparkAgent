@@ -75,3 +75,18 @@ write slipped past the API.
 `build_web_app(daemon)` with a temp-database `AgentDaemon` — no network,
 no daemon thread. Copy `tests/test_memories_filters.py` for query-parameter
 endpoints and `tests/test_quarantine_restore.py` for multi-step flows.
+
+**Verify pytest's exit code before committing — never pipe blindly.**
+`python -m pytest ... | tail` reports tail's exit status, so a red suite
+"passes" the `&& git commit` chain and a broken commit lands on main.
+Capture the code explicitly and gate on it:
+
+```bash
+python -m pytest tests/test_x.py -q > /tmp/pt.txt 2>&1; RC=$?
+echo "EXIT=$RC"; tail -2 /tmp/pt.txt
+# commit only when $RC is 0
+```
+
+This bit twice in one session (a red commit pushed, then amended against
+a published ref, which forces a follow-up fix commit instead of a clean
+amend). The rule: test → read RC → only then commit.
