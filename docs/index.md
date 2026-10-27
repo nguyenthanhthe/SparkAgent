@@ -23,4 +23,6 @@ swarm coordination, and hybrid memory.
 | [FAQ](faq.md) | common questions |
 
 Start with the [README](../README.md) quickstart; run
-`python main.py --check` to verify your install offline.
+`python main.py --check` to verify your install offline. For what
+changed lately — waves, decisions, counters — see
+[ROADMAP](../ROADMAP.md) (the progress header is updated every wave).
