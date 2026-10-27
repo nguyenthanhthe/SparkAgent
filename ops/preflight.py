@@ -5,7 +5,8 @@
 Checks, in order:
 1. config loads and required sections are present;
 2. brain tier health (at least one tier usable);
-3. data-directory disk usage below the warn threshold.
+3. data-directory disk usage below the warn threshold;
+4. backup freshness (newest archive < 24h old, window non-empty).
 
 Exit codes: 0 = all clear, 1 = something needs attention, 2 = hard
 error (config unreadable). Individual check results are always printed
@@ -40,6 +41,28 @@ def _disk_check(data_dir: Path) -> dict:
                       f"level={report.level})"}
 
 
+def _backup_check(config: Config) -> dict:
+    """Warn when the newest archive is stale (>24h) or none exists —
+    a backup window you never exercise is a hope, not a backup."""
+    import time as _time
+    from ops.backup import list_backups
+    listing = list_backups(config.root / config.get("ops.backup_dir",
+                                                    "backups"))
+    archives = listing["archives"]
+    if not archives:
+        return {"ok": False,
+                "detail": "no backups found — run python -m ops.backup "
+                          "create"}
+    age_hours = archives[0]["age_s"] / 3600
+    if age_hours > 24:
+        return {"ok": False,
+                "detail": f"newest backup is {age_hours:.0f}h old "
+                          f"({archives[0]['name']}) — schedule a create"}
+    return {"ok": True,
+            "detail": f"newest backup {age_hours:.1f}h old "
+                      f"({archives[0]['name']})"}
+
+
 def _config_check(config_path: str | None) -> tuple[Config | None, dict]:
     try:
         config = Config.load(config_path) if config_path else Config.load()
@@ -61,6 +84,9 @@ async def preflight_all(data_dir: Path,
                        "detail": "skipped — config unreadable"})
     checks.append({"name": "disk",
                    **_disk_check(data_dir)})
+    if config is not None:
+        checks.append({"name": "backup",
+                       **_backup_check(config)})
     return checks
 
 
