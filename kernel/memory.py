@@ -374,7 +374,15 @@ class Memory:
                 for hit in hits:
                     hit.score += booster.boost(query, hit.text)
                 hits.sort(key=lambda h: h.score, reverse=True)
-            hits = hits[:k]
+            # same key can reach the ranker twice (episode-linked rows);
+            # keep only the best-scoring hit per key so recall pages
+            # don't waste slots on duplicates
+            deduped: dict[str, MemoryHit] = {}
+            for hit in hits:
+                key = hit.key if hit.key is not None else f"__id:{hit.id}"
+                if key not in deduped or hit.score > deduped[key].score:
+                    deduped[key] = hit
+            hits = list(deduped.values())[:k]
             self._attach_episode_tags(conn, hits)
             from memory_search.snippets import highlight_snippet
             for hit in hits:

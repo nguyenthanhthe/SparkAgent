@@ -97,6 +97,18 @@ class MemoryTests(unittest.TestCase):
                                len(narrow[0].snippet))
         run(scenario())
 
+    def test_recall_dedupes_same_key(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("gpu temperature runs high", kind="note",
+                                    key="gpu")
+            await self.mem.remember("gpu temperature spikes at noon",
+                                    kind="note", key="gpu")
+            hits = await self.mem.recall("gpu temperature", k=5)
+            keys = [h.key for h in hits if h.key == "gpu"]
+            self.assertEqual(len(keys), 1)   # best score kept, dupe dropped
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()
