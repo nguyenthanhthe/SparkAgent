@@ -211,8 +211,9 @@ def list_backups(backup_dir: Path, limit: int = 20) -> dict:
     return {"dir": str(backup_dir), "archives": archives[:limit]}
 
 
-def _verify_all(output_dir: Path) -> int:
-    """Verify every archive in the retention window; exit 1 if any fails."""
+def _verify_all(output_dir: Path, quiet: bool = False) -> int:
+    """Verify every archive in the retention window; exit 1 if any fails.
+    ``quiet`` prints a single-line summary (cron mail friendly)."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
     if not archives:
         print(json.dumps({"ok": False, "error": "no backups found",
@@ -229,6 +230,11 @@ def _verify_all(output_dir: Path) -> int:
             results.append({"archive": archive.name, "ok": False,
                             "error": str(exc)[:200]})
     ok = all(item["ok"] for item in results)
+    if quiet:
+        failed = [item["archive"] for item in results if not item["ok"]]
+        print(json.dumps({"ok": ok, "count": len(results),
+                          "failed": failed}))
+        return 0 if ok else 1
     print(json.dumps({"ok": ok, "count": len(results),
                       "archives": results}))
     return 0 if ok else 1
@@ -256,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
                                   help="verify every archive in the "
                                        "backup dir")
     p_verify_all.add_argument("--output-dir", required=True)
+    p_verify_all.add_argument("--quiet", action="store_true",
+                              help="single-line summary (cron-friendly)")
     p_prune = sub.add_parser("prune", help="apply retention to the dir")
     p_prune.add_argument("--output-dir", required=True)
     p_prune.add_argument("--keep", type=int, default=10)
@@ -293,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
                           "tag": manifest.get("tag")}))
         return 0
     if args.cmd == "verify-all":
-        return _verify_all(Path(args.output_dir))
+        return _verify_all(Path(args.output_dir), quiet=args.quiet)
     if args.cmd == "prune":
         removed = prune_backups(Path(args.output_dir), keep=args.keep,
                                 dry_run=args.dry_run)

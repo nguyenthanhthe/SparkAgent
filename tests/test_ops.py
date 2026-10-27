@@ -163,6 +163,27 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(report["removed"], 1)
         self.assertEqual(len(list(output.glob("*.zip"))), 2)
 
+    def test_cli_verify_all_quiet(self):
+        import contextlib
+        import io
+        import shutil
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        original = next(output.glob("sparkagent-backup-*.zip"))
+        shutil.copyfile(original,
+                        output / "sparkagent-backup-20980101-000000.zip")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output),
+                       "--quiet"])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue().splitlines()[-1])
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["count"], 2)
+        self.assertEqual(report["failed"], [])
+        self.assertNotIn("archives", report)
+
     def test_prune_zero_keeps_nothing(self):
         data = make_data_dir()
         output = data.parent / "backups"
