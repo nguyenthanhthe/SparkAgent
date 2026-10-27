@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[221/500]** commits · **924 tests green** · self-check passing.
+Progress counter: **[232/500]** commits · **936 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -68,18 +68,31 @@ Progress counter: **[221/500]** commits · **924 tests green** · self-check pas
 9. ✅ docs: runbook — backup drills (create, tag, verify-all, scratch restore)
 10. ✅ examples: json_query filter+sort drill demo over task rows
 
-## Wave X backlog (next)
+## Wave X status (complete)
 
-1. kernel: graceful-shutdown drain metric — `shutdown_drained_tasks` counter when inflight tasks finish on stop
-2. brain: response cache exposes per-kind hit ratios (digest vs note vs episode) in /api/brain
-3. memory: recall kinds filter exposed on telegram /mem (`/mem query --kind fact`)
-4. security: promptguard verdict counter (`promptguard_verdicts_total{verdict}`) in the metrics registry
-5. interface: dashboard adapters card renders the ping latency samples
-6. interface: telegram `/backup` command — newest archive name, age, tag from /api/backup data
-7. tools: json_query mode=first/last — head/tail row access with optional filter applied first
-8. ops: backup `verify-all --json` machine-readable output for cron alerting
-9. docs: ADR-0009 — digest dedupe and consolidation idempotency
-10. examples: backup panel + drill end-to-end demo (create → list → verify-all → drill)
+1. ✅ kernel: shutdown drain counter — `shutdown_drained_tasks` when inflight episodes finish on stop
+2. ✅ brain: response cache hits broken down by model (`hits_by_model` in snapshot)
+3. ✅ interface: telegram `/mem` gains a `--kind` filter passed to recall
+4. ✅ security: promptguard verdict counters (pass/sanitize/quarantine) in the metrics registry
+5. ✅ interface: dashboard adapters card renders the ping latency samples
+6. ✅ interface: telegram `/backup` command over a shared `list_backups` helper (chat, web, dashboard)
+7. ✅ tools: json_query mode=first/last — head/tail row access with optional filter
+8. ✅ ops: backup `verify-all --json` (already JSON-native when queued — verified, no change needed)
+9. ✅ docs: ADR-0009 — digest dedupe and consolidation idempotency
+10. ✅ examples: backup end-to-end demo (create → list → verify window → drill → tamper)
+
+## Wave Y backlog (next)
+
+1. kernel: task pause/resume emits `task_paused`/`task_resumed` on the scheduler channel
+2. brain: /api/brain exposes `shutdown_drained_tasks` alongside tier stats
+3. memory: `Memory.forget(key)` — operator-callable delete of a single memory by key, audited
+4. security: quarantine put() records the source URL in meta for webfetch quarantines (audit trail)
+5. interface: telegram `/skills` pagination hint when list exceeds 20 entries
+6. interface: dashboard adapters card shows circuit-breaker state per tier
+7. tools: json_query mode=group — count rows grouped by a key's value
+8. ops: backup prune gains a `--dry-run` flag listing what would be removed
+9. docs: FAQ entries — why backups exclude vault.bin, why digests dedupe, why 304 caching is memory-only
+10. examples: json_query group demo over quarantine reasons
 
 ## Wave R status (complete)
 
