@@ -13,6 +13,7 @@ decision supersedes an old one via a new ADR.
 | 0005 | Adapter-framework migration for Brain clients | proposed |
 | [0006](0006-task-dependencies.md) | Scheduler task dependencies | accepted |
 | [0007](0007-readonly-database-access.md) | Read-only database access pattern | accepted |
+| [0008](0008-conditional-fetch-and-cache-semantics.md) | Conditional fetch and cache semantics for web tools | accepted |
 
 Format: one file per decision, `NNNN-slug.md`, sections **Context /
 Decision / Consequences / Alternatives**.
