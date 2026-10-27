@@ -68,6 +68,9 @@ class AuthRateLimiterTests(unittest.TestCase):
         snap = self.limiter.snapshot()
         self.assertEqual(snap["locked_now"], 1)
         self.assertEqual(snap["lockouts_issued"], 1)
+        self.assertEqual(snap["max_failures"], 3)
+        self.assertEqual(snap["window_seconds"], 60)
+        self.assertEqual(snap["lockout_seconds"], 120)
 
     def test_expired_lockout_clears_on_read(self):
         for _ in range(3):

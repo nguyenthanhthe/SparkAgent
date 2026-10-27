@@ -82,7 +82,10 @@ class AuthRateLimiter:
             locked = sum(1 for _, (_, until) in self._clients.items()
                          if until and now < until)
             self.stats["locked_now"] = locked
-            return {**self.stats}
+            return {**self.stats,
+                    "max_failures": self.max_failures,
+                    "window_seconds": self.window,
+                    "lockout_seconds": self.lockout}
 
     # -------------------------------------------------------------- internals
     def _prune(self, failures: deque[float], now: float) -> None:
