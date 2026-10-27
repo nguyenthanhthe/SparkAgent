@@ -95,6 +95,34 @@ class BlockedEventsTests(unittest.IsolatedAsyncioTestCase):
             await memory.close()
 
 
+class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
+    async def test_run_task_publishes_started(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+
+        class FakeAgent:
+            async def run(self, goal, source=None):
+                return type("R", (), {"status": "done", "answer": "ok"})()
+
+        try:
+            await memory.connect()
+            task_id = await memory.submit_task("publish me", "test")
+            task = (await memory.list_tasks(task_id=task_id))[0]
+            bus = EventBus()
+            queue = bus.subscribe("scheduler")
+            scheduler = Scheduler(memory, lambda: FakeAgent(), bus,
+                                  poll_seconds=1)
+            await scheduler._run_task(task)
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            started = [e for e in events if e["event"] == "task_started"]
+            self.assertEqual(len(started), 1)
+            self.assertEqual(started[0]["task_id"], task_id)
+        finally:
+            await memory.close()
+
+
 class ShutdownDrainTests(unittest.IsolatedAsyncioTestCase):
     async def test_drained_tasks_counted_on_stop(self):
         import kernel.scheduler as scheduler_mod

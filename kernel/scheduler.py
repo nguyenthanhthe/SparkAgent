@@ -101,6 +101,8 @@ class Scheduler:
         task_id = task["id"]
         goal = task["goal"]
         source = task.get("source", "scheduler")
+        self.bus.publish("scheduler", {"event": "task_started",
+                                       "task_id": task_id})
         started = time.monotonic()
         async with self._semaphore:
             logger.info("task %s starting: %s", task_id, goal[:120])
