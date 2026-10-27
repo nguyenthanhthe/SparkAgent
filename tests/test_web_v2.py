@@ -249,6 +249,20 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_quarantine_item_endpoint(self):
+        daemon, client = await self._setup()
+        try:
+            record = daemon.quarantine.put("suspect body", "test")
+            response = await client.get(f"/api/quarantine/{record['id']}")
+            body = await response.json()
+            self.assertEqual(body["record"]["reason"], "test")
+            self.assertEqual(body["content"], "suspect body")
+            response = await client.get("/api/quarantine/unknown-id")
+            self.assertEqual(response.status, 404)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:

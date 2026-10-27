@@ -18,6 +18,7 @@ swarm coordination, and hybrid memory.
 | [Failover runbook](runbook-failover.md) | GPU tier failover: signals, actions, verification |
 | [Dependency runbook](runbook-dependencies.md) | task chains: blocked semantics, manual release, failures |
 | [Backup runbook](runbook-backups.md) | monthly drill: create, tag, verify-all, scratch restore |
+| [Quarantine runbook](runbook-quarantine.md) | triage: list, filter by reason, release vs delete |
 | [API](api.md) | HTTP endpoints, auth, CLI |
 | [FAQ](faq.md) | common questions |
 

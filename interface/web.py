@@ -662,6 +662,13 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response({"items": daemon.quarantine.list(
             limit=100, reason_contains=reason)})
 
+    async def api_quarantine_item(request: web.Request) -> web.Response:
+        try:
+            item = daemon.quarantine.get(request.match_info["id"])
+        except KeyError as exc:
+            raise web.HTTPNotFound(text=str(exc))
+        return web.json_response(item)
+
     async def api_quarantine_action(request: web.Request) -> web.Response:
         item_id = request.match_info["id"]
         action = request.match_info["action"]
@@ -730,6 +737,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_post("/api/approvals/{id}/{decision}",
                         api_approval_decide)
     app.router.add_get("/api/quarantine", api_quarantine)
+    app.router.add_get("/api/quarantine/{id}", api_quarantine_item)
     app.router.add_post("/api/quarantine/{id}/{action}",
                         api_quarantine_action)
     async def api_audit(request: web.Request) -> web.Response:
