@@ -35,7 +35,8 @@ class Scheduler:
         self._stopping = asyncio.Event()
         self._inflight: set[asyncio.Task] = set()
         self._blocked: dict[int, list[int]] = {}
-        self.stats = {"episodes_done": 0, "episodes_failed": 0}
+        self.stats = {"episodes_done": 0, "episodes_failed": 0,
+                      "blocked_tasks": 0}
 
     # ------------------------------------------------------------------- loop
     async def run_forever(self) -> None:
@@ -80,6 +81,7 @@ class Scheduler:
             logger.warning("blocked-task scan failed: %r", exc)
             return
         current = {task["id"]: task["blocked_by"] for task in blocked}
+        self.stats["blocked_tasks"] = len(current)
         for task_id, deps in current.items():
             if task_id not in self._blocked:
                 self.bus.publish("scheduler", {

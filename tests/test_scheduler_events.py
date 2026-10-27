@@ -40,10 +40,13 @@ class BlockedEventsTests(unittest.IsolatedAsyncioTestCase):
                              ["task_blocked"])
             self.assertEqual(events[0]["task_id"], second)
             self.assertEqual(events[0]["blocked_by"], [first])
+            # blocked-task count tracks the scan for /api/status
+            self.assertEqual(scheduler.stats["blocked_tasks"], 1)
 
             # still blocked — no duplicate event
             await scheduler._publish_block_changes()
             self.assertEqual(collect_events(bus, queue), [])
+            self.assertEqual(scheduler.stats["blocked_tasks"], 1)
 
             # release: upstream finishes
             await memory.mark_task_running(first)
@@ -53,6 +56,7 @@ class BlockedEventsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual([e["event"] for e in events],
                              ["task_released"])
             self.assertEqual(events[0]["task_id"], second)
+            self.assertEqual(scheduler.stats["blocked_tasks"], 0)
         finally:
             await memory.close()
 
