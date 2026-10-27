@@ -246,9 +246,9 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
         result = await self.registry.call(
             "json_query", {"data": '{"a": 1, "b": "s", "c": [1]}',
                            "mode": "keys"}, self.ctx)
-        self.assertIn("'a': 'int'", result)
-        self.assertIn("'b': 'str'", result)
-        self.assertIn("'c': 'list'", result)
+        self.assertIn('"a": "int"', result)
+        self.assertIn('"b": "str"', result)
+        self.assertIn('"c": "list"', result)
 
 
 class TopKeysTests(unittest.TestCase):
