@@ -62,7 +62,8 @@ class FakeDaemon:
                 "brain": {"local": {"ok": True, "model": "nemotron"},
                           "remote": {"ok": False, "detail": "no key"}},
                 "system": {"gpu": {"available": False}},
-                "scheduler": {"episodes_done": 2, "episodes_failed": 1}}
+                "scheduler": {"episodes_done": 2, "episodes_failed": 1},
+                "quarantine": {"items": 3, "bytes": 900}}
 
     async def submit_task(self, goal, source, **kw):
         return 7
@@ -90,6 +91,7 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("uptime: 5 min", reply)
         self.assertIn("nemotron — ok", reply)
         self.assertIn("episodes: 2 done / 1 failed", reply)
+        self.assertIn("quarantine: 3 item(s)", reply)
 
     async def test_pending_lists_skills_and_approvals(self):
         gateway = make_gateway()

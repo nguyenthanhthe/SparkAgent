@@ -158,6 +158,10 @@ class TelegramGateway:
             sched = status.get("scheduler", {})
             lines.append(f"episodes: {sched.get('episodes_done', 0)} done / "
                          f"{sched.get('episodes_failed', 0)} failed")
+            quarantine = status.get("quarantine")
+            if quarantine is not None:
+                lines.append(f"quarantine: {quarantine.get('items', 0)} "
+                             f"item(s)")
             return "\n".join(lines)
         if command == "/tasks":
             tasks = await daemon.memory.list_tasks(limit=10)
