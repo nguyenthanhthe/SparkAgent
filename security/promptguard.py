@@ -59,22 +59,28 @@ class ScanResult:
         return self.verdict == "pass"
 
 
-def scan(text: str, *, check_urls: bool = True) -> ScanResult:
+def scan(text: str, *, check_urls: bool = True,
+         max_findings: int | None = None) -> ScanResult:
     result = ScanResult()
     if not text:
         return result
 
+    def record(finding: str, weight: int) -> None:
+        # score always reflects the full analysis; the findings list can
+        # be capped so huge reports stay readable
+        result.score += weight
+        if max_findings is None or len(result.findings) < max_findings:
+            result.findings.append(finding)
+
     if _ZERO_WIDTH.search(text):
         result.has_hidden_unicode = True
-        result.score += 20
-        result.findings.append("hidden/zero-width or bidi unicode present")
+        record("hidden/zero-width or bidi unicode present", 20)
 
     lowered = text.lower()
     for pattern, weight in _INJECTION_PATTERNS:
         match = re.search(pattern, lowered)
         if match:
-            result.score += weight
-            result.findings.append(f"pattern {pattern[:40]!r} matched")
+            record(f"pattern {pattern[:40]!r} matched", weight)
 
     if check_urls:
         for url in _URL.findall(text):
@@ -82,8 +88,7 @@ def scan(text: str, *, check_urls: bool = True) -> ScanResult:
                    ("bit.ly", "tinyurl", "t.co", "goo.gl", "is.gd", "rb.gy")):
                 result.suspicious_urls.append(url)
         if result.suspicious_urls:
-            result.score += 10
-            result.findings.append("shortener URLs found (possible exfil)")
+            record("shortener URLs found (possible exfil)", 10)
     return result
 
 
