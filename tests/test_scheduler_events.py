@@ -94,6 +94,41 @@ class BlockedEventsTests(unittest.IsolatedAsyncioTestCase):
             scheduler_mod.REGISTRY = original
             await memory.close()
 
+
+class ShutdownDrainTests(unittest.IsolatedAsyncioTestCase):
+    async def test_drained_tasks_counted_on_stop(self):
+        import kernel.scheduler as scheduler_mod
+        from kernel.metrics import MetricsRegistry
+        registry = MetricsRegistry()
+        original = scheduler_mod.REGISTRY
+        scheduler_mod.REGISTRY = registry
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+
+        class FakeAgent:
+            async def run(self, goal, source=None):
+                await asyncio.sleep(0.2)
+                return type("R", (), {"status": "done", "answer": "ok"})()
+
+        try:
+            await memory.connect()
+            await memory.submit_task("long running", "test")
+            scheduler = Scheduler(memory, lambda: FakeAgent(), EventBus(),
+                                  poll_seconds=0.05, concurrency=2)
+            loop_task = asyncio.create_task(scheduler.run_forever())
+            for _ in range(50):                     # wait for the claim
+                await asyncio.sleep(0.05)
+                if scheduler._inflight:
+                    break
+            self.assertTrue(scheduler._inflight)
+            scheduler.stop()
+            await asyncio.wait_for(loop_task, timeout=5)
+            self.assertGreaterEqual(
+                registry.counter("shutdown_drained_tasks"), 1.0)
+        finally:
+            scheduler_mod.REGISTRY = original
+            await memory.close()
+
     async def test_blocked_pending_tasks_lists_unsatisfied(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)

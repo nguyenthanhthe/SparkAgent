@@ -58,9 +58,11 @@ class Scheduler:
             except asyncio.TimeoutError:
                 pass
         if self._inflight:
+            drained = len(self._inflight)
             logger.info("scheduler stopping; waiting for %d episode(s)",
-                        len(self._inflight))
+                        drained)
             await asyncio.gather(*self._inflight, return_exceptions=True)
+            REGISTRY.incr("shutdown_drained_tasks", drained)
 
     async def _tick(self) -> None:
         await self._publish_block_changes()
