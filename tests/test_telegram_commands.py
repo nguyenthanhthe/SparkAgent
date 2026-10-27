@@ -30,7 +30,7 @@ class FakeDaemon:
                 return [{"id": 1, "status": "pending", "goal": "g",
                          "enabled": 1}]
 
-            async def recall(self, query, k=5):
+            async def recall(self, query, k=5, kinds=None):
                 return []
 
             async def recent_audit(self, limit=15):
