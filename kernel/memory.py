@@ -743,11 +743,13 @@ class Memory:
     async def episodes_without_digest(self, since_iso: str,
                                       limit: int = 50) -> list[dict]:
         """Finished episodes after ``since_iso`` that have no digest memory
-        keyed on their id — the consolidation job's work queue."""
+        keyed on their id — the consolidation job's work queue. Whitespace
+        -only goals are skipped: nothing to distill."""
         def op(conn: sqlite3.Connection) -> list[dict]:
             rows = conn.execute(
                 "SELECT id, goal, final_answer, tags FROM episodes "
                 "WHERE status = 'done' AND created_at >= ? "
+                "AND TRIM(goal) != '' "
                 "AND id NOT IN (SELECT CAST(REPLACE(key, 'episode:', '') "
                 "AS INTEGER) FROM memories WHERE key LIKE 'episode:%') "
                 "ORDER BY id LIMIT ?", (since_iso, limit)).fetchall()

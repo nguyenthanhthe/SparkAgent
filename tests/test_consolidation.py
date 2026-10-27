@@ -52,6 +52,20 @@ class EpisodesWithoutDigestTests(unittest.TestCase):
         self.assertEqual(len(pending), 1)
         self.assertEqual(pending[0]["goal"], "fresh done")
 
+    def test_whitespace_goal_skipped(self):
+        async def scenario():
+            await self.mem.connect()
+            blank = await self.mem.start_episode("   ", "t")
+            await self.mem.finish_episode(blank, "done", "outcome", "l", 1)
+            real = await self.mem.start_episode("real goal", "t")
+            await self.mem.finish_episode(real, "done", "outcome", "l", 1)
+            from datetime import datetime, timedelta
+            old = (datetime.now() - timedelta(days=1)
+                   ).isoformat(timespec="seconds")
+            return await self.mem.episodes_without_digest(old, limit=10)
+        pending = run(scenario())
+        self.assertEqual([p["goal"] for p in pending], ["real goal"])
+
 
 class DaemonConsolidationTests(unittest.IsolatedAsyncioTestCase):
     async def test_consolidate_creates_digest_memory(self):
