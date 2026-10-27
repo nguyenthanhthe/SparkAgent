@@ -144,6 +144,22 @@ def _nesting(data: Any, max_depth: int = 3) -> dict[str, int]:
     return out
 
 
+def where_help() -> dict:
+    """Self-describing filter reference so an agent can rediscover the
+    term grammar without leaving the tool surface."""
+    return {
+        "terms": "key<op>value, ';' separated (up to 8 terms)",
+        "operators": {"=": "equal", "!=": "not equal", ">": "greater",
+                      "<": "less", ">=": "at least", "<=": "at most",
+                      "~=": "contains (case-insensitive)",
+                      "^=": "starts with (case-insensitive)"},
+        "coercion": "numeric fields compare numerically; booleans match "
+                    "1/0/true/false; everything else compares as string",
+        "examples": ["age>=30", "status!=done", "name~=bob", "enabled=1",
+                     "path~=.md;size>1024"],
+    }
+
+
 def _leaf_count(node: Any) -> int:
     if isinstance(node, dict):
         return sum(_leaf_count(v) for v in node.values())

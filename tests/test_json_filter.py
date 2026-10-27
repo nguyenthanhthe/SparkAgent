@@ -235,6 +235,13 @@ class JsonQueryGroupToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("alice", result)
         self.assertNotIn("bob", result)
 
+    async def test_tool_help_documents_filter_grammar(self):
+        result = await self.registry.call(
+            "json_query", {"data": self.rows_json, "mode": "help"},
+            self.ctx)
+        self.assertIn("~=", result)
+        self.assertIn("starts with", result)
+
     async def test_tool_group_needs_list(self):
         from kernel.errors import ToolFailure
         with self.assertRaises(ToolFailure):

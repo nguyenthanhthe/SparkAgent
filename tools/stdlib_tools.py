@@ -83,7 +83,8 @@ def register_tools(registry: ToolRegistry,
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
-                      "first", "last", "group", "unique", "pluck"])
+                      "first", "last", "group", "unique", "pluck",
+                      "help"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -158,6 +159,8 @@ def register_tools(registry: ToolRegistry,
             sort_by = require_str(sort_by, "key", min_len=1, max_len=200)
             return {"values": json_mod.pluck(await _rows("pluck"),
                                              sort_by)}
+        if mode == "help":
+            return {"where_filter": json_mod.where_help()}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
