@@ -59,11 +59,21 @@ class QuarantineStatsTests(unittest.TestCase):
         self.assertEqual(stats["bytes"], len(b"body one"))
         self.assertGreaterEqual(stats["oldest_age_s"], 0)
 
+    def test_stats_top_reasons(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        for _ in range(3):
+            store.put("a", "prompt-injection risk")
+        store.put("b", "oversized skill proposal")
+        top = store.stats()["top_reasons"]
+        self.assertEqual(top, {"prompt-injection": 3,
+                               "oversized": 1})
+
     def test_empty_store_stats(self):
         stats = QuarantineStore(Path(tempfile.mkdtemp())).stats()
         self.assertEqual(stats["items"], 0)
         self.assertEqual(stats["bytes"], 0)
         self.assertIsNone(stats["oldest_age_s"])
+        self.assertEqual(stats["top_reasons"], {})
 
 
 if __name__ == "__main__":

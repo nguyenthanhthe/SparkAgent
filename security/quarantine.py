@@ -76,7 +76,8 @@ class QuarantineStore:
 
     def stats(self) -> dict:
         """Aggregate store state: item count, total bytes, age of the
-        oldest item — the one snapshot for /api/status and dashboards."""
+        oldest item, and the top reasons — the one snapshot for
+        /api/status and dashboards."""
         items = self.list(limit=10_000)
         oldest = items[-1].get("created_at", "") if items else ""
         try:
@@ -85,9 +86,16 @@ class QuarantineStore:
             oldest_age_s = max(0, int(time.time() - oldest_ts))
         except ValueError:
             oldest_age_s = None
+        by_reason: dict[str, int] = {}
+        for item in items:
+            kind = str(item.get("reason", "")).split(" ")[0][:40] or "?"
+            by_reason[kind] = by_reason.get(kind, 0) + 1
+        top_reasons = dict(sorted(by_reason.items(),
+                                  key=lambda kv: -kv[1])[:3])
         return {"items": len(items),
                 "bytes": sum(item.get("size_bytes", 0) for item in items),
-                "oldest_age_s": oldest_age_s}
+                "oldest_age_s": oldest_age_s,
+                "top_reasons": top_reasons}
 
     def release(self, item_id: str) -> str:
         """Return sanitized content and delete the item from quarantine."""
