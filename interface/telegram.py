@@ -10,6 +10,7 @@ is ignored (and logged). Commands:
     /mem <query>     semantic memory recall
     /skills          list skills
     /audit           recent audit trail (redacted)
+    /blocked         tasks stalled by unfinished dependencies
     /db <table>      read-only database lookup (episodes, steps,
                      memories, tasks, audit)
     /pending         operator approval queue (skills + questions)
@@ -124,6 +125,7 @@ class TelegramGateway:
                     "/mem <query> — search memory\n"
                     "/skills — list skills\n"
                     "/audit — recent audit trail\n"
+                    "/blocked — dependency-stalled tasks\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
                     "/pending — operator approval queue\n"
                     "/approve <skill or id> — approve\n"
@@ -222,6 +224,14 @@ class TelegramGateway:
                     for key, value in list(row.items())[:6])
                 lines.append(compact[:300])
             return "\n".join(lines)
+        if command == "/blocked":
+            stalled = await daemon.memory.blocked_pending_tasks(limit=15)
+            if not stalled:
+                return "(no dependency-stalled tasks)"
+            return "\n".join(
+                f"#{t['id']} blocked by "
+                f"{', '.join('#' + str(d) for d in t['blocked_by'])} — "
+                f"{t['goal'][:50]}" for t in stalled)
         if command == "/pending":
             lines = []
             for skill in daemon.forge.list_skills():

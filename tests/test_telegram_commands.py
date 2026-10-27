@@ -190,5 +190,28 @@ class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("usage: /db", reply)
 
 
+class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def _reply_with(self, stalled):
+        gateway = make_gateway()
+
+        async def blocked_pending_tasks(limit=50):
+            return stalled
+        gateway.daemon.memory.blocked_pending_tasks = blocked_pending_tasks
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": "/blocked"})
+            return send.call_args[0][1]
+
+    async def test_blocked_lists_stalled_tasks(self):
+        reply = await self._reply_with(
+            [{"id": 12, "goal": "digest telemetry",
+              "blocked_by": [7, 9]}])
+        self.assertIn("#12 blocked by #7, #9", reply)
+        self.assertIn("digest telemetry", reply)
+
+    async def test_blocked_empty(self):
+        reply = await self._reply_with([])
+        self.assertIn("no dependency-stalled", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
