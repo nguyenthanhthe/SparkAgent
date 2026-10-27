@@ -216,14 +216,23 @@ async function refreshApprovals(){try{const data=await api('/api/approvals');
 }catch(e){}}
 async function decide(id,decision){try{await api(`/api/approvals/${id}/${decision}`,{method:'POST'});
   toast('approval '+decision+'d');refreshApprovals()}catch(e){toast(e.message)}}
-async function refreshQuarantine(){try{const data=await api('/api/quarantine');
+let quarFilter='';
+function setQuarFilter(reason){
+  const word=String(reason||'').split(' ')[0];
+  quarFilter=(quarFilter===word)?'':word;   // click again to clear
+  refreshQuarantine();
+}
+async function refreshQuarantine(){try{
+  const qs=quarFilter?`?reason=${encodeURIComponent(quarFilter)}`:'';
+  const data=await api('/api/quarantine'+qs);
   const items=data.items||[];
   $('quarantine').innerHTML='<tr><th>id</th><th>reason</th><th>size</th><th></th></tr>'+
-   (items.length?items.map(q=>`<tr><td>${q.id.slice(0,8)}</td><td>${q.reason.slice(0,50)}</td>
+   (items.length?items.map(q=>`<tr><td>${q.id.slice(0,8)}</td>
+     <td><a href="#" style="color:var(--fg)" onclick="setQuarFilter('${esc(String(q.reason))}')">${esc(String(q.reason).slice(0,50))}</a></td>
      <td>${q.size_bytes}B</td>
      <td><button class="small" onclick="quar('${q.id}','release')">release</button>
          <button class="small" onclick="quar('${q.id}','delete')">delete</button></td></tr>`).join('')
-    :'<tr><td colspan="4" style="color:var(--dim)">empty</td></tr>');
+    :'<tr><td colspan="4" style="color:var(--dim)">empty'+(quarFilter?' (filter: '+esc(quarFilter)+')':'')+'</td></tr>');
 }catch(e){}}
 async function quar(id,action){try{const r=await api(`/api/quarantine/${id}/${action}`,{method:'POST'});
   toast(action+'d');refreshQuarantine()}catch(e){toast(e.message)}}
