@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[211/500]** commits · **906 tests green** · self-check passing.
+Progress counter: **[221/500]** commits · **924 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -55,18 +55,31 @@ Progress counter: **[211/500]** commits · **906 tests green** · self-check pas
 9. ✅ docs: ADR-0008 — conditional fetch and cache semantics for web tools
 10. ✅ examples: web_fetch 304 drill demo (local server, two rounds)
 
-## Wave W backlog (next)
+## Wave W status (complete)
 
-1. kernel: scheduler concurrency metric (`scheduler_inflight` gauge) exposed via /api/metrics
-2. brain: adapter registry gains a ping probe (per-adapter latency sample in /api/adapters)
-3. memory: digest dedupe — consolidation skips episodes whose goal text already appears in a digest
-4. security: auth limiter exposes lockout state in /api/status (count + retry-after, no client detail)
-5. interface: telegram `/skills` shows pending-approval skills with hint to use /approve
-6. interface: dashboard backup panel fed from /api/backup status (last archive, age, tag)
-7. tools: json_query mode=sort — order list rows by a key, ascending/descending
-8. ops: diskwatch gains a `--json` output mode for machine-readable checks
-9. docs: runbook — backup drills (create, tag, verify-all, drill, restore-for-real)
-10. examples: json_query filter+sort drill demo over task rows
+1. ✅ kernel: scheduler inflight/blocked gauges (`scheduler_inflight`, `scheduler_blocked`) in /metrics + /api/metrics
+2. ✅ brain: adapter ping probe — per-adapter latency samples in /api/adapters
+3. ✅ memory: digest dedupe — consolidation skips goals already distilled
+4. ✅ security: auth limiter aggregate lockout state exposed via /api/status
+5. ✅ interface: telegram `/skills` — pending-approval skills grouped first with /approve hint
+6. ✅ interface: dashboard backup panel fed from /api/backup (newest, age, tag)
+7. ✅ tools: json_query mode=sort — order list rows by a key, missing keys always last
+8. ✅ ops: diskwatch `--json` (already implemented + tested when queued — verified, no change needed)
+9. ✅ docs: runbook — backup drills (create, tag, verify-all, scratch restore)
+10. ✅ examples: json_query filter+sort drill demo over task rows
+
+## Wave X backlog (next)
+
+1. kernel: graceful-shutdown drain metric — `shutdown_drained_tasks` counter when inflight tasks finish on stop
+2. brain: response cache exposes per-kind hit ratios (digest vs note vs episode) in /api/brain
+3. memory: recall kinds filter exposed on telegram /mem (`/mem query --kind fact`)
+4. security: promptguard verdict counter (`promptguard_verdicts_total{verdict}`) in the metrics registry
+5. interface: dashboard adapters card renders the ping latency samples
+6. interface: telegram `/backup` command — newest archive name, age, tag from /api/backup data
+7. tools: json_query mode=first/last — head/tail row access with optional filter applied first
+8. ops: backup `verify-all --json` machine-readable output for cron alerting
+9. docs: ADR-0009 — digest dedupe and consolidation idempotency
+10. examples: backup panel + drill end-to-end demo (create → list → verify-all → drill)
 
 ## Wave R status (complete)
 
