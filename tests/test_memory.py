@@ -60,6 +60,21 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(hits, [])
         run(scenario())
 
+    def test_recall_excludes_digest_markers_by_default(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("[digested] check thermals",
+                                    kind="digest-marker", key="episode:1")
+            await self.mem.remember("thermals checked and nominal",
+                                    kind="fact")
+            hits = await self.mem.recall("check thermals", k=5)
+            self.assertEqual([h.kind for h in hits], ["fact"])
+            explicit = await self.mem.recall("check thermals", k=5,
+                                             kinds=["digest-marker"])
+            self.assertEqual([h.kind for h in explicit],
+                             ["digest-marker"])
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()

@@ -330,9 +330,12 @@ class Memory:
                     f"ORDER BY id DESC LIMIT 5000",
                     tuple(kinds)).fetchall()   # placeholders are fixed '?'
             else:
+                # digest markers are bookkeeping, not knowledge — exclude
+                # unless the caller asks for them by kind
                 rows = conn.execute(
                     "SELECT id, kind, key, text, embedding, created_at "
-                    "FROM memories ORDER BY id DESC LIMIT 5000").fetchall()
+                    "FROM memories WHERE kind != 'digest-marker' "
+                    "ORDER BY id DESC LIMIT 5000").fetchall()
             from memory_search.hybrid import HybridRanker
             ranker = HybridRanker(recency_weight=0.0)
             vector_by_id: dict[str, tuple[str, float]] = {}
