@@ -22,8 +22,11 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 200)
             body = await response.json()
             for key in ("health", "tier_stats", "cache", "costs",
-                        "costs_last_7_days", "budget"):
+                        "costs_last_7_days", "budget", "lifecycle"):
                 self.assertIn(key, body)
+            self.assertIn("shutdown_drained_tasks", body["lifecycle"])
+            self.assertGreaterEqual(body["lifecycle"]["shutdown_drained_tasks"],
+                                    0)
             self.assertIn("hit_rate", body["cache"])
             self.assertIn("bridge_hits", body["cache"])
             self.assertIn("local", body["health"])

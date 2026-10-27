@@ -730,10 +730,13 @@ def build_web_app(daemon) -> web.Application:
                                   .python_version()})
 
     async def api_brain(_request: web.Request) -> web.Response:
+        from kernel.metrics import REGISTRY
         health = await daemon.brain.health()
         return web.json_response({
             "health": health,
             "tier_stats": daemon.brain.stats(),
+            "lifecycle": {"shutdown_drained_tasks": int(
+                REGISTRY.counter("shutdown_drained_tasks"))},
             "cache": daemon.brain.cache_stats(),
             "cache_top_hits": daemon.brain.cache.top_hits(limit=5),
             "costs": daemon.costs.report(),
