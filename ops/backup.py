@@ -136,11 +136,15 @@ def verify_backup(archive_path: Path) -> dict:
     return manifest
 
 
-def prune_backups(output_dir: Path, keep: int = 10) -> int:
+def prune_backups(output_dir: Path, keep: int = 10,
+                  dry_run: bool = False) -> int:
     """Delete the oldest backup archives beyond ``keep``; returns how
-    many were removed. ``keep <= 0`` removes everything."""
+    many were (or with ``dry_run``, would be) removed. ``keep <= 0``
+    removes everything."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
     doomed = archives[:-keep] if keep > 0 else archives
+    if dry_run:
+        return len(doomed)
     removed = 0
     for path in doomed:
         path.unlink(missing_ok=True)
@@ -252,6 +256,12 @@ def main(argv: list[str] | None = None) -> int:
                                   help="verify every archive in the "
                                        "backup dir")
     p_verify_all.add_argument("--output-dir", required=True)
+    p_prune = sub.add_parser("prune", help="apply retention to the dir")
+    p_prune.add_argument("--output-dir", required=True)
+    p_prune.add_argument("--keep", type=int, default=10)
+    p_prune.add_argument("--dry-run", action="store_true",
+                         help="report what would be removed, delete "
+                              "nothing")
     p_restore = sub.add_parser("restore", help="verify then restore")
     p_restore.add_argument("archive")
     p_restore.add_argument("--data-dir", required=True)
@@ -284,6 +294,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "verify-all":
         return _verify_all(Path(args.output_dir))
+    if args.cmd == "prune":
+        removed = prune_backups(Path(args.output_dir), keep=args.keep,
+                                dry_run=args.dry_run)
+        print(json.dumps({"removed": removed, "keep": args.keep,
+                          "dry_run": args.dry_run}))
+        return 0
     if args.cmd == "drill":
         try:
             result = restore_drill(Path(args.archive),

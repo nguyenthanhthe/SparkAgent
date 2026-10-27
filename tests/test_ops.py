@@ -7,7 +7,6 @@ from pathlib import Path
 from ops.backup import (BackupError, create_backup, main, prune_backups,
                         restore_backup, restore_drill, verify_backup)
 
-
 def make_data_dir() -> Path:
     data = Path(tempfile.mkdtemp()) / "data"
     (data / "logs").mkdir(parents=True)
@@ -128,6 +127,40 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(len(list(output.glob("*.zip"))), 4)
         removed = prune_backups(output, keep=2)
         self.assertEqual(removed, 2)
+        self.assertEqual(len(list(output.glob("*.zip"))), 2)
+
+    def test_prune_dry_run_deletes_nothing(self):
+        data = make_data_dir()
+        output = data.parent / "backups"
+        for name in ("sparkagent-backup-20260101-000001.zip",
+                     "sparkagent-backup-20260101-000002.zip",
+                     "sparkagent-backup-20260101-000003.zip"):
+            (output).mkdir(exist_ok=True)
+            (output / name).write_bytes(b"stub")
+        would = prune_backups(output, keep=1, dry_run=True)
+        self.assertEqual(would, 2)
+        self.assertEqual(len(list(output.glob("*.zip"))), 3)
+        removed = prune_backups(output, keep=1)
+        self.assertEqual(removed, 2)
+        self.assertEqual(len(list(output.glob("*.zip"))), 1)
+
+    def test_cli_prune_dry_run(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        output.mkdir(exist_ok=True)
+        for name in ("sparkagent-backup-20260101-000001.zip",
+                     "sparkagent-backup-20260101-000002.zip"):
+            (output / name).write_bytes(b"stub")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["prune", "--output-dir", str(output),
+                       "--keep", "1", "--dry-run"])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertTrue(report["dry_run"])
+        self.assertEqual(report["removed"], 1)
         self.assertEqual(len(list(output.glob("*.zip"))), 2)
 
     def test_prune_zero_keeps_nothing(self):
