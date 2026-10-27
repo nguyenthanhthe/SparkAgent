@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[264/500]** commits · **962 tests green** · self-check passing.
+Progress counter: **[276/500]** commits · **967 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -120,18 +120,31 @@ Progress counter: **[264/500]** commits · **962 tests green** · self-check pas
 9. ✅ docs: ADR-0010 — one guarded path per capability
 10. ✅ examples: combined operator drill (backup + quarantine + audit)
 
-## Wave AB backlog (next)
+## Wave AB status (complete)
 
-1. kernel: `python main.py --check` includes a quarantine/budget sanity line
-2. brain: tier cooldowns expose the reason (last error) in /api/adapters breaker display
-3. memory: recall snippet honors a max-width parameter from callers (tool + telegram)
-4. security: promptguard findings list exposed in the webfetch injection_risk report (top 3)
-5. interface: telegram /help groups commands by audience (operator vs agent)
-6. interface: dashboard header shows quarantine size badge next to the count
-7. tools: json_query mode=stats gains a per-level nesting summary for dicts
-8. ops: backup create prints the archive's retention position (n of keep)
-9. docs: architecture.md gains a capability→guarded-path table (ADR-0010 companion)
-10. examples: status page demo — daemon.status() rendered as text offline
+1. ✅ kernel: self-check gains a quarantine store + budget sanity line
+2. ✅ interface: adapters breaker display shows the tier's last error
+3. ✅ memory: recall snippet width parameter, exposed on the recall tool
+4. ✅ security: webfetch injection_risk report caps findings at the top 3
+5. ✅ interface: telegram /help groups commands by audience
+6. ✅ interface: dashboard header shows a quarantine size badge
+7. ✅ tools: json_query stats gains a depth-capped nesting summary
+8. ✅ ops: backup create reports its retention position (n of keep)
+9. ✅ docs: architecture.md capability→guarded-path table
+10. ✅ examples: status page demo — daemon.status() rendered offline
+
+## Wave AC backlog (next)
+
+1. kernel: scheduler emits `task_started` events alongside blocked/released
+2. brain: /api/brain cache section carries evictions+expired (already in stats — surface explicitly for the dashboard)
+3. memory: episodes detail endpoint includes step count
+4. security: promptguard score band label (pass/sanitize/quarantine) exposed as a metric gauge
+5. interface: telegram /tasks gains a `--limit N` option (default 10, cap 50)
+6. interface: dashboard backup panel links the runbook
+7. tools: json_query filter gains `~=` (contains) for string fields
+8. ops: preflight includes a backup-dir check (freshness warning when the newest archive is >24h old)
+9. docs: testing.md gains the "capture pytest exit codes, never pipe blindly" pattern
+10. examples: json_query stats+nesting demo over a nested config blob
 
 ## Wave R status (complete)
 
