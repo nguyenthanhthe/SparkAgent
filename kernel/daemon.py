@@ -481,6 +481,7 @@ class AgentDaemon:
             return
         self._stopping = True
         logger.info("daemon shutting down…")
+        self.bus.publish("lifecycle", {"event": "daemon_stopping"})
         try:
             self.entity_graph.save(self.cfg.root / "data" / "graph.json")
         except OSError as exc:

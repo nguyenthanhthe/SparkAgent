@@ -1,10 +1,27 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from kernel.config import Config
 from kernel.daemon import AgentDaemon
 
 
 class DaemonV2WiringTests(unittest.IsolatedAsyncioTestCase):
+    async def test_stop_publishes_lifecycle_event(self):
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")}},
+            root=Path(tempfile.mkdtemp())))
+        queue = daemon.bus.subscribe("lifecycle")
+        await daemon.stop()
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        self.assertEqual([e["event"] for e in events],
+                         ["daemon_stopping"])
+        # second stop is a no-op (no duplicate event)
+        await daemon.stop()
+        self.assertTrue(queue.empty())
+
     async def test_daemon_wires_security_and_tools(self):
         daemon = AgentDaemon(Config.load())
         tools = daemon.registry.names()
