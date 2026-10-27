@@ -30,7 +30,7 @@ class FakeSession:
         self._response = response
         self.closed = False
 
-    def get(self, url, allow_redirects=False):
+    def get(self, url, allow_redirects=False, headers=None):
         response = self._response
         import contextlib
 

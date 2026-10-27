@@ -24,6 +24,7 @@ import html as html_lib
 import ipaddress
 import re
 import socket
+from collections import OrderedDict
 from typing import Any
 from urllib.parse import urljoin, urlsplit
 
@@ -154,6 +155,12 @@ class WebFetcher:
         self.guard_enabled = guard_enabled
         self.guard_stats = {"scanned": 0, "sanitized": 0, "quarantined": 0}
         self._session: aiohttp.ClientSession | None = None
+        # url -> (etag, last result): feeds If-None-Match on the next
+        # fetch so unchanged pages come back as a 304 short-circuit
+        self._etag_cache: OrderedDict[str, tuple[str, dict[str, Any]]] = \
+            OrderedDict()
+        self._etag_cache_cap = 128
+        self.cache_hits = 0
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -175,7 +182,19 @@ class WebFetcher:
         redirects = 0
         while True:
             await asyncio.to_thread(validate_url, current, self.allowed_ports)
-            async with session.get(current, allow_redirects=False) as resp:
+            request_headers: dict[str, str] = {}
+            cached = self._etag_cache.get(current)
+            if cached is not None:
+                request_headers["If-None-Match"] = cached[0]
+            async with session.get(current, allow_redirects=False,
+                                   headers=request_headers) as resp:
+                if resp.status == 304 and cached is not None:
+                    self.cache_hits += 1
+                    self._etag_cache.move_to_end(current)
+                    result = dict(cached[1])
+                    result["not_modified"] = True
+                    logger.debug("webfetch 304 short-circuit: %s", current)
+                    return result
                 if resp.status in (301, 302, 303, 307, 308):
                     location = resp.headers.get("Location")
                     if not location:
@@ -239,6 +258,13 @@ class WebFetcher:
                                   f"for prompt-injection risk (score "
                                   f"{verdict.score}). Ask the operator to "
                                   f"review and release it.")
+
+        etag = resp.headers.get("ETag")
+        if etag:
+            self._etag_cache[url] = (etag, dict(result))
+            self._etag_cache.move_to_end(url)
+            while len(self._etag_cache) > self._etag_cache_cap:
+                self._etag_cache.popitem(last=False)
         return result
 
 
