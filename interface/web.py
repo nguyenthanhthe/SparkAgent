@@ -308,10 +308,14 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
   }
   const stats=a.stats||{};
   for(const[tier,st]of Object.entries(stats)){
-    if(st.cooldown_active)h+=kv(tier+' breaker',
-      badge('b-warn','cooldown '+st.cooldown_remaining_s+'s')+
-      ' <span style="color:var(--dim);font-size:11px">'+
-      esc(String(st.last_error||'').slice(0,60))+'</span>');
+    if(st.cooldown_active){
+      const err=esc(String(st.last_error||''));
+      h+=kv(tier+' breaker',
+        badge('b-warn','cooldown '+st.cooldown_remaining_s+'s')+
+        ' <span style="color:var(--dim);font-size:11px" title="'+err+'">'+
+        esc(String(st.last_error||'').slice(0,40))+
+        (String(st.last_error||'').length>40?'…':'')+'</span>');
+    }
   }
   h+=`<div style="margin-top:4px;font-size:11px;color:var(--dim)">${esc(checked.trim())}</div>`;
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
