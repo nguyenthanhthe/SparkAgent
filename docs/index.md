@@ -16,6 +16,7 @@ swarm coordination, and hybrid memory.
 | [Topology catalog](topologies.md) | the five composition shapes with mermaid diagrams |
 | [Operations](operations.md) | services, Docker, monitoring, backups |
 | [Failover runbook](runbook-failover.md) | GPU tier failover: signals, actions, verification |
+| [Dependency runbook](runbook-dependencies.md) | task chains: blocked semantics, manual release, failures |
 | [API](api.md) | HTTP endpoints, auth, CLI |
 | [FAQ](faq.md) | common questions |
 
