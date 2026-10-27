@@ -105,8 +105,15 @@ class ResponseCache:
         return self.stats["hits"] / total if total else 0.0
 
     def snapshot(self) -> dict:
+        with self._lock:
+            now = self.clock.now()
+            oldest = min((entry.stored_at
+                          for entry in self._entries.values()),
+                         default=None)
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3),
+                "oldest_entry_age_s": (round(now - oldest, 1)
+                                       if oldest is not None else None),
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
                     key=lambda item: -item[1]))}

@@ -64,6 +64,18 @@ class BrainCacheTests(unittest.IsolatedAsyncioTestCase):
         hits = brain.cache.snapshot()["hits_by_model"]
         self.assertEqual(hits.get("fake-local"), 1)
 
+    async def test_oldest_entry_age_exposed(self):
+        from kernel.clock import FakeClock
+        brain = make_brain(cache_responses=True, cache_entries=8,
+                           cache_ttl=60)
+        self.assertIsNone(brain.cache.snapshot()["oldest_entry_age_s"])
+        fake = FakeClock()
+        brain.cache.clock = fake
+        brain.cache.put("k", "text", {"model": "fake-local"})
+        fake.advance(30)
+        self.assertGreaterEqual(
+            brain.cache.snapshot()["oldest_entry_age_s"], 30)
+
     async def test_fallback_result_cached(self):
         # local fails, remote answers -> the remote answer is cached and
         # served next time without retrying the dead local tier
