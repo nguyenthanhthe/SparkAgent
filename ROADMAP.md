@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[321/500]** commits · **996 tests green** · self-check passing.
+Progress counter: **[334/500]** commits · **1004 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -185,18 +185,31 @@ Progress counter: **[321/500]** commits · **996 tests green** · self-check pas
 9. ✅ docs: dependency runbook links ADR-0006 and the status filter
 10. ✅ examples: json_query operator one-liner cheat sheet demo
 
-## Wave AG backlog (next)
+## Wave AG status (complete)
 
-1. kernel: scheduler stops claiming new tasks once _stopping is set (drain-only tail)
-2. brain: /api/brain exposes cache age of the oldest live entry
-3. memory: recall snippet omits the marker chars from its reported length contract (test)
-4. security: quarantine put() rejects whitespace-only content
-5. interface: telegram /blocked gains a --limit option like /tasks
-6. interface: dashboard adapters card truncates long last_error strings with a title tooltip
-7. tools: json_query mode=keys — top-level keys of a dict with their value types
-8. ops: backup verify-all --quiet carries the slowest archive name (duration outlier)
-9. docs: index.md gains a one-line "what changed lately" pointer to ROADMAP
-10. examples: lifecycle demo — daemon_stopping event observed by a subscriber
+1. ✅ kernel: scheduler claims no new tasks once stopping (drain-only tail)
+2. ✅ brain: cache snapshot exposes the oldest live entry's age
+3. ✅ memory: snippet width contract pinned — markers excluded from the text budget
+4. ✅ security: quarantine put rejects whitespace-only content
+5. ✅ interface: telegram /blocked gains a --limit option
+6. ✅ interface: adapters card truncates last_error with a full-text tooltip
+7. ✅ tools: json_query mode=keys — top-level keys with value types
+8. ✅ ops: verify-all --quiet names the slowest archive
+9. ✅ docs: index.md points to ROADMAP for recent changes
+10. ✅ examples: lifecycle demo — daemon_stopping observed by a subscriber
+
+## Wave AH backlog (next)
+
+1. kernel: `/api/status` uptime grows a humanized `uptime_human` field
+2. brain: adapter ping records a rolling last-5 latency history per adapter
+3. memory: `Memory.count(kind)` — cheap per-kind totals for dashboards
+4. security: auth limiter snapshot includes the configured thresholds
+5. interface: telegram /status adds the cache hit-rate line
+6. interface: dashboard tasks table row click deep-links `#task-<id>`
+7. tools: json_query mode=stats gains a `sample` (first row) for list roots
+8. ops: backup drill prints the scratch dir path before deleting (verbose mode)
+9. docs: security.md documents the promptguard band gauge and verdict counters
+10. examples: cache demo — put/hit/expire across a fake clock
 
 ## Wave R status (complete)
 
