@@ -166,6 +166,15 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/pending", reply)
         self.assertIn("/deny", reply)
 
+    async def test_help_groups_by_audience(self):
+        reply = await self._command("/help")
+        self.assertIn("operator:", reply)
+        self.assertIn("agent:", reply)
+        self.assertLess(reply.index("operator:"), reply.index("agent:"))
+        # approval commands stay in the operator section, tools in agent
+        self.assertLess(reply.index("/deny"), reply.index("agent:"))
+        self.assertGreater(reply.index("/db"), reply.index("agent:"))
+
 
 class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):

@@ -118,20 +118,22 @@ class TelegramGateway:
         daemon = self.daemon
 
         if command == "/help":
-            return ("SparkAgent commands:\n"
+            return ("SparkAgent commands\n"
+                    "operator:\n"
                     "/status — daemon health\n"
                     "/health — subsystem checks\n"
                     "/tasks — recent tasks\n"
-                    "/task <goal> — submit a task\n"
-                    "/mem <query> — search memory\n"
-                    "/skills — list skills\n"
+                    "/blocked — dependency-stalled tasks\n"
                     "/audit — recent audit trail\n"
                     "/backup — backup window listing\n"
-                    "/blocked — dependency-stalled tasks\n"
-                    "/db <table> [col=value ...] — read-only db lookup\n"
                     "/pending — operator approval queue\n"
                     "/approve <skill or id> — approve\n"
                     "/deny <id> — deny an approval request\n"
+                    "agent:\n"
+                    "/task <goal> — submit a task\n"
+                    "/mem <query> — search memory\n"
+                    "/db <table> [col=value ...] — read-only db lookup\n"
+                    "/skills — list skills\n"
                     "plain text — submit a task")
         if command == "/health":
             report = await daemon.health.check_all()
