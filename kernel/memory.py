@@ -300,6 +300,8 @@ class Memory:
 
     async def remember(self, text: str, kind: str = "note",
                        key: str | None = None, meta: dict | None = None) -> int:
+        if not (text or "").strip():
+            raise ValueError("memory text must be non-empty")
         vector = await self.embed(text)
         def op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute(

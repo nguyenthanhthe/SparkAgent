@@ -75,6 +75,16 @@ class MemoryTests(unittest.TestCase):
                              ["digest-marker"])
         run(scenario())
 
+    def test_remember_rejects_empty_text(self):
+        async def scenario():
+            await self.mem.connect()
+            with self.assertRaises(ValueError):
+                await self.mem.remember("")
+            with self.assertRaises(ValueError):
+                await self.mem.remember("   ")
+            await self.mem.remember("real note")   # unaffected
+        run(scenario())
+
     def test_task_submit_due_claim_finish_oneshot(self):
         async def scenario():
             await self.mem.connect()
