@@ -3,7 +3,7 @@
 import unittest
 
 from kernel.errors import ToolFailure
-from tools.json_tool import filter_rows
+from tools.json_tool import filter_rows, sort_rows
 
 ROWS = [
     {"name": "alice", "age": 30, "status": "active"},
@@ -49,6 +49,58 @@ class FilterRowsTests(unittest.TestCase):
         where = ";".join(f"age>{i}" for i in range(9))
         with self.assertRaises(ValueError):
             filter_rows(ROWS, where)
+
+
+class SortRowsTests(unittest.TestCase):
+    def test_numeric_ascending_and_descending(self):
+        rows = [{"n": 3}, {"n": 1}, {"n": 2}]
+        self.assertEqual([r["n"] for r in sort_rows(rows, "n")], [1, 2, 3])
+        self.assertEqual([r["n"] for r in sort_rows(rows, "n", True)],
+                         [3, 2, 1])
+
+    def test_numeric_strings_not_lexical(self):
+        rows = [{"n": 10}, {"n": 9}]
+        self.assertEqual([r["n"] for r in sort_rows(rows, "n")], [9, 10])
+
+    def test_string_sort(self):
+        rows = [{"s": "b"}, {"s": "a"}]
+        self.assertEqual([r["s"] for r in sort_rows(rows, "s")], ["a", "b"])
+
+    def test_missing_keys_sort_last_even_descending(self):
+        rows = [{"n": 2}, {"x": 0}, {"n": 1}]
+        self.assertEqual([r.get("n") for r in sort_rows(rows, "n")],
+                         [1, 2, None])
+        self.assertEqual([r.get("n") for r in sort_rows(rows, "n", True)],
+                         [2, 1, None])
+
+    def test_dotted_key(self):
+        rows = [{"m": {"v": 2}}, {"m": {"v": 1}}]
+        self.assertEqual([r["m"]["v"] for r in sort_rows(rows, "m.v")],
+                         [1, 2])
+
+
+class JsonQuerySortToolTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        from tools.registry import ToolContext, ToolRegistry
+        from tools import stdlib_tools
+        self.registry = ToolRegistry()
+        stdlib_tools.register_tools(self.registry)
+        self.ctx = ToolContext()
+
+    async def test_tool_sort_mode(self):
+        import json
+        result = await self.registry.call(
+            "json_query", {"data": json.dumps([{"n": 2}, {"n": 1}]),
+                           "mode": "sort", "sort_by": "n"}, self.ctx)
+        self.assertIn("1", result)
+        self.assertTrue(result.index("1") < result.index("2"))
+
+    async def test_tool_sort_needs_list(self):
+        from kernel.errors import ToolFailure
+        with self.assertRaises(ToolFailure):
+            await self.registry.call(
+                "json_query", {"data": '{"a": 1}', "mode": "sort",
+                               "sort_by": "a"}, self.ctx)
 
 
 class JsonQueryFilterToolTests(unittest.IsolatedAsyncioTestCase):

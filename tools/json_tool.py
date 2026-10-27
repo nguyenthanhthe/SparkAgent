@@ -186,3 +186,27 @@ def _matches(row: Any, key: str, op: str, raw: str) -> bool:
         return _OPS[op](value, expected)
     except TypeError:
         return False
+
+
+def sort_rows(rows: list[Any], key: str, descending: bool = False) \
+        -> list[Any]:
+    """Order list rows by a dotted key; rows missing the key (or with
+    null) sort last. Numeric ordering when every present value is a
+    number, string ordering otherwise — never raises on mixed data."""
+    def value_of(row: Any):
+        if isinstance(row, dict):
+            try:
+                return get_path(row, key)
+            except (KeyError, IndexError, TypeError):
+                return None
+        return None
+
+    values = [value_of(row) for row in rows]
+    present = [v for v in values if v is not None]
+    numeric = all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                  for v in present)
+    key_of = (lambda v: v) if numeric else (lambda v: str(v))
+    ranked = sorted((i for i, v in enumerate(values) if v is not None),
+                    key=lambda i: key_of(values[i]), reverse=descending)
+    missing = [i for i, v in enumerate(values) if v is None]
+    return [rows[i] for i in ranked + missing]

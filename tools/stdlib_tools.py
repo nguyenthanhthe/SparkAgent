@@ -78,10 +78,11 @@ def register_tools(registry: ToolRegistry,
     # ------------------------------------------------------------ json_query
     async def json_query(ctx: ToolContext, data: str, path: str = "",
                          mode: str = "get", jsonl: bool = False,
-                         where: str = "") -> dict:
+                         where: str = "", sort_by: str = "",
+                         descending: bool = False) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
-                     ["get", "search", "shape", "stats", "filter"])
+                     ["get", "search", "shape", "stats", "filter", "sort"])
         try:
             if jsonl:
                 parsed = json_mod.parse_jsonl(data)
@@ -116,6 +117,17 @@ def register_tools(registry: ToolRegistry,
                         "count": len(rows)}
             except ValueError as exc:
                 raise ToolFailure(str(exc))
+        if mode == "sort":
+            sort_by = require_str(sort_by, "sort_by", min_len=1, max_len=200)
+            try:
+                rows = json_mod.get_path(parsed, path) if path else parsed
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            if not isinstance(rows, list):
+                raise ToolFailure("sort needs a list "
+                                  "(use path='items' or jsonl=true)")
+            return {"value": json_mod.sort_rows(rows, sort_by,
+                                                descending=descending)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
@@ -126,19 +138,24 @@ def register_tools(registry: ToolRegistry,
                      "containing a needle, mode=shape summarizes structure, "
                      "mode=stats counts keys/leaves, mode=filter keeps "
                      "list rows matching comparison terms in `where` "
-                     "(e.g. 'age>=30;status!=done'). Set jsonl=true for "
-                     "newline-delimited JSON (treated as a list of docs)."),
+                     "(e.g. 'age>=30;status!=done'), mode=sort orders a "
+                     "list by `sort_by` key (descending flips it). Set "
+                     "jsonl=true for newline-delimited JSON (treated as "
+                     "a list of docs)."),
         parameters={"data": {"type": "string", "required": True,
                              "desc": "raw JSON text"},
                     "path": {"type": "string", "required": False,
-                             "desc": "dotted path (get/filter) or "
+                             "desc": "dotted path (get/filter/sort) or "
                                      "needle (search)"},
                     "mode": {"type": "string", "required": False},
                     "jsonl": {"type": "boolean", "required": False,
                               "desc": "parse input as JSON lines"},
                     "where": {"type": "string", "required": False,
                               "desc": "filter terms, ';' separated "
-                                      "(mode=filter)"}},
+                                      "(mode=filter)"},
+                    "sort_by": {"type": "string", "required": False,
+                                "desc": "row key to sort by (mode=sort)"},
+                    "descending": {"type": "boolean", "required": False}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze
