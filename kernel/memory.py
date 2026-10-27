@@ -284,6 +284,7 @@ class Memory:
                 "SELECT idx, kind, content, created_at FROM steps "
                 "WHERE episode_id = ? ORDER BY idx", (episode_id,)).fetchall()
             detail["step_log"] = [dict(step) for step in steps]
+            detail["step_count"] = len(detail["step_log"])
             return detail
         return await self._run(op)
 

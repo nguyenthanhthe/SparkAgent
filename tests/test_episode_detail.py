@@ -38,6 +38,7 @@ class EpisodeDetailTests(unittest.TestCase):
         self.assertEqual(detail["goal"], "replay me")
         self.assertEqual(detail["status"], "done")
         self.assertEqual(len(detail["step_log"]), 3)
+        self.assertEqual(detail["step_count"], 3)
         self.assertEqual(detail["step_log"][0]["idx"], 1)
         self.assertEqual(detail["step_log"][2]["kind"], "final")
 
