@@ -581,8 +581,10 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response({"id": approval_id,
                                   "status": request_obj.status})
 
-    async def api_quarantine(_request: web.Request) -> web.Response:
-        return web.json_response({"items": daemon.quarantine.list(limit=100)})
+    async def api_quarantine(request: web.Request) -> web.Response:
+        reason = request.query.get("reason") or None
+        return web.json_response({"items": daemon.quarantine.list(
+            limit=100, reason_contains=reason)})
 
     async def api_quarantine_action(request: web.Request) -> web.Response:
         item_id = request.match_info["id"]

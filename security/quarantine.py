@@ -56,14 +56,21 @@ class QuarantineStore:
             if data_path.exists() else ""
         return {"record": record, "content": content}
 
-    def list(self, limit: int = 100) -> list[dict]:
+    def list(self, limit: int = 100,
+             reason_contains: str | None = None) -> list[dict]:
+        """Newest-first listing, optionally narrowed to items whose
+        reason contains ``reason_contains`` (case-insensitive)."""
         records = []
+        needle = reason_contains.lower() if reason_contains else None
         for meta_path in self.root.glob("*.json"):
             try:
-                records.append(json.loads(
-                    meta_path.read_text(encoding="utf-8")))
+                record = json.loads(meta_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
+            if needle and needle not in \
+                    str(record.get("reason", "")).lower():
+                continue
+            records.append(record)
         records.sort(key=lambda r: r.get("created_at", ""), reverse=True)
         return records[:limit]
 

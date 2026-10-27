@@ -149,6 +149,23 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_quarantine_reason_filter(self):
+        daemon, client = await self._setup()
+        try:
+            hit = daemon.quarantine.put("injection body",
+                                        "prompt-injection risk")
+            daemon.quarantine.put("oversized body",
+                                  "oversized skill proposal")
+            response = await client.get(
+                "/api/quarantine?reason=prompt-injection")
+            items = (await response.json())["items"]
+            self.assertEqual([i["id"] for i in items], [hit["id"]])
+            response = await client.get("/api/quarantine")
+            self.assertEqual(len((await response.json())["items"]), 2)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_bad_approval_decision_404(self):
         daemon, client = await self._setup()
         try:
