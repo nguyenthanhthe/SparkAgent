@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[286/500]** commits · **976 tests green** · self-check passing.
+Progress counter: **[298/500]** commits · **987 tests green** · self-check passing.
 
 ## Wave S status (complete)
 
@@ -146,18 +146,31 @@ Progress counter: **[286/500]** commits · **976 tests green** · self-check pas
 9. ✅ docs: testing.md — capture pytest exit codes, never pipe blindly
 10. ✅ examples: json_query stats+nesting demo over a config blob
 
-## Wave AD backlog (next)
+## Wave AD status (complete)
 
-1. kernel: `task_started` event carries the task source (agent vs operator vs telegram)
-2. brain: /api/adapters ping honors a config opt-out per adapter (skip expensive probes)
-3. memory: recall dedupes near-identical hits by key (same key keeps only the best score)
-4. security: quarantine stats include a per-reason breakdown (top 3)
-5. interface: telegram /backup gains `--verify` (runs verify on the newest archive)
-6. interface: dashboard adapters card shows checked_at as a relative age
-7. tools: json_query mode=pluck — extract one column from list rows as a flat array
-8. ops: backup create gains `--verify-immediately` (verify right after writing)
-9. docs: api.md lists the new endpoints (tasks status filter, docs, memories delete, backup)
-10. examples: combined json drill (stats → filter → sort → pluck) over episode rows
+1. ✅ kernel: task_started event carries the task source
+2. ✅ brain: per-adapter ping opt-out via interface.ping_skip
+3. ✅ memory: recall keeps only the best-scoring hit per key
+4. ✅ security: quarantine stats gains a top-3 per-reason breakdown
+5. ✅ interface: telegram /backup --verify checks the newest archive
+6. ✅ interface: adapters card shows probe age + skip badge
+7. ✅ tools: json_query mode=pluck; all row modes honor `where`
+8. ✅ ops: backup create --verify-immediately (+ retention position)
+9. ✅ docs: api.md full endpoint table
+10. ✅ examples: combined json drill (stats → filter → sort → pluck → group)
+
+## Wave AE backlog (next)
+
+1. kernel: task finish publishes `task_finished` with status + duration on the scheduler channel
+2. brain: /api/brain budget block exposes the configured daily limit, not just today's spend
+3. memory: `Memory.rename_key(old, new)` — operator repair for mistyped memory keys (audited)
+4. security: quarantine reason filter supports multiple comma-separated reasons
+5. interface: telegram /tasks shows blocked_by inline like the dashboard
+6. interface: dashboard adapters card shows the adapter's model name
+7. tools: json_query filter gains `^=` (starts-with) for string fields
+8. ops: backup verify-all prints per-archive duration (slow-disk signal)
+9. docs: tools.md documents the full json_query mode matrix
+10. examples: operator handoff demo — status, backups, quarantine, audit in a single report
 
 ## Wave R status (complete)
 
