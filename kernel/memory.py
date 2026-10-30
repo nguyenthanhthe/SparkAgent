@@ -715,17 +715,18 @@ class Memory:
             conn.commit()
         await self._run(op)
 
-    async def forget(self, key: str) -> bool:
+    async def forget(self, key: str) -> int:
         """Delete every memory row carrying ``key`` (operator action;
-        callers must audit). True when something was removed."""
+        callers must audit). Returns how many rows were actually
+        removed — 0 means the key was already absent."""
         if not key:
-            return False
+            return 0
 
-        def op(conn: sqlite3.Connection) -> bool:
+        def op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute("DELETE FROM memories WHERE key = ?",
                                   (key,))
             conn.commit()
-            return cursor.rowcount > 0
+            return cursor.rowcount
         return await self._run(op)
 
     async def rename_key(self, old: str, new: str) -> int:

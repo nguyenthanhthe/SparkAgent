@@ -52,10 +52,12 @@ class MemoryTests(unittest.TestCase):
             await self.mem.connect()
             await self.mem.remember("transient note", kind="note",
                                     key="temp")
-            self.assertTrue(await self.mem.forget("temp"))
+            await self.mem.remember("transient note two", kind="note",
+                                    key="temp")
+            self.assertEqual(await self.mem.forget("temp"), 2)
             # second call: nothing left to remove
-            self.assertFalse(await self.mem.forget("temp"))
-            self.assertFalse(await self.mem.forget(""))
+            self.assertEqual(await self.mem.forget("temp"), 0)
+            self.assertEqual(await self.mem.forget(""), 0)
             hits = await self.mem.recall("transient note", k=5)
             self.assertEqual(hits, [])
         run(scenario())

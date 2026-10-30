@@ -565,7 +565,8 @@ def build_web_app(daemon) -> web.Application:
                                   f"key={key[:100]} removed={removed}")
         if not removed:
             raise web.HTTPNotFound(text=f"no memory with key {key!r}")
-        return web.json_response({"ok": True, "key": key})
+        return web.json_response({"ok": True, "key": key,
+                                  "removed": removed})
 
     async def api_skills(_request: web.Request) -> web.Response:
         return web.json_response(daemon.forge.list_skills())
