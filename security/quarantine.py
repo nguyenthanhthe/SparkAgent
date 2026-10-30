@@ -158,8 +158,8 @@ class QuarantineStore:
         """Delete items older than the TTL; returns how many were removed.
 
         Called by housekeeping so forgotten quarantined blobs cannot pile
-        up forever. Items carry ``expires_at`` in their record so the
-        sweep is auditable via ``list()``.
+        up forever. The sweep is audited on the ``audit`` bus channel
+        with the removed count (ids only — never content).
         """
         if self.ttl_seconds <= 0:
             return 0
@@ -175,6 +175,10 @@ class QuarantineStore:
             if now - created_ts > self.ttl_seconds:
                 self._delete_files(item["id"])
                 removed += 1
+        if removed and self._bus is not None:
+            self._bus.publish("audit", {
+                "actor": "system", "action": "quarantine.expire",
+                "detail": {"removed": removed}})
         return removed
 
     # -------------------------------------------------------------- internals

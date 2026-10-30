@@ -28,6 +28,29 @@ class QuarantineTTLTests(unittest.TestCase):
         self.assertEqual(self.store.expire(), 1)
         self.assertEqual(self.store.list(), [])
 
+    def test_sweep_is_audited_with_counts(self):
+        from kernel.bus import EventBus
+        bus = EventBus()
+        queue = bus.subscribe("audit")
+        store = QuarantineStore(self.root, ttl_seconds=3600, bus=bus)
+        record = store.put("stale content", "test")
+        meta = self.root / f"{record['id']}.json"
+        import json
+        data = json.loads(meta.read_text(encoding="utf-8"))
+        data["created_at"] = time.strftime(
+            "%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 7200))
+        meta.write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(store.expire(), 1)
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["action"], "quarantine.expire")
+        self.assertEqual(events[0]["detail"], {"removed": 1})
+        # a sweep that removes nothing publishes nothing
+        self.assertEqual(store.expire(), 0)
+        self.assertTrue(queue.empty())
+
     def test_zero_ttl_disables_sweep(self):
         store = QuarantineStore(self.root, ttl_seconds=0)
         record = store.put("kept", "test")
