@@ -1,7 +1,8 @@
 import unittest
 
 from tools.csv_tool import CsvError, Table
-from tools.json_tool import get_path, parse, safe_dump, search, shape, stats
+from tools.json_tool import _depth, get_path, parse, safe_dump, search, \
+    shape, stats
 from tools.stats_tool import (StatsError, linear_regression, mean, median,
                               moving_average, pearson, quantile, stdev,
                               summary, variance, zscore_outliers)
@@ -38,6 +39,13 @@ class JsonToolTests(unittest.TestCase):
         self.assertEqual(info["root_type"], "dict")
         self.assertEqual(info["dict_keys"], 2)
         self.assertEqual(info["leaf_count"], 6)
+        self.assertGreaterEqual(info["depth"], 1)
+
+    def test_depth_measures_container_chain(self):
+        self.assertEqual(_depth({"a": {"b": {"c": 1}}}), 3)
+        self.assertEqual(_depth([{"a": 1}]), 2)
+        self.assertEqual(_depth("scalar"), 0)
+        self.assertEqual(_depth({}), 1)   # a container with no children
 
     def test_safe_dump_roundtrip(self):
         text = safe_dump({"k": [1, 2]})

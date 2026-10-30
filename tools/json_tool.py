@@ -123,8 +123,21 @@ def stats(data: Any) -> dict:
             "dict_keys": len(data) if isinstance(data, dict) else None,
             "list_len": len(data) if isinstance(data, list) else None,
             "leaf_count": _leaf_count(data),
+            "depth": _depth(data),
             "nesting": _nesting(data) if isinstance(data, dict) else {},
             "sample": data[0] if isinstance(data, list) and data else None}
+
+
+def _depth(data: Any) -> int:
+    """Longest chain of nested dict/list containers below the root
+    (a scalar document has depth 0)."""
+    if not isinstance(data, (dict, list)):
+        return 0
+    if isinstance(data, dict):
+        children = data.values()
+    else:
+        children = data
+    return 1 + max((_depth(child) for child in children), default=0)
 
 
 def _nesting(data: Any, max_depth: int = 3) -> dict[str, int]:
