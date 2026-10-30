@@ -72,3 +72,13 @@ nothing persists to disk, so a restart revalidates from scratch and
 staleness is bounded by the server's own validator semantics, not our
 retention. A disk cache would trade a few saved MB for a stale-data
 liability that outlives the process. ADR-0008 has the full reasoning.
+
+**Why does my backup show unverified?**
+The dashboard backup panel and telegram `/backup` hash-verify the
+newest archive on every view. `unverified` means that check failed —
+typically a truncated download or a blob that is not a SparkAgent
+archive (no manifest). A corrupt newest backup is not restorable; run
+`python -m ops.backup create` again and, if it still fails, check the
+disk for full-disk errors before trusting any archive in the window.
+`--verify`-style full-window checks stay in `python -m ops.backup
+verify-all`.
