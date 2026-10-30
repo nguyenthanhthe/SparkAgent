@@ -90,3 +90,14 @@ echo "EXIT=$RC"; tail -2 /tmp/pt.txt
 This bit twice in one session (a red commit pushed, then amended against
 a published ref, which forces a follow-up fix commit instead of a clean
 amend). The rule: test → read RC → only then commit.
+
+## Process-global singletons
+
+Some module-level registries survive across tests in one process —
+`brain.adapters.adapter_registry` keeps its `latency_history` dict, and
+`kernel.metrics.REGISTRY` accumulates counters from every test that
+touched it. Assert **relative** growth, never absolute counts: snapshot
+the value before the action, act, then compare after. To isolate a
+counter assertion, swap the module attribute for a fresh
+`MetricsRegistry` and restore it in `finally` (see
+`tests/test_webfetch_guard.py::test_verdict_counter_increments`).
