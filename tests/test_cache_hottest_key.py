@@ -62,6 +62,17 @@ class HottestKeyTests(unittest.TestCase):
         # a is 30s old, b is 0s old -> average 15s
         self.assertEqual(cache.snapshot()["average_entry_age_s"], 15.0)
 
+    def test_oldest_hit_age(self):
+        cache = ResponseCache(ttl_seconds=1000, clock=FakeClock())
+        self.assertIsNone(cache.snapshot()["oldest_hit_age_s"])
+        cache.put("old", "text", {"model": "m"})
+        cache.clock.advance(50)
+        cache.put("new", "text", {"model": "m"})
+        cache.get("new")     # the only served answer is 0s old
+        self.assertEqual(cache.snapshot()["oldest_hit_age_s"], 0.0)
+        cache.get("old")     # now the stale one gets a hit too
+        self.assertEqual(cache.snapshot()["oldest_hit_age_s"], 50.0)
+
     def test_hit_share_per_model(self):
         cache = ResponseCache(clock=FakeClock())
         cache.put("a", "text", {"model": "big"})

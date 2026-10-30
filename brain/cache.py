@@ -121,6 +121,12 @@ class ResponseCache:
                                 hottest[0].encode("utf-8")).hexdigest()[:12],
                             "hits": hottest[1].hits}
                            if hottest else None)
+            # how stale can a *served* answer be: the age of the oldest
+            # entry that still has hits (None when nothing was reused)
+            hit_ages = [now - entry.stored_at
+                        for entry in self._entries.values()
+                        if entry.hits > 0]
+            oldest_hit_age = max(hit_ages, default=None)
         avg_age = (round(sum(ages) / len(ages), 1) if ages else None)
         total_hits = sum(self._hits_by_model.values())
         return {**self.stats, "size": self.size,
@@ -128,6 +134,9 @@ class ResponseCache:
                 "oldest_entry_age_s": (round(oldest, 1)
                                        if oldest is not None else None),
                 "average_entry_age_s": avg_age,
+                "oldest_hit_age_s": (round(oldest_hit_age, 1)
+                                     if oldest_hit_age is not None
+                                     else None),
                 "hottest_key": hottest_key,
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
