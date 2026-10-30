@@ -57,6 +57,33 @@ class RecallKindFilterTests(unittest.TestCase):
         hits = run(self.mem.recall("throttling", kinds=["digest"]))
         self.assertTrue(hits[0].text.startswith("gpu thermal throttling"))
 
+    def test_exclude_kinds_drops_the_kind(self):
+        self.seed()
+        hits = run(self.mem.recall("gpu thermal", exclude_kinds=["digest"]))
+        self.assertTrue(hits)
+        self.assertNotIn("digest", {h.kind for h in hits})
+        self.assertEqual(len(hits), 2)
+
+    def test_exclude_kinds_complements_kinds(self):
+        self.seed()
+        hits = run(self.mem.recall("gpu thermal", kinds=["digest", "note",
+                                                         "preference"],
+                                   exclude_kinds=["note", "preference"]))
+        self.assertEqual({h.kind for h in hits}, {"digest"})
+
+    def test_exclude_kinds_keeps_digest_marker_default(self):
+        # digest markers stay bookkeeping-excluded unless asked via kinds,
+        # even when the caller excludes other kinds
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("gpu thermal digest marker",
+                                    kind="digest-marker")
+            await self.mem.remember("gpu thermal episode", kind="episode")
+        run(scenario())
+        hits = run(self.mem.recall("gpu thermal",
+                                   exclude_kinds=["episode"]))
+        self.assertEqual(hits, [])
+
 
 if __name__ == "__main__":
     unittest.main()

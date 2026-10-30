@@ -316,30 +316,39 @@ class Memory:
 
     async def recall(self, query: str, k: int | None = None,
                      kinds: list[str] | None = None,
+                     exclude_kinds: list[str] | None = None,
                      snippet_width: int = 220) -> list[MemoryHit]:
         """Hybrid recall: cosine vectors fused with BM25 lexical matches.
 
         ``kinds`` optionally restricts results (e.g. ``["digest",
-        "episode"]``) — filtering happens in SQL, parameter-bound.
+        "episode"]``); ``exclude_kinds`` is the complement — drop those
+        kinds (e.g. ``["note"]``) from the candidate pool. Filtering
+        happens in SQL, parameter-bound. Digest markers stay excluded
+        unless explicitly asked for via ``kinds``.
         """
         k = k or self.recall_k
         query_vec = await self.embed(query)
 
         def op(conn: sqlite3.Connection) -> list[MemoryHit]:
+            # the SQL text is static; the only dynamic part is the count
+            # of '?' placeholder tokens, and every value rides bound
             if kinds:
-                placeholders = ", ".join("?" for _ in kinds)
-                rows = conn.execute(
-                    f"SELECT id, kind, key, text, embedding, created_at "
-                    f"FROM memories WHERE kind IN ({placeholders}) "
-                    f"ORDER BY id DESC LIMIT 5000",
-                    tuple(kinds)).fetchall()   # placeholders are fixed '?'
+                sql = ("SELECT id, kind, key, text, embedding, created_at "
+                       "FROM memories WHERE kind IN ("
+                       + ", ".join("?" * len(kinds)) + ") ")
+                params: list = list(kinds)
             else:
                 # digest markers are bookkeeping, not knowledge — exclude
                 # unless the caller asks for them by kind
-                rows = conn.execute(
-                    "SELECT id, kind, key, text, embedding, created_at "
-                    "FROM memories WHERE kind != 'digest-marker' "
-                    "ORDER BY id DESC LIMIT 5000").fetchall()
+                sql = ("SELECT id, kind, key, text, embedding, created_at "
+                       "FROM memories WHERE kind != 'digest-marker' ")
+                params = []
+            if exclude_kinds:
+                sql += ("AND kind NOT IN ("
+                        + ", ".join("?" * len(exclude_kinds)) + ") ")
+                params.extend(exclude_kinds)
+            rows = conn.execute(sql + "ORDER BY id DESC LIMIT 5000",
+                                tuple(params)).fetchall()
             from memory_search.hybrid import HybridRanker
             ranker = HybridRanker(recency_weight=0.0)
             vector_by_id: dict[str, tuple[str, float]] = {}
