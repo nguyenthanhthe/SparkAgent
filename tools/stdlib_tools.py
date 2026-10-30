@@ -204,7 +204,8 @@ def register_tools(registry: ToolRegistry,
                           operation: str = "describe",
                           column: str = "", value: str = "",
                           op: str = "==", group_by: str = "",
-                          descending: bool = False) -> dict:
+                          descending: bool = False,
+                          limit: int = 0) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         try:
             table = csv_mod.Table.parse(data)
@@ -217,15 +218,23 @@ def register_tools(registry: ToolRegistry,
             if operation == "describe":
                 return table.describe()
             if operation == "filter":
-                return {"rows": table.filter(column, op, value).head(50)}
+                rows = table.filter(column, op, value).head(50)
+                if limit:
+                    rows = rows[:max(1, min(int(limit), 50))]
+                return {"rows": rows}
             if operation == "sort":
-                return {"rows": table.sort(column,
-                                           descending=descending).head(50)}
+                rows = table.sort(column,
+                                  descending=descending).head(50)
+                if limit:
+                    rows = rows[:max(1, min(int(limit), 50))]
+                return {"rows": rows}
             if operation == "aggregate":
                 return table.aggregate(column)
             if operation == "group":
                 return table.group_aggregate(group_by, column)
-            return {"rows": table.head(25)}
+            # head: caller row count (1-50), default 25
+            count = max(1, min(int(limit) if limit else 25, 50))
+            return {"rows": table.head(count)}
         except csv_mod.CsvError as exc:
             raise ToolFailure(str(exc)) from exc
 
@@ -241,7 +250,10 @@ def register_tools(registry: ToolRegistry,
                     "value": {"type": "string", "required": False},
                     "op": {"type": "string", "required": False},
                     "group_by": {"type": "string", "required": False},
-                    "descending": {"type": "bool", "required": False}},
+                    "descending": {"type": "bool", "required": False},
+                    "limit": {"type": "integer", "required": False,
+                              "desc": "head/filter/sort row count "
+                                      "(1-50; head defaults to 25)"}},
         handler=csv_analyze))
 
     # -------------------------------------------------------------- statistics

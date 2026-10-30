@@ -132,6 +132,24 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                            "operation": "regression"}, self.ctx)
         self.assertIn("slope", result)
 
+    async def test_csv_head_honors_limit(self):
+        import json as json_lib
+        csv_text = "n\n" + "".join(f"{i}\n" for i in range(40))
+        default = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_text, "operation": "head"},
+            self.ctx))
+        self.assertEqual(len(default["rows"]), 25)
+        custom = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_text, "operation": "head",
+                            "limit": 3}, self.ctx))
+        self.assertEqual(len(custom["rows"]), 3)
+        # limit also truncates filter/sort output
+        filtered = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_text, "operation": "filter",
+                            "column": "n", "op": ">=", "value": "0",
+                            "limit": 2}, self.ctx))
+        self.assertEqual(len(filtered["rows"]), 2)
+
 
 class MemoryToolTests(unittest.IsolatedAsyncioTestCase):
     async def test_remember_and_recall_via_tools(self):
