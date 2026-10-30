@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[446/500]** commits · **1089 tests green** · self-check passing.
+Progress counter: **[457/500]** commits · **1095 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -42,7 +42,31 @@ Progress counter: **[446/500]** commits · **1089 tests green** · self-check pa
 9. ✅ docs: ADR-0012 — quarantine source labels and release auditing
 10. ✅ examples: keys demo — json_query mode=keys + prefix offline
 
-## Wave AR backlog (next)
+## Wave AR status (complete)
+
+1. ✅ kernel: task.submit audit line mirrors the trimmed goal
+2. ✅ brain: /api/brain adapters section stamps checked_at
+3. ✅ memory: recall honors an explicit ids filter (parameter-bound IN list)
+4. ✅ security: quarantine expire() audits the sweep count on the audit bus
+5. ✅ interface: dashboard episode table shows the step count column
+6. ✅ interface: telegram /mem accepts an --after date filter (validated)
+7. ✅ tools: json_query mode=stats reports per-key leaf counts
+8. ✅ ops: backup create lands its file count in the daemon audit trail
+9. ✅ docs: faq.md entry — why quarantine records carry a source label
+10. ✅ examples: filter demo — the full where-term grammar offline
+
+## Wave AS backlog (next)
+
+1. kernel: task retry backoff is visible in the task_finished event
+2. brain: tier_details gains a last_success_at stamp
+3. memory: recall snippet honors a caller-supplied highlight needle
+4. security: quarantine put() rejects a whitespace-only reason too
+5. interface: dashboard task drawer shows the cancelled state distinctly
+6. interface: telegram /db tables hint lists the row counts
+7. tools: csv_analyze sort validates the column exists with a clear error
+8. ops: backup drill --keep protects the scratch dir from retention
+9. docs: api.md documents the /api/memories/rename endpoint
+10. examples: retry demo — backoff schedule rendered offline
 
 1. kernel: submit() audits with the trimmed goal, not the raw input
 2. brain: /api/brain adapters section gains a checked_at stamp
