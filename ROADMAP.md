@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[468/500]** commits · **1100 tests green** · self-check passing.
+Progress counter: **[480/500]** commits · **1107 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -68,7 +68,31 @@ Progress counter: **[468/500]** commits · **1100 tests green** · self-check pa
 9. ✅ docs: api.md documents POST /api/memories/rename
 10. ✅ examples: retry demo — backoff schedule + recovery walkthrough offline
 
-## Wave AT backlog (next)
+## Wave AT status (complete)
+
+1. ✅ kernel: task.submit audit carries the depends_on ids
+2. ✅ brain: /api/brain lifecycle carries the bus overflow counter
+3. ✅ memory: recall exposes last_recall_pool_size for tuning
+4. ✅ security: quarantine stats breaks item counts down by source
+5. ✅ interface: cost panel shows tokens saved per model
+6. ✅ interface: telegram /skills accepts a status= filter
+7. ✅ tools: json_query mode=search reports the match count
+8. ✅ ops: backup prune audits actual removals via --data-dir
+9. ✅ docs: configuration.md explains the daily budget veto (via the generator)
+10. ✅ examples: stats demo — leaves_by_key rendered offline
+
+## Wave AU backlog (next)
+
+1. kernel: task_finished events carry the agent's model tier
+2. brain: cache snapshot gains an oldest-hit age (how stale can a served answer be)
+3. memory: recall honors an explicit k=0 (returns only the pool size)
+4. security: quarantine get() exposes record age in human form
+5. interface: dashboard episodes panel links the task it came from
+6. interface: telegram /audit gains a --action filter
+7. tools: json_query wildcard paths honor a slice range
+8. ops: diskwatch --json carries the threshold pair it evaluated against
+9. docs: faq.md entry — what the bus overflow counter means
+10. examples: quarantine demo — source breakdown rendered offline
 
 1. kernel: task submit audits the depends_on ids alongside the goal
 2. brain: /api/brain lifecycle carries the bus overflow counter
