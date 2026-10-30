@@ -103,7 +103,7 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
         class FakeAgent:
             async def run(self, goal, source=None):
                 return type("R", (), {"status": "done", "answer": "ok",
-                                      "steps": 4})()
+                                      "steps": 4, "tier": "local"})()
 
         try:
             await memory.connect()
@@ -126,6 +126,8 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(finished[0]["status"], "done")
             self.assertEqual(finished[0]["source"], "test")
             self.assertEqual(finished[0]["steps"], 4)
+            self.assertEqual(finished[0]["model_tier"], "local")
+            self.assertIsNone(finished[0]["retry_backoff_s"])
             self.assertGreaterEqual(finished[0]["duration_s"], 0)
         finally:
             await memory.close()
