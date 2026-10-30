@@ -347,6 +347,36 @@ class BackupTests(unittest.TestCase):
                        "--output-dir", str(output)])
         self.assertEqual(rc, 0)
 
+    def test_cli_drill_audits_into_db(self):
+        import contextlib
+        import io
+        import sqlite3
+        data = make_data_dir()
+        (data / "sparkagent.db").unlink()
+        conn = sqlite3.connect(data / "sparkagent.db")
+        conn.execute("CREATE TABLE audit (id INTEGER PRIMARY KEY "
+                     "AUTOINCREMENT, created_at TEXT NOT NULL, "
+                     "actor TEXT NOT NULL, action TEXT NOT NULL, "
+                     "detail TEXT)")
+        conn.commit()
+        conn.close()
+        output = data.parent / "backups"
+        created = create_backup(data, output, tag="drill")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["drill", str(created.archive_path),
+                       "--data-dir", str(data)])
+        self.assertEqual(rc, 0)
+        conn = sqlite3.connect(data / "sparkagent.db")
+        try:
+            row = conn.execute(
+                "SELECT detail FROM audit "
+                "WHERE action = 'backup.drill'").fetchone()
+        finally:
+            conn.close()
+        self.assertIsNotNone(row)
+        self.assertIn("ok=True", row[0])
+
     def test_restore_drill_roundtrip_in_scratch(self):
         data = make_data_dir()
         result = create_backup(data, data.parent / "backups", tag="drill")

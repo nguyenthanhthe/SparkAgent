@@ -320,6 +320,9 @@ def main(argv: list[str] | None = None) -> int:
         "drill", help="verify + restore into a scratch dir (never the "
                       "live one), then clean up")
     p_drill.add_argument("archive")
+    p_drill.add_argument("--data-dir", default=None,
+                         help="data dir whose sparkagent.db receives "
+                              "the audit row (optional)")
     p_drill.add_argument("--work-dir", default=None,
                          help="parent for the scratch dir (default: temp)")
     p_drill.add_argument("--verbose", action="store_true",
@@ -396,6 +399,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"ok": False, "error": str(exc)[:200]}))
             return 1
         print(json.dumps(result))
+        # the drill outcome lands in the audit trail too — same
+        # best-effort write as create (needs --data-dir to find the db)
+        if args.data_dir:
+            db_path = Path(args.data_dir) / "sparkagent.db"
+            if db_path.exists():
+                audit_log(db_path, "ops.backup", "backup.drill",
+                          f"archive={Path(args.archive).name} "
+                          f"ok={result['ok']} files={result['files']}")
         return 0 if result["ok"] else 1
     result = restore_backup(Path(args.archive), Path(args.data_dir),
                             overwrite=args.overwrite)
