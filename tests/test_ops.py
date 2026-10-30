@@ -303,6 +303,50 @@ class BackupTests(unittest.TestCase):
         verdict = json.loads(buffer.getvalue().splitlines()[-1])
         self.assertTrue(verdict["ok"])
 
+    def test_cli_create_audits_into_db(self):
+        import contextlib
+        import io
+        import sqlite3
+        data = make_data_dir()
+        # the stub db is not a real sqlite file — make it one with the
+        # audit table, as the daemon would have
+        (data / "sparkagent.db").unlink()
+        conn = sqlite3.connect(data / "sparkagent.db")
+        conn.execute("CREATE TABLE audit (id INTEGER PRIMARY KEY "
+                     "AUTOINCREMENT, created_at TEXT NOT NULL, "
+                     "actor TEXT NOT NULL, action TEXT NOT NULL, "
+                     "detail TEXT)")
+        conn.commit()
+        conn.close()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output)])
+        self.assertEqual(rc, 0)
+        conn = sqlite3.connect(data / "sparkagent.db")
+        try:
+            row = conn.execute(
+                "SELECT actor, action, detail FROM audit "
+                "WHERE action = 'backup.create'").fetchone()
+        finally:
+            conn.close()
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], "ops.backup")
+        self.assertIn("files=3", row[2])
+
+    def test_cli_create_with_stub_db_still_succeeds(self):
+        # the stub db is not sqlite — the audit write is best-effort
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output)])
+        self.assertEqual(rc, 0)
+
     def test_restore_drill_roundtrip_in_scratch(self):
         data = make_data_dir()
         result = create_backup(data, data.parent / "backups", tag="drill")

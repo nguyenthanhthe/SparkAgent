@@ -218,6 +218,28 @@ def list_backups(backup_dir: Path, limit: int = 20) -> dict:
     return {"dir": str(backup_dir), "archives": archives[:limit]}
 
 
+def audit_log(db_path: Path, actor: str, action: str, detail: str) -> bool:
+    """Append one row to the daemon's audit trail (best effort: the CLI
+    runs outside the daemon, so a missing or locked db is not an
+    error — the create summary still tells the story)."""
+    import sqlite3
+    try:
+        conn = sqlite3.connect(db_path, timeout=2)
+    except sqlite3.Error:
+        return False
+    try:
+        conn.execute(
+            "INSERT INTO audit (created_at, actor, action, detail) "
+            "VALUES (?, ?, ?, ?)",
+            (time.strftime("%Y-%m-%dT%H:%M:%S"), actor, action, detail))
+        conn.commit()
+        return True
+    except sqlite3.Error:
+        return False
+    finally:
+        conn.close()
+
+
 def _verify_all(output_dir: Path, quiet: bool = False) -> int:
     """Verify every archive in the retention window; exit 1 if any fails.
     ``quiet`` prints a single-line summary (cron mail friendly)."""
@@ -333,6 +355,14 @@ def main(argv: list[str] | None = None) -> int:
                           "verified": verified,
                           "retention": f"{position} of {args.keep}",
                           "pruned": pruned}))
+        # land the create in the daemon's audit trail when the db is
+        # reachable from the CLI
+        db_path = Path(args.data_dir) / "sparkagent.db"
+        if db_path.exists():
+            audit_log(db_path, "ops.backup", "backup.create",
+                      f"archive={result.archive_path.name} "
+                      f"files={result.file_count} "
+                      f"bytes={result.total_bytes}")
         return 0
     if args.cmd == "verify":
         try:
