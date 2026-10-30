@@ -821,6 +821,7 @@ def build_web_app(daemon) -> web.Application:
                                   .python_version()})
 
     async def api_brain(_request: web.Request) -> web.Response:
+        from brain.adapters import adapter_registry
         from kernel.metrics import REGISTRY
         health = await daemon.brain.health()
         return web.json_response({
@@ -830,6 +831,14 @@ def build_web_app(daemon) -> web.Application:
                 REGISTRY.counter("shutdown_drained_tasks")),
                 "started_at": time.strftime(
                     "%Y-%m-%dT%H:%M:%S", time.localtime(daemon.started_at))},
+            "adapters": {
+                "available": adapter_registry.available(),
+                # last-5 ping latency samples per adapter, as recorded by
+                # the /api/adapters probes — merged here so /api/brain is
+                # the one-stop report; no new probes are fired
+                "recent_ms": {name: list(history) for name, history in
+                              adapter_registry.latency_history.items()},
+            },
             "cache": daemon.brain.cache_stats(),
             "cache_top_hits": daemon.brain.cache.top_hits(limit=5),
             "costs": daemon.costs.report(),
