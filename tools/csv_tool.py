@@ -62,11 +62,15 @@ class Table:
 
     def aggregate(self, column: str) -> dict[str, Any]:
         if column not in self.columns:
-            raise CsvError(f"unknown column {column!r}")
+            raise CsvError(f"unknown column {column!r}; have "
+                           f"{self.columns}")
         values = [_num(row[column]) for row in self.rows
                   if _maybe_num(row.get(column))]
         if not values:
-            raise CsvError(f"column {column!r} has no numeric values")
+            numeric = [c for c in self.columns
+                       if any(_maybe_num(row.get(c)) for row in self.rows)]
+            raise CsvError(f"column {column!r} has no numeric values — "
+                           f"numeric columns: {numeric}")
         return {"count": len(values), "sum": round(sum(values), 6),
                 "avg": round(sum(values) / len(values), 6),
                 "min": min(values), "max": max(values)}

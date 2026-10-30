@@ -91,6 +91,15 @@ class CsvToolTests(unittest.TestCase):
         # distinct skips missing cells; duplicates collapse
         self.assertEqual(info["distinct"], {"region": 2, "score": 2})
 
+    def test_aggregate_error_names_numeric_columns(self):
+        from tools.csv_tool import CsvError
+        table = Table.parse("name,region\nalice,emea\nbob,apac\n")
+        with self.assertRaises(CsvError) as ctx:
+            table.aggregate("name")
+        self.assertIn("no numeric values", str(ctx.exception))
+        # no numeric columns exist at all -> the hint is empty, not wrong
+        self.assertIn("numeric columns: []", str(ctx.exception))
+
     def test_filter_equality(self):
         emea = self.table.filter("region", "==", "emea")
         self.assertEqual(len(emea.rows), 3)
