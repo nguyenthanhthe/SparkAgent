@@ -110,10 +110,18 @@ class ResponseCache:
             oldest = min((entry.stored_at
                           for entry in self._entries.values()),
                          default=None)
+            hottest = max(
+                (item for item in self._entries.items() if item[1].hits > 0),
+                key=lambda item: item[1].hits, default=None)
+            hottest_key = ({"key_hash": hashlib.sha256(
+                                hottest[0].encode("utf-8")).hexdigest()[:12],
+                            "hits": hottest[1].hits}
+                           if hottest else None)
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3),
                 "oldest_entry_age_s": (round(now - oldest, 1)
                                        if oldest is not None else None),
+                "hottest_key": hottest_key,
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
                     key=lambda item: -item[1]))}
