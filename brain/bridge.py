@@ -58,6 +58,7 @@ class _TierState:
     served: int = 0
     failures: int = 0
     last_error: str | None = None
+    last_success_at: float | None = None
 
 
 @dataclass
@@ -169,6 +170,7 @@ class Brain:
                 state.served += 1
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
+                state.last_success_at = time.time()
                 model = self.local.model if tier is Tier.LOCAL \
                     else self.remote.model
                 usage = getattr(self.local if tier is Tier.LOCAL
@@ -261,6 +263,7 @@ class Brain:
                         state.served += 1
                         state.consecutive_failures = 0
                         state.cooldown_until = 0.0
+                        state.last_success_at = time.time()
                     produced += 1
                     yield delta
                 logger.debug("streamed %d chunks from %s in %.1fs",
@@ -324,6 +327,9 @@ class Brain:
             "cooldown_remaining_s": round(max(0.0, st.cooldown_until - now),
                                           1),
             "last_error": st.last_error,
+            "last_success_at": (time.strftime(
+                "%Y-%m-%dT%H:%M:%S", time.localtime(st.last_success_at))
+                if st.last_success_at is not None else None),
         } for tier, st in self._state.items()}
 
     def cost_report(self) -> dict:

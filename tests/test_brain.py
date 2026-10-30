@@ -134,6 +134,9 @@ class BridgeTests(unittest.TestCase):
         details = brain.tier_details()
         self.assertEqual(details["local"]["served"], 1)
         self.assertEqual(details["remote"]["served"], 0)
+        # a completed call stamps last_success_at in human form
+        self.assertIn("T", details["local"]["last_success_at"])
+        self.assertIsNone(details["remote"]["last_success_at"])
 
     def test_health_reports_per_check_duration_ms(self):
         brain = make_brain(FakeLocal(text="ok"), FakeRemote(text="r"))
