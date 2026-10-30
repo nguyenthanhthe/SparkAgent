@@ -23,7 +23,11 @@ NOTES: dict[str, str] = {
     "brain.remote.model": "remote model name",
     "brain.fallback_after_failures": "tier failures before cooldown",
     "brain.vram_guard_mb": "min free VRAM to use Tier 1",
-    "brain.daily_budget_usd": "daily remote-tier spend cap (veto)",
+    "brain.daily_budget_usd": "daily remote-tier spend cap — once the "
+                              "cost tracker's today_usd reaches it, "
+                              "remote chats are vetoed (local keeps "
+                              "working); visible in /api/brain budget "
+                              "and the dashboard cost panel",
     "memory.db_path": "SQLite database location",
     "memory.embedding_model": "Ollama embeddings (falls back to hashing)",
     "memory.retention_days": "episode/step pruning horizon",

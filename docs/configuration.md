@@ -30,16 +30,10 @@ Defaults live in `kernel/config.py`. Overrides: `config.yaml` < environment (`SP
 | `brain.fallback_after_failures` | `2` | tier failures before cooldown |
 | `brain.vram_guard_mb` | `1024` | min free VRAM to use Tier 1 |
 | `brain.health_ttl` | `30.0` |  |
-| `brain.daily_budget_usd` | `5.0` | daily remote-tier spend cap (veto) |
+| `brain.daily_budget_usd` | `5.0` | daily remote-tier spend cap — once the cost tracker's today_usd reaches it, remote chats are vetoed (local keeps working); visible in /api/brain budget and the dashboard cost panel |
 | `brain.cache_responses` | `False` |  |
 | `brain.cache_entries` | `256` |  |
 | `brain.cache_ttl` | `900.0` |  |
-
-The daily budget veto: once the cost tracker's `today_usd` reaches
-`brain.daily_budget_usd`, remote-tier chats are vetoed (the local tier
-keeps working). Today's spend and the cap surface in `/api/brain`'s
-`budget` block and in the dashboard cost panel; the veto also shows up
-as a chat failure with "budget" in the detail.
 
 ## `memory`
 
