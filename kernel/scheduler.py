@@ -36,7 +36,8 @@ class Scheduler:
         self._stopping = asyncio.Event()
         self._inflight: set[asyncio.Task] = set()
         self._blocked: dict[int, list[int]] = {}
-        self.stats = {"episodes_done": 0, "episodes_failed": 0,
+        self.stats = {"started_at": time.time(),
+                      "episodes_done": 0, "episodes_failed": 0,
                       "blocked_tasks": 0}
 
     # ------------------------------------------------------------------- loop
