@@ -1,33 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[368/500]** commits · **1039 tests green** · self-check passing.
+Progress counter: **[379/500]** commits · **1047 tests green** · self-check passing.
 
-## Wave AJ status (complete)
+## Wave AK status (complete)
 
-1. ✅ kernel: task_started/task_finished events carry the task source
-2. ✅ brain: cache stats gains a `hottest_key` (most-hit entry, digested)
-3. ✅ memory: remember() reports the created_at stamp back to the caller
-4. ✅ security: approval queue expiry is surfaced with a TTL reason, not silently dropped
-5. ✅ interface: /api/status scheduler block carries started_at human form
-6. ✅ interface: telegram /backup shows the newest archive's verified state
-7. ✅ tools: csv_analyze describe reports per-column missing counts
-8. ✅ ops: preflight text output shows per-check durations (diskwatch --json already existed — stale backlog item replaced)
-9. ✅ docs: faq.md entry — "why does my backup show unverified?"
-10. ✅ examples: preflight demo — fake brain tiers rendered offline
+1. ✅ kernel: EventBus exposes a subscriber count for observability
+2. ✅ brain: per-tier served counter (successful completions) in router + bridge stats
+3. ✅ memory: forget() reports whether a keyed memory was actually removed
+4. ✅ security: quarantine stats gains an oldest-item age in human form
+5. ✅ interface: dashboard shows the cache hottest_key in the adapters card
+6. ✅ interface: telegram /health shows the worst check's detail line
+7. ✅ tools: json_query mode=stats reports a depth field alongside nesting
+8. ✅ ops: backup create --tag validates against empty/whitespace tags
+9. ✅ docs: ADR-0011 — approval expiry semantics (TTL reason field)
+10. ✅ examples: csv demo — describe/filter/sort/group offline walkthrough
 
-## Wave AK backlog (next)
+## Wave AL backlog (next)
 
-1. kernel: EventBus exposes a subscriber count for observability
-2. brain: router tier stats gain a requests-served counter per tier
-3. memory: forget() reports whether a keyed memory was actually removed
-4. security: quarantine stats gains an oldest-item age in human form
-5. interface: dashboard shows the cache hottest_key in the adapters card
-6. interface: telegram /health shows the worst check's detail line
-7. tools: json_query mode=stats reports a depth field alongside nesting
-8. ops: backup create --tag validates against empty/whitespace tags
-9. docs: ADR-0011 — approval expiry semantics (TTL reason field)
-10. examples: csv demo — describe/filter/sort/group offline walkthrough
+1. kernel: task cancel publishes a task_cancelled event on the scheduler channel
+2. brain: cache snapshot gains a total saved-tokens line item per model
+3. memory: rename_key reports the affected row count in the audit detail
+4. security: promptguard verdict counters gain a per-band split
+5. interface: dashboard tasks panel shows the task source badge
+6. interface: telegram /audit accepts a --limit argument
+7. tools: csv_analyze gains a head operation with a caller row count
+8. ops: backup verify-all --json emits a machine-readable summary
+9. docs: faq.md entry — what happens when an approval expires
+10. examples: bus demo — publish/subscribe and subscriber_count offline
 
 ## Wave S status (complete)
 
