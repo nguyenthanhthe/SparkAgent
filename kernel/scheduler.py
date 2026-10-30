@@ -171,10 +171,12 @@ class Scheduler:
             # echo the skip reason — a whitespace-only goal would run as
             # an empty episode otherwise
             raise ValueError("goal must not be whitespace-only")
-        task_id = await self.memory.submit_task(goal.strip(), source, **kwargs)
+        trimmed = goal.strip()
+        task_id = await self.memory.submit_task(trimmed, source, **kwargs)
+        # the audit line mirrors the stored goal (trimmed), not the raw input
         self.bus.publish("audit", {"actor": f"scheduler:{source}",
                                    "action": "task.submit",
-                                   "detail": f"#{task_id} {goal[:200]}"})
+                                   "detail": f"#{task_id} {trimmed[:200]}"})
         # wake the loop so one-shot tasks start immediately
         self._stopping.set()
         self._stopping = asyncio.Event()

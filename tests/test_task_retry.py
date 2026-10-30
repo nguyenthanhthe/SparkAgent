@@ -48,7 +48,9 @@ class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
                         embed_dim=64)
         await memory.connect()
         try:
-            scheduler = Scheduler(memory, lambda: None, EventBus(),
+            bus = EventBus()
+            audit_queue = bus.subscribe("audit")
+            scheduler = Scheduler(memory, lambda: None, bus,
                                   poll_seconds=1)
             with self.assertRaises(ValueError) as ctx:
                 await scheduler.submit("   \n\t")
@@ -60,6 +62,14 @@ class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
             task_id = await scheduler.submit("  real goal  ")
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["goal"], "real goal")
+            # the audit line mirrors the trimmed goal, not the raw input
+            events = []
+            while not audit_queue.empty():
+                events.append(audit_queue.get_nowait())
+            entry = next(e for e in events
+                         if e["action"] == "task.submit")
+            self.assertTrue(entry["detail"].startswith(
+                f"#{task_id} real goal"))
         finally:
             await memory.close()
 
