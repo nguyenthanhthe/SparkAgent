@@ -92,6 +92,7 @@ class Table:
                                 "columns": self.columns}
         types = {}
         missing = {}
+        distinct = {}
         for column in self.columns:
             values = [row.get(column, "") for row in self.rows]
             if all(v == "" for v in values):
@@ -101,8 +102,10 @@ class Table:
             else:
                 types[column] = "text"
             missing[column] = sum(1 for v in values if v == "")
+            distinct[column] = len({v for v in values if v != ""})
         info["column_types"] = types
         info["missing"] = missing
+        info["distinct"] = distinct
         return info
 
 

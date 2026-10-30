@@ -74,6 +74,12 @@ class CsvToolTests(unittest.TestCase):
         info = table.describe()
         self.assertEqual(info["missing"], {"name": 1, "score": 1})
 
+    def test_describe_reports_distinct_counts(self):
+        table = Table.parse("region,score\nemea,90\napac,88\nemea,90\n")
+        info = table.describe()
+        # distinct skips missing cells; duplicates collapse
+        self.assertEqual(info["distinct"], {"region": 2, "score": 2})
+
     def test_filter_equality(self):
         emea = self.table.filter("region", "==", "emea")
         self.assertEqual(len(emea.rows), 3)
