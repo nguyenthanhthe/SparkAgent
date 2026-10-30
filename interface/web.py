@@ -331,6 +331,11 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
   h+=`<div style="margin-top:4px;font-size:11px;color:var(--dim)">${esc(checked.trim())}</div>`;
   const hot=(a.cache||{}).hottest_key;
   if(hot){h+=kv('cache hottest',`<span title="digest of the most-hit cache key">${esc(hot.key_hash)} · ${hot.hits} hit${hot.hits===1?'':'s'}</span>`);}
+  const fails=a.recent_failures||{};
+  for(const[name,history]of Object.entries(fails)){
+    if(history.length)h+=kv(name+' failures',
+      `<span style="color:var(--b-warn,#c9a227);font-size:11px" title="${esc(history.join(' | '))}">${history.length} recent</span>`);
+  }
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
 
@@ -943,6 +948,8 @@ def build_web_app(daemon) -> web.Application:
             "cache": daemon.brain.cache_stats(),
             "ping": {**pings, "checked_at": time.strftime(
                 "%Y-%m-%dT%H:%M:%S")},
+            "recent_failures": {name: list(history) for name, history in
+                                adapter_registry.failure_history.items()},
             "catalog": {"available": adapter_registry.available(),
                         "models": models},
         })
