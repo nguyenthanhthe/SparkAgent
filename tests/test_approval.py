@@ -58,6 +58,23 @@ class ApprovalQueueTests(unittest.TestCase):
             self.queue.approve(request.id)
         self.assertIn("expired", str(ctx.exception))
 
+    def test_counters_snapshot_shape(self):
+        first = self.queue.submit("skill", "x")
+        self.queue.submit("spend", "y")
+        self.queue.approve(first.id)
+        snap = self.queue.counters_snapshot()
+        self.assertEqual(snap["submitted"], 2)
+        self.assertEqual(snap["approved"], 1)
+        self.assertEqual(snap["pending_now"], 1)
+        # the snapshot is a copy — mutating it must not touch the queue
+        snap["submitted"] = 99
+        self.assertEqual(self.queue.counters["submitted"], 2)
+        # expiry flows through the snapshot too
+        self.clock.advance(61)
+        snap = self.queue.counters_snapshot()
+        self.assertEqual(snap["expired"], 1)
+        self.assertEqual(snap["pending_now"], 0)
+
     def test_require_approval_error_carries_id(self):
         err = self.queue.require_approval("skill", "needs review")
         self.assertIsInstance(err, ApprovalRequired)

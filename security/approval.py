@@ -115,6 +115,13 @@ class ApprovalQueue:
                 self.counters["expired"] += 1
                 self._notify(request)
 
+    def counters_snapshot(self) -> dict:
+        """The lifecycle counters plus the live queue depth — a copy, so
+        callers cannot mutate the queue's bookkeeping."""
+        self._expire_all()
+        return {**self.counters,
+                "pending_now": len(self.pending())}
+
     # --------------------------------------------------------------- helpers
     def require_approval(self, kind: str, summary: str,
                          detail: dict | None = None) -> ApprovalRequired:
