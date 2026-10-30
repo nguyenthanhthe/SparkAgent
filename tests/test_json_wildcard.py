@@ -50,6 +50,23 @@ class GetPathWildcardTests(unittest.TestCase):
     def test_empty_segments_tolerated(self):
         self.assertEqual(get_path(DATA, ".items..0.name"), "alpha")
 
+    def test_slice_range(self):
+        data = {"items": [{"name": "alpha"}, {"name": "beta"},
+                          {"name": "gamma"}]}
+        self.assertEqual(get_path(data, "items.0:2.name"),
+                         ["alpha", "beta"])
+        self.assertEqual(get_path(data, "items.1:.name"), ["beta", "gamma"])
+        self.assertEqual(get_path(data, "items.:.name"),
+                         ["alpha", "beta", "gamma"])
+
+    def test_slice_with_wildcard_tail(self):
+        data = {"rows": [{"tags": ["a", "b"]}, {"tags": ["c"]}]}
+        self.assertEqual(get_path(data, "rows.:1.tags"), ["a", "b"])
+
+    def test_slice_needs_a_list(self):
+        with self.assertRaises(TypeError):
+            get_path({"a": 1}, "a.0:1")
+
 
 if __name__ == "__main__":
     unittest.main()

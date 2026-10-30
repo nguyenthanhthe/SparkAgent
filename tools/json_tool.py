@@ -35,6 +35,9 @@ def get_path(data: Any, path: str) -> Any:
     return _descend(data, _split_path(path), path)
 
 
+_SLICE_RE = re.compile(r"^(\d*):(\d*)$")
+
+
 def _descend(node: Any, segments: list[str], full_path: str) -> Any:
     if not segments:
         return node
@@ -50,6 +53,26 @@ def _descend(node: Any, segments: list[str], full_path: str) -> Any:
         results = [_descend(child, rest, full_path) for child in children]
         if rest:
             # spread semantics: deeper wildcards/paths merge into one list
+            flat: list[Any] = []
+            for result in results:
+                if isinstance(result, list):
+                    flat.extend(result)
+                else:
+                    flat.append(result)
+            results = flat
+        return results
+    slice_match = _SLICE_RE.match(segment)
+    if slice_match is not None:
+        if not isinstance(node, list):
+            raise TypeError(f"slice needs a list, got "
+                            f"{type(node).__name__} at {full_path!r}")
+        start = int(slice_match.group(1)) if slice_match.group(1) else None
+        stop = int(slice_match.group(2)) if slice_match.group(2) else None
+        results = [_descend(child, rest, full_path)
+                   for child in node[start:stop]]
+        if rest:
+            # same spread semantics as the wildcard: deeper paths
+            # merge into one flat list
             flat: list[Any] = []
             for result in results:
                 if isinstance(result, list):
