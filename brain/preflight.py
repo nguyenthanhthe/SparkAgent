@@ -85,8 +85,11 @@ def main(argv: list[str] | None = None) -> int:
         for tier in ("local", "remote"):
             entry = report[tier]
             state = "ok" if entry["ok"] else "down"
+            duration = entry.get("duration_ms")
+            timing = f" in {duration:g}ms" if duration is not None else ""
             print(f"{tier:8s} {state:5s} "
-                  f"model={entry.get('model')} ({entry['detail']})")
+                  f"model={entry.get('model')} ({entry['detail']}"
+                  f"{timing})")
         if "chat" in report:
             chat = report["chat"]
             if chat["ok"]:

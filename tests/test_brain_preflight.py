@@ -89,6 +89,17 @@ class PreflightMainTests(unittest.TestCase):
         with patch("brain.bridge.Brain", lambda *a, **k: fake):
             self.assertEqual(main([]), 1)
 
+    def test_text_output_shows_durations(self):
+        import contextlib
+        import io
+        from brain.preflight import main
+        fake = _FakeBrain(local_ok=True, remote_ok=False)
+        with patch("brain.bridge.Brain", lambda *a, **k: fake):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                main([])
+        self.assertIn("ms)", buffer.getvalue())
+
     def test_exit_0_when_local_ok(self):
         from brain.preflight import main
         fake = _FakeBrain(local_ok=True, remote_ok=False)
