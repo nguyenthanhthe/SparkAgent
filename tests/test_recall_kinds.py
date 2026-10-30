@@ -132,6 +132,16 @@ class RecallKindFilterTests(unittest.TestCase):
             self.assertEqual(self.mem.last_recall_pool_size, 0)
         run(scenario())
 
+    def test_recall_k_zero_is_a_pool_probe(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("gpu thermal note")
+            hits = await self.mem.recall("gpu thermal", k=0)
+            self.assertEqual(hits, [])
+            # the scan still happened — the pool size is reported
+            self.assertEqual(self.mem.last_recall_pool_size, 1)
+        run(scenario())
+
     def test_created_after_validates_format(self):
         async def scenario():
             await self.mem.connect()

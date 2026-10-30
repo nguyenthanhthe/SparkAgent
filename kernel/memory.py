@@ -343,7 +343,10 @@ class Memory:
         Filtering happens in SQL, parameter-bound. Digest markers stay
         excluded unless explicitly asked for via ``kinds``.
         """
-        k = k or self.recall_k
+        # an explicit k=0 is honored (pool probe: scan happens, the
+        # pool size lands in last_recall_pool_size, no hits returned);
+        # only None falls back to the default
+        k = self.recall_k if k is None else k
         query_vec = await self.embed(query)
 
         def op(conn: sqlite3.Connection) -> list[MemoryHit]:
