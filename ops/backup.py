@@ -324,7 +324,12 @@ def main(argv: list[str] | None = None) -> int:
                           "pruned": pruned}))
         return 0
     if args.cmd == "verify":
-        manifest = verify_backup(Path(args.archive))
+        try:
+            manifest = verify_backup(Path(args.archive))
+        except BackupError as exc:
+            print(json.dumps({"ok": False, "error": str(exc),
+                              "archive": args.archive}))
+            return 1
         print(json.dumps({"ok": True, "files": manifest["file_count"],
                           "digest": manifest["digest"],
                           "tag": manifest.get("tag")}))

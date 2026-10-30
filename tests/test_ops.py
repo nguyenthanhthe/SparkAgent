@@ -35,6 +35,24 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(manifest["file_count"], 3)
         self.assertEqual(manifest["digest"], result.digest)
 
+    def test_cli_verify_corrupt_archive_is_machine_readable(self):
+        import contextlib
+        import io
+        import json
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        corrupt = output / "sparkagent-backup-00000000-000000.zip"
+        with zipfile.ZipFile(corrupt, "w") as archive:
+            archive.writestr("blob.txt", "not a sparkagent backup")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify", str(corrupt)])
+        self.assertEqual(rc, 1)
+        payload = json.loads(buffer.getvalue())
+        self.assertFalse(payload["ok"])
+        self.assertIn("manifest", payload["error"].lower())
+
     def test_tampered_archive_detected(self):
         data = make_data_dir()
         result = create_backup(data, data.parent / "backups")
