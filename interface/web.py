@@ -895,6 +895,10 @@ def build_web_app(daemon) -> web.Application:
                 # the one-stop report; no new probes are fired
                 "recent_ms": {name: list(history) for name, history in
                               adapter_registry.latency_history.items()},
+                # last-5 probe failure details per adapter (ok=False)
+                "recent_failures": {name: list(history) for name, history
+                                    in adapter_registry.failure_history
+                                    .items()},
             },
             "cache": daemon.brain.cache_stats(),
             "cache_top_hits": daemon.brain.cache.top_hits(limit=5),

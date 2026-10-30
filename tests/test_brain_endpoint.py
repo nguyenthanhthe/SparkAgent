@@ -88,6 +88,10 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             recent = body["adapters"]["recent_ms"]
             self.assertIn("mock", recent)
             self.assertEqual(recent["mock"], after)
+            # the failure ledger rides the same section (empty here —
+            # the mock probe succeeded)
+            self.assertIn("recent_failures", body["adapters"])
+            self.assertNotIn("mock", body["adapters"]["recent_failures"])
             # catalog names ride along, history is keyed by adapter name
             self.assertIn("mock", body["adapters"]["available"])
         finally:

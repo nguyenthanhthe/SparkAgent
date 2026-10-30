@@ -25,6 +25,8 @@ class AdapterRegistry:
         self._factories: dict[str, Factory] = {}
         # name -> last-5 latency samples (ms), recorded by ping()
         self.latency_history: dict[str, list[float]] = {}
+        # name -> last-5 probe failure details, recorded by ping()
+        self.failure_history: dict[str, list[str]] = {}
 
     def register(self, name: str, factory: Factory,
                  *, replace: bool = False) -> None:
@@ -60,6 +62,10 @@ class AdapterRegistry:
             probe = await adapter.ping()
         finally:
             await adapter.close()
+        if probe.get("ok") is False:
+            failures = self.failure_history.setdefault(name, [])
+            failures.append(str(probe.get("detail") or "probe failed")[:120])
+            self.failure_history[name] = failures[-5:]
         if probe.get("latency_ms") is not None:
             history = self.latency_history.setdefault(name, [])
             history.append(float(probe["latency_ms"]))

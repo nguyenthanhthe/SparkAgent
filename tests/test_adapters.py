@@ -259,6 +259,26 @@ class AdapterRegistryTests(unittest.IsolatedAsyncioTestCase):
         probe = await registry.ping("x", {}, SecretVault())
         self.assertEqual(len(probe["recent_ms"]), 5)
 
+    async def test_registry_ping_records_failures(self):
+        class _SickAdapter:
+            model = "sick"
+
+            async def ping(self):
+                return {"ok": False, "detail": "connection refused",
+                        "latency_ms": None}
+
+            async def close(self):
+                pass
+
+        registry = AdapterRegistry()
+        registry.register("sick", lambda cfg, vault: _SickAdapter())
+        for _ in range(7):
+            probe = await registry.ping("sick", {}, SecretVault())
+            self.assertFalse(probe["ok"])
+        failures = registry.failure_history["sick"]
+        self.assertEqual(len(failures), 5)
+        self.assertEqual(failures[-1], "connection refused")
+
 
 if __name__ == "__main__":
     unittest.main()
