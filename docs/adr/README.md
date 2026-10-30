@@ -16,6 +16,7 @@ decision supersedes an old one via a new ADR.
 | [0008](0008-conditional-fetch-and-cache-semantics.md) | Conditional fetch and cache semantics for web tools | accepted |
 | [0009](0009-consolidation-idempotency.md) | Digest dedupe and consolidation idempotency | accepted |
 | [0010](0010-one-guarded-path-per-capability.md) | One guarded path per capability | accepted |
+| [0011](0011-approval-expiry-semantics.md) | Approval expiry semantics (TTL reason field) | accepted |
 
 Format: one file per decision, `NNNN-slug.md`, sections **Context /
 Decision / Consequences / Alternatives**.
