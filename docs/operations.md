@@ -44,6 +44,8 @@ volumes.
 
 ## Backups
 
+Full drill: [runbook-backups.md](runbook-backups.md)
+
 ```
 python -c "from ops.backup import create_backup; from pathlib import Path; \
     print(create_backup(Path('data'), Path('backups')))"
@@ -52,6 +54,13 @@ python -c "from ops.backup import create_backup; from pathlib import Path; \
 Archives are zip + manifest with per-file SHA-256 and a set digest;
 restore verifies every hash before writing (`restore_backup`). The vault
 file is excluded — carry the master key separately.
+
+## Quarantined content
+
+Inspect, release, and expire parked blobs via the operator drill:
+[runbook-quarantine.md](runbook-quarantine.md). The dashboard
+[Quarantine] panel and `GET /api/quarantine` list what is parked; a
+release is audited with the content length only.
 
 ## Upgrades
 
