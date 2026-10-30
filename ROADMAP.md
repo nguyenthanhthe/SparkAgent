@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[457/500]** commits · **1095 tests green** · self-check passing.
+Progress counter: **[468/500]** commits · **1100 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -55,7 +55,31 @@ Progress counter: **[457/500]** commits · **1095 tests green** · self-check pa
 9. ✅ docs: faq.md entry — why quarantine records carry a source label
 10. ✅ examples: filter demo — the full where-term grammar offline
 
-## Wave AS backlog (next)
+## Wave AS status (complete)
+
+1. ✅ kernel: task_finished carries the retry_backoff_s when a transient failure requeues
+2. ✅ brain: tier_details stamps last_success_at per tier
+3. ✅ memory: recall snippet honors a caller-supplied highlight needle
+4. ✅ security: quarantine put() rejects a whitespace-only reason
+5. ✅ interface: task drawer renders cancelled as an error badge
+6. ✅ interface: telegram /db usage hint lists live per-table row counts
+7. ✅ tools: csv aggregate errors name the numeric columns
+8. ✅ ops: backup drill lands its outcome in the audit trail via --data-dir
+9. ✅ docs: api.md documents POST /api/memories/rename
+10. ✅ examples: retry demo — backoff schedule + recovery walkthrough offline
+
+## Wave AT backlog (next)
+
+1. kernel: task submit audits the depends_on ids alongside the goal
+2. brain: /api/brain lifecycle carries the bus overflow counter
+3. memory: recall exposes its candidate-pool size for tuning
+4. security: quarantine stats gains a source breakdown
+5. interface: dashboard cost panel shows the saved tokens per model
+6. interface: telegram /skills filter matches on status too (status=x)
+7. tools: json_query mode=search reports the match count alongside
+8. ops: backup prune audits what it removed via --data-dir
+9. docs: configuration.md documents the brain.daily_budget_usd surface
+10. examples: stats demo — json leaves_by_key rendered offline
 
 1. kernel: task retry backoff is visible in the task_finished event
 2. brain: tier_details gains a last_success_at stamp
