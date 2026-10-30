@@ -185,6 +185,21 @@ class BackupTests(unittest.TestCase):
     def test_cli_verify_all_quiet(self):
         import contextlib
         import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        create_backup(data, output)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output),
+                       "--quiet"])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertTrue(report["ok"])
+        self.assertIn("T", report["checked_at"])
+
+    def test_cli_verify_all_quiet_slowest(self):
+        import contextlib
+        import io
         import shutil
         data = make_data_dir()
         output = data.parent / "backups"

@@ -240,17 +240,19 @@ def _verify_all(output_dir: Path, quiet: bool = False) -> int:
                             "error": str(exc)[:200],
                             "seconds": round(time.monotonic() - started, 2)})
     ok = all(item["ok"] for item in results)
+    checked_at = time.strftime("%Y-%m-%dT%H:%M:%S")
     if quiet:
         failed = [item["archive"] for item in results if not item["ok"]]
         slowest = max(results, key=lambda item: item.get("seconds", 0)) \
             if results else None
         print(json.dumps({"ok": ok, "count": len(results),
-                          "failed": failed,
+                          "failed": failed, "checked_at": checked_at,
                           "slowest": {"archive": slowest["archive"],
                                       "seconds": slowest["seconds"]}
                           if slowest else None}))
         return 0 if ok else 1
     print(json.dumps({"ok": ok, "count": len(results),
+                      "checked_at": checked_at,
                       "archives": results}))
     return 0 if ok else 1
 
