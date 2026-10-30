@@ -111,9 +111,9 @@ class ResponseCache:
     def snapshot(self) -> dict:
         with self._lock:
             now = self.clock.now()
-            oldest = min((entry.stored_at
-                          for entry in self._entries.values()),
-                         default=None)
+            ages = [now - entry.stored_at
+                    for entry in self._entries.values()]
+            oldest = min(ages, default=None)
             hottest = max(
                 (item for item in self._entries.items() if item[1].hits > 0),
                 key=lambda item: item[1].hits, default=None)
@@ -121,10 +121,12 @@ class ResponseCache:
                                 hottest[0].encode("utf-8")).hexdigest()[:12],
                             "hits": hottest[1].hits}
                            if hottest else None)
+        avg_age = (round(sum(ages) / len(ages), 1) if ages else None)
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3),
-                "oldest_entry_age_s": (round(now - oldest, 1)
+                "oldest_entry_age_s": (round(oldest, 1)
                                        if oldest is not None else None),
+                "average_entry_age_s": avg_age,
                 "hottest_key": hottest_key,
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),

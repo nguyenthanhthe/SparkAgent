@@ -53,6 +53,15 @@ class HottestKeyTests(unittest.TestCase):
         self.assertEqual(cache.snapshot()["saved_tokens_by_model"],
                          {"unknown": 0})
 
+    def test_average_entry_age(self):
+        cache = ResponseCache(ttl_seconds=1000, clock=FakeClock())
+        self.assertIsNone(cache.snapshot()["average_entry_age_s"])
+        cache.put("a", "text", {"model": "m"})
+        cache.clock.advance(30)
+        cache.put("b", "text", {"model": "m"})
+        # a is 30s old, b is 0s old -> average 15s
+        self.assertEqual(cache.snapshot()["average_entry_age_s"], 15.0)
+
 
 if __name__ == "__main__":
     unittest.main()
