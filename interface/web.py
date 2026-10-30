@@ -322,6 +322,8 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
     }
   }
   h+=`<div style="margin-top:4px;font-size:11px;color:var(--dim)">${esc(checked.trim())}</div>`;
+  const hot=(a.cache||{}).hottest_key;
+  if(hot){h+=kv('cache hottest',`<span title="digest of the most-hit cache key">${esc(hot.key_hash)} · ${hot.hits} hit${hot.hits===1?'':'s'}</span>`);}
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
 
