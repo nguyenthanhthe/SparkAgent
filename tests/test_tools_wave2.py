@@ -2,7 +2,7 @@ import unittest
 
 from tools.csv_tool import CsvError, Table
 from tools.json_tool import _depth, get_path, parse, safe_dump, search, \
-    shape, stats
+    shape, stats, top_keys
 from tools.stats_tool import (StatsError, linear_regression, mean, median,
                               moving_average, pearson, quantile, stdev,
                               summary, variance, zscore_outliers)
@@ -46,6 +46,14 @@ class JsonToolTests(unittest.TestCase):
         self.assertEqual(_depth([{"a": 1}]), 2)
         self.assertEqual(_depth("scalar"), 0)
         self.assertEqual(_depth({}), 1)   # a container with no children
+
+    def test_top_keys_prefix_filter(self):
+        data = {"gpu_temp": 1, "gpu_fans": 2, "cpu_temp": 3}
+        self.assertEqual(top_keys(data, prefix="gpu"),
+                         {"gpu_temp": "int", "gpu_fans": "int"})
+        # case-insensitive, no prefix returns everything
+        self.assertEqual(len(top_keys(data, prefix="GPU")), 2)
+        self.assertEqual(len(top_keys(data)), 3)
 
     def test_safe_dump_roundtrip(self):
         text = safe_dump({"k": [1, 2]})

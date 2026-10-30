@@ -174,13 +174,16 @@ def where_help() -> dict:
     }
 
 
-def top_keys(data: Any) -> dict[str, str]:
+def top_keys(data: Any, prefix: str = "") -> dict[str, str]:
     """Top-level dict keys mapped to their value type names — the
-    fastest way to answer 'what's in this object?'."""
+    fastest way to answer 'what's in this object?'. With ``prefix``,
+    only keys starting with it (case-insensitive) are returned."""
     if not isinstance(data, dict):
         return {}
+    needle = prefix.lower()
     return {str(key): type(value).__name__
-            for key, value in list(data.items())[:20]}
+            for key, value in list(data.items())[:20]
+            if not needle or str(key).lower().startswith(needle)}
 
 
 def _leaf_count(node: Any) -> int:
