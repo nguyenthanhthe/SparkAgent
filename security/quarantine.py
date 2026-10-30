@@ -101,9 +101,16 @@ class QuarantineStore:
             by_reason[kind] = by_reason.get(kind, 0) + 1
         top_reasons = dict(sorted(by_reason.items(),
                                   key=lambda kv: -kv[1])[:3])
+        oldest_human = None
+        if oldest_age_s is not None:
+            hours, remainder = divmod(oldest_age_s, 3600)
+            oldest_human = (f"{hours}h{remainder // 60:02d}m" if hours
+                            else f"{oldest_age_s // 60}m"
+                            f"{oldest_age_s % 60:02d}s")
         return {"items": len(items),
                 "bytes": sum(item.get("size_bytes", 0) for item in items),
                 "oldest_age_s": oldest_age_s,
+                "oldest_human": oldest_human,
                 "top_reasons": top_reasons}
 
     def release(self, item_id: str) -> str:

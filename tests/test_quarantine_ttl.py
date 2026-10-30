@@ -58,6 +58,24 @@ class QuarantineStatsTests(unittest.TestCase):
         self.assertEqual(stats["items"], 1)
         self.assertEqual(stats["bytes"], len(b"body one"))
         self.assertGreaterEqual(stats["oldest_age_s"], 0)
+        # human form rides alongside: seconds-old shows as NmNNs
+        import re
+        self.assertRegex(stats["oldest_human"], r"^\d+m\d{2}s$")
+
+    def test_stats_oldest_human_hours_form(self):
+        import os
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        store.put("aged body", "r1")
+        # backdate the record by 3 hours so the human form flips to NhMMm
+        meta_path = next(store.root.glob("*.json"))
+        import json
+        record = json.loads(meta_path.read_text(encoding="utf-8"))
+        record["created_at"] = time.strftime(
+            "%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 3 * 3600))
+        meta_path.write_text(json.dumps(record), encoding="utf-8")
+        os.utime(meta_path)
+        stats = store.stats()
+        self.assertRegex(stats["oldest_human"], r"^3h\d{2}m$")
 
     def test_stats_top_reasons(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))
@@ -80,6 +98,7 @@ class QuarantineStatsTests(unittest.TestCase):
         self.assertEqual(stats["items"], 0)
         self.assertEqual(stats["bytes"], 0)
         self.assertIsNone(stats["oldest_age_s"])
+        self.assertIsNone(stats["oldest_human"])
         self.assertEqual(stats["top_reasons"], {})
 
 
