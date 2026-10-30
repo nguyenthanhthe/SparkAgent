@@ -49,6 +49,12 @@ class FilterRowsTests(unittest.TestCase):
         self.assertEqual(len(filter_rows(rows, "enabled=0")), 1)
         self.assertEqual(len(filter_rows(rows, "enabled!=1")), 1)
 
+    def test_ends_with_operator(self):
+        rows = [{"path": "report.pdf"}, {"path": "notes.md"},
+                {"path": "DRAFT.PDF"}]
+        self.assertEqual([r["path"] for r in filter_rows(rows, "path$=.pdf")],
+                         ["report.pdf", "DRAFT.PDF"])
+
     def test_contains_operator(self):
         result = filter_rows(ROWS, "name~=lic")
         self.assertEqual([r["name"] for r in result], ["alice"])

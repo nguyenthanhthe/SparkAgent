@@ -166,7 +166,8 @@ def where_help() -> dict:
         "operators": {"=": "equal", "!=": "not equal", ">": "greater",
                       "<": "less", ">=": "at least", "<=": "at most",
                       "~=": "contains (case-insensitive)",
-                      "^=": "starts with (case-insensitive)"},
+                      "^=": "starts with (case-insensitive)",
+                      "$=": "ends with (case-insensitive)"},
         "coercion": "numeric fields compare numerically; booleans match "
                     "1/0/true/false; everything else compares as string",
         "examples": ["age>=30", "status!=done", "name~=bob", "enabled=1",
@@ -199,7 +200,7 @@ def safe_dump(data: Any, indent: int | None = 2) -> str:
 
 
 # --------------------------------------------------------------- row filter
-_TERM_RE = re.compile(r"^\s*([\w.*\[\]-]+)\s*(>=|<=|!=|~=|\^=|>|<|=)\s*(.*?)\s*$")
+_TERM_RE = re.compile(r"^\s*([\w.*\[\]-]+)\s*(>=|<=|!=|~=|\^=|\$=|>|<|=)\s*(.*?)\s*$")
 _OPS = {
     "=": lambda a, b: a == b,
     "!=": lambda a, b: a != b,
@@ -209,6 +210,7 @@ _OPS = {
     "<=": lambda a, b: a <= b,
     "~=": lambda a, b: str(b).lower() in str(a).lower(),
     "^=": lambda a, b: str(a).lower().startswith(str(b).lower()),
+    "$=": lambda a, b: str(a).lower().endswith(str(b).lower()),
 }
 MAX_FILTER_TERMS = 8
 
