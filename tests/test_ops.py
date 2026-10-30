@@ -162,6 +162,39 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(removed, 2)
         self.assertEqual(len(list(output.glob("*.zip"))), 1)
 
+    def test_cli_prune_audits_removals(self):
+        import contextlib
+        import io
+        import sqlite3
+        data = make_data_dir()
+        (data / "sparkagent.db").unlink()
+        conn = sqlite3.connect(data / "sparkagent.db")
+        conn.execute("CREATE TABLE audit (id INTEGER PRIMARY KEY "
+                     "AUTOINCREMENT, created_at TEXT NOT NULL, "
+                     "actor TEXT NOT NULL, action TEXT NOT NULL, "
+                     "detail TEXT)")
+        conn.commit()
+        conn.close()
+        output = data.parent / "backups"
+        for name in ("sparkagent-backup-20260101-000001.zip",
+                     "sparkagent-backup-20260101-000002.zip",
+                     "sparkagent-backup-20260101-000003.zip"):
+            output.mkdir(exist_ok=True)
+            (output / name).write_bytes(b"stub")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["prune", "--output-dir", str(output), "--keep", "1",
+                       "--data-dir", str(data)])
+        self.assertEqual(rc, 0)
+        conn = sqlite3.connect(data / "sparkagent.db")
+        try:
+            row = conn.execute("SELECT detail FROM audit "
+                               "WHERE action = 'backup.prune'").fetchone()
+        finally:
+            conn.close()
+        self.assertIsNotNone(row)
+        self.assertIn("removed=2", row[0])
+
     def test_cli_prune_dry_run(self):
         import contextlib
         import io

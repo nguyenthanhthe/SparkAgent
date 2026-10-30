@@ -307,6 +307,9 @@ def main(argv: list[str] | None = None) -> int:
     p_verify_all.add_argument("--quiet", action="store_true",
                               help="single-line summary (cron-friendly)")
     p_prune = sub.add_parser("prune", help="apply retention to the dir")
+    p_prune.add_argument("--data-dir", default=None,
+                         help="data dir whose sparkagent.db receives "
+                              "the audit row (optional)")
     p_prune.add_argument("--output-dir", required=True)
     p_prune.add_argument("--keep", type=int, default=10)
     p_prune.add_argument("--dry-run", action="store_true",
@@ -388,6 +391,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"removed": removed, "keep": args.keep,
                           "dry_run": args.dry_run,
                           "would_remain": total - removed}))
+        # actual removals (not dry runs) land in the audit trail
+        if removed and not args.dry_run and args.data_dir:
+            db_path = Path(args.data_dir) / "sparkagent.db"
+            if db_path.exists():
+                audit_log(db_path, "ops.backup", "backup.prune",
+                          f"removed={removed} keep={args.keep}")
         return 0
     if args.cmd == "drill":
         try:
