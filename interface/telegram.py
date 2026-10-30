@@ -289,6 +289,14 @@ class TelegramGateway:
                         "episodes, steps, memories, tasks, audit")
             where: dict[str, str] = {}
             limit = 10
+            # --limit N flag form (the inline `limit=N` also works)
+            if "--limit" in rest:
+                before, _, after = rest.partition("--limit")
+                token = after.strip().split()[0] if after.strip() else ""
+                if not token.isdigit():
+                    return "usage: /db <table> [col=value ...] [--limit N]"
+                limit = min(50, max(1, int(token)))
+                rest = before + after.replace(token, "", 1)
             for token in rest.split():
                 column, sep, value = token.partition("=")
                 if sep and column.lower() != "limit":

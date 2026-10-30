@@ -375,6 +375,44 @@ class TelegramAuditLimitTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("usage:", reply)
 
 
+class TelegramDbLimitTests(unittest.IsolatedAsyncioTestCase):
+    async def _lookup_reply(self, text):
+        import tools.sqlite_query as sqlite_mod
+        gateway = make_gateway()
+        seen = {}
+
+        async def fake_lookup(db_path, table, where=None, limit=10):
+            seen.update(table=table, where=where, limit=limit)
+            return {"rows": [{"id": 1}]}
+
+        gateway.daemon.cfg = SimpleNamespace(
+            root=Path(tempfile.mkdtemp()), db_path="fake.db",
+            get=lambda dotted, default=None: default)
+        with mock.patch.object(sqlite_mod, "lookup", fake_lookup), \
+                mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": text})
+            return send.call_args[0][1], seen
+
+    async def test_db_limit_flag_form(self):
+        reply, seen = await self._lookup_reply("/db tasks --limit 3")
+        self.assertIn("tasks: 1 row(s)", reply)
+        self.assertEqual(seen["limit"], 3)
+
+    async def test_db_limit_flag_clamped(self):
+        _, seen = await self._lookup_reply("/db tasks --limit 500")
+        self.assertEqual(seen["limit"], 50)
+
+    async def test_db_limit_flag_with_where(self):
+        reply, seen = await self._lookup_reply(
+            "/db tasks status=pending --limit 2")
+        self.assertEqual(seen["where"], {"status": "pending"})
+        self.assertEqual(seen["limit"], 2)
+
+    async def test_db_limit_flag_bad_value(self):
+        reply, _ = await self._lookup_reply("/db tasks --limit abc")
+        self.assertIn("usage:", reply)
+
+
 class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
     async def _reply_with(self, skills, text="/skills"):
         gateway = make_gateway()
