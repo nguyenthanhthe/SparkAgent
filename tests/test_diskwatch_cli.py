@@ -92,6 +92,15 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual([item["dir"] for item in body["subdirs_top"]],
                          ["logs", "quarantine"])
 
+    def test_warn_level_names_the_prune_target(self):
+        data = self.tmp / "data"
+        (data / "logs").mkdir(parents=True)
+        (data / "logs" / "big.log").write_bytes(b"x" * 6000)
+        code, out = run_main("--data-dir", str(data),
+                             "--warn-mb", "0.004")
+        self.assertEqual(code, 1)
+        self.assertIn("prune target — logs", out)
+
 
 if __name__ == "__main__":
     unittest.main()

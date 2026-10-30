@@ -118,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"level    : {report.level}")
         for item in top:
             print(f"  {item['dir']:20s} {item['bytes'] / MB:8.1f} MB")
+        if report.level == "warn" and top:
+            print(f"tip      : prune target — {top[0]['dir']} "
+                  f"({top[0]['bytes'] / MB:.1f} MB), the largest subdir")
         if report.level == "critical":
             print("tip      : prune logs/quarantine, then rerun; a "
                   "runaway skill is the usual cause (check the audit "
