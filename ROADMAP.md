@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[480/500]** commits · **1107 tests green** · self-check passing.
+Progress counter: **[491/500]** commits · **1115 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -81,7 +81,31 @@ Progress counter: **[480/500]** commits · **1107 tests green** · self-check pa
 9. ✅ docs: configuration.md explains the daily budget veto (via the generator)
 10. ✅ examples: stats demo — leaves_by_key rendered offline
 
-## Wave AU backlog (next)
+## Wave AU status (complete)
+
+1. ✅ kernel: task_finished events carry the agent's model tier
+2. ✅ brain: cache snapshot reports the oldest-hit age
+3. ✅ memory: recall honors explicit k=0 as a candidate-pool probe
+4. ✅ security: quarantine get() exposes the record age in human form
+5. ✅ interface: task drawer shows the task source (no episode-task-id link exists — stale item substituted)
+6. ✅ interface: telegram /audit accepts an --action filter
+7. ✅ tools: json_query wildcard paths honor slice ranges
+8. ✅ ops: diskwatch warn level names the prune target
+9. ✅ docs: faq.md entry — what the bus overflow counter means
+10. ✅ examples: quarantine demo — source breakdown offline
+
+## Wave AV backlog (next)
+
+1. kernel: task_started event carries the task priority
+2. brain: /api/adapters pings carry a checked_at per probe
+3. memory: recall snippet honors a width of 0 (no snippet work at all)
+4. security: approval request_to_dict carries the requested summary kind
+5. interface: dashboard skills pending badge shows the pending count
+6. interface: telegram /blocked gains an --all flag beyond the limit
+7. tools: csv_analyze filter validates the op before the column
+8. ops: backup verify prints the archive byte size
+9. docs: testing.md documents the gated-commit chain verbatim
+10. examples: wildcard demo — slice ranges + spread offline
 
 1. kernel: task_finished events carry the agent's model tier
 2. brain: cache snapshot gains an oldest-hit age (how stale can a served answer be)
