@@ -264,12 +264,13 @@ function epBadge(st){return st==='success'?badge('b-ok',st):
   st==='failed'?badge('b-err',st):badge('b-warn',st)}
 async function refreshEpisodes(){try{const payload=await api('/api/episodes?limit=15');
   const eps=payload.items||payload||[];
-  $('episodes').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th>tags</th><th></th></tr>'+
+  $('episodes').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th>steps</th><th>tags</th><th></th></tr>'+
    (eps.length?eps.map(e=>`<tr><td>${e.id}</td><td>${esc(e.goal.slice(0,80))}</td>
     <td>${epBadge(e.status)}</td>
+    <td style="color:var(--dim)">${e.steps??'—'}</td>
     <td>${(e.tags||[]).map(t=>badge('b-dim',esc(t))).join(' ')||'<span style="color:var(--dim)">—</span>'}</td>
     <td><button class="small" onclick="showEpisode(${e.id})">view</button></td></tr>`).join('')
-    :'<tr><td colspan="5" style="color:var(--dim)">no episodes yet</td></tr>');
+    :'<tr><td colspan="6" style="color:var(--dim)">no episodes yet</td></tr>');
 }catch(e){}}
 async function showEpisode(id){try{const d=await api('/api/episodes/'+id);
   $('epdetail').style.display='block';
