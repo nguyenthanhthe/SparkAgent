@@ -67,6 +67,8 @@ class EventBus:
             try:
                 queue.get_nowait()  # drop the oldest entry
                 queue.put_nowait(data)
+                from kernel.metrics import REGISTRY
+                REGISTRY.incr("bus_overflow_total")
             except (asyncio.QueueEmpty, asyncio.QueueFull):
                 pass
 

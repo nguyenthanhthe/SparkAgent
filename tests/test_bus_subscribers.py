@@ -30,5 +30,21 @@ class SubscriberCountTests(unittest.TestCase):
         self.assertEqual(bus.subscriber_count(), 0)
 
 
+class OverflowCounterTests(unittest.TestCase):
+    def test_drop_oldest_overflow_is_counted(self):
+        from kernel.metrics import REGISTRY
+        bus = EventBus(maxsize=2)
+        queue = bus.subscribe("logs")
+        before = REGISTRY.counter("bus_overflow_total")
+        for i in range(5):          # 3 overflows on a 2-slot queue
+            bus.publish("logs", {"i": i})
+        drained = []
+        while not queue.empty():
+            drained.append(queue.get_nowait())
+        self.assertEqual(drained, [{"i": 3}, {"i": 4}])
+        self.assertEqual(REGISTRY.counter("bus_overflow_total"),
+                         before + 3)
+
+
 if __name__ == "__main__":
     unittest.main()
