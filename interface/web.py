@@ -938,9 +938,11 @@ def build_web_app(daemon) -> web.Application:
                     "openai_compat": dict(daemon.cfg.section("brain.remote"))}
         pings = {}
         for name, section in sections.items():
+            checked_at = time.strftime("%Y-%m-%dT%H:%M:%S")
             if name in skip:
                 pings[name] = {"ok": None, "detail": "skipped by config",
-                               "latency_ms": None}
+                               "latency_ms": None,
+                               "checked_at": checked_at}
                 continue
             try:
                 pings[name] = await adapter_registry.ping(name, section,
@@ -949,6 +951,7 @@ def build_web_app(daemon) -> web.Application:
                 pings[name] = {"ok": False,
                                "detail": f"{type(exc).__name__}: {exc}",
                                "latency_ms": None}
+            pings[name]["checked_at"] = checked_at
         models = {"ollama": daemon.brain.local.model,
                   "openai_compat": daemon.brain.remote.model}
         return web.json_response({

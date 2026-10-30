@@ -129,6 +129,10 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(body["ping"]["mock"]["ok"])
             self.assertIn("latency_ms", body["ping"]["mock"])
             self.assertIn("checked_at", body["ping"])
+            # every probe carries its own stamp (mock ran, ollama may
+            # be down, but both were *probed* at a knowable moment)
+            self.assertIn("T", body["ping"]["mock"]["checked_at"])
+            self.assertIn("T", body["ping"]["ollama"]["checked_at"])
             self.assertIn("models", body["catalog"])
             self.assertTrue(body["catalog"]["models"]["openai_compat"])
         finally:
