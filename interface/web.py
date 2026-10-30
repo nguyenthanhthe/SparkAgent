@@ -168,6 +168,8 @@ async function refreshStatus(){try{const s=await api('/api/status');
   $('system').innerHTML=g;
   $('sched').innerHTML=kv('episodes done',s.scheduler.episodes_done)
     +kv('episodes failed',s.scheduler.episodes_failed)
+    +(s.scheduler.episodes_failed_transient
+      ?kv('transient (requeued)',s.scheduler.episodes_failed_transient):'')
     +kv('blocked tasks',s.scheduler.blocked_tasks??0)
     +kv('tools',s.tools?s.tools.length:0)
     +kv('skills pending',(s.skills_pending||[]).length);
