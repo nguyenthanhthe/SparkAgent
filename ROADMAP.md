@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[423/500]** commits · **1077 tests green** · self-check passing.
+Progress counter: **[435/500]** commits · **1084 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -16,7 +16,31 @@ Progress counter: **[423/500]** commits · **1077 tests green** · self-check pa
 9. ✅ docs: runbook-backups cross-links the FAQ unverified entry
 10. ✅ examples: approval counters demo — queue lifecycle offline
 
-## Wave AP backlog (next)
+## Wave AP status (complete)
+
+1. ✅ kernel: task_finished event carries the episode step count
+2. ✅ brain: adapter registry keeps the last 5 probe failures; /api/brain lists them
+3. ✅ memory: rename_key refuses an existing target key (no silent merge)
+4. ✅ security: request_to_dict carries decided_at (observers already fired on expiry — stale item substituted)
+5. ✅ interface: dashboard uptime line shows the agent version
+6. ✅ interface: telegram /tasks accepts a validated --status filter
+7. ✅ tools: json_query mode=keys honors a case-insensitive prefix filter
+8. ✅ ops: create --verify-immediately fails with JSON ok=false instead of a traceback
+9. ✅ docs: architecture capability table gains the event bus row
+10. ✅ examples: diskwatch demo — level + subdirectory breakdown offline
+
+## Wave AQ backlog (next)
+
+1. kernel: task pause/resume events carry the task source
+2. brain: cache snapshot gains a hit-rate-per-model split
+3. memory: forget() on a missing key distinguishes from a forgotten empty key
+4. security: quarantine release() returns the record's reason for the audit trail
+5. interface: dashboard adapters card shows the probe failure ledger
+6. interface: telegram /backup --tag filter narrows the listing
+7. tools: json_query mode=filter gains a case-insensitive =~ variant
+8. ops: backup verify-all prints a per-archive timing line in verbose mode
+9. docs: ADR-0012 — quarantine source labels and release auditing
+10. examples: keys demo — json_query keys+prefix offline walkthrough
 
 1. kernel: task_finished event carries the episode step count
 2. brain: /api/brain adapters section lists recent probe failures per adapter
