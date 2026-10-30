@@ -36,6 +36,14 @@ class EventBus:
     def unsubscribe(self, channel: str, queue: asyncio.Queue) -> None:
         self._subscribers.get(channel, set()).discard(queue)
 
+    def subscriber_count(self, channel: str | None = None) -> int:
+        """Total live subscriptions, or per-channel when ``channel`` is
+        given — the observability answer to "is anything even
+        listening?" (e.g. an SSE stream against the audit channel)."""
+        if channel is not None:
+            return len(self._subscribers.get(channel, ()))
+        return sum(len(queues) for queues in self._subscribers.values())
+
     # ---------------------------------------------------------------- publish
     def publish(self, channel: str, data: Any) -> None:
         """Publish from inside the event loop thread."""
