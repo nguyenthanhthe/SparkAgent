@@ -1,22 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[412/500]** commits · **1072 tests green** · self-check passing.
+Progress counter: **[423/500]** commits · **1077 tests green** · self-check passing.
 
-## Wave AN status (complete)
+## Wave AO status (complete)
 
-1. ✅ kernel: bus drop-oldest overflow counted in bus_overflow_total
-2. ✅ brain: tier_details carries the served counter beside requests
-3. ✅ memory: count() accepts a key substring filter (parameter-bound LIKE)
-4. ✅ security: approval queue exposes counters_snapshot() with live pending depth
-5. ✅ interface: dashboard scheduler panel shows the transient-failure split
-6. ✅ interface: telegram /db accepts a --limit N flag (1-50)
-7. ✅ tools: json_query mode=get honors default_json on a path miss
-8. ✅ ops: diskwatch reports a top-subdirectory size breakdown (stale bytes item substituted)
-9. ✅ docs: faq.md entry — why are transient failures not counted as failures
-10. ✅ examples: rename demo — audited memory key repair offline
+1. ✅ kernel: submit distinguishes whitespace-only goals from empty ones in the rejection
+2. ✅ brain: cache snapshot reports the average entry age
+3. ✅ memory: recall created_after validates its format with a clear error
+4. ✅ security: quarantine records carry a source label (web_fetch stamps itself)
+5. ✅ interface: dashboard skills panel shows the source column
+6. ✅ interface: telegram /skills pending block announces its count
+7. ✅ tools: csv_analyze describe reports per-column distinct counts
+8. ✅ ops: backup prune --dry-run reports what would remain
+9. ✅ docs: runbook-backups cross-links the FAQ unverified entry
+10. ✅ examples: approval counters demo — queue lifecycle offline
 
-## Wave AO backlog (next)
+## Wave AP backlog (next)
+
+1. kernel: task_finished event carries the episode step count
+2. brain: /api/brain adapters section lists recent probe failures per adapter
+3. memory: rename_key rejects renaming to a key that already exists
+4. security: approval observers fire on expiry transitions too
+5. interface: dashboard uptime line shows the agent version
+6. interface: telegram /tasks accepts a --status filter
+7. tools: json_query mode=keys honors a prefix filter
+8. ops: backup create --verify-immediately prints the verify outcome in its JSON
+9. docs: architecture.md capability table gains the bus overflow counter
+10. examples: subdirs demo — diskwatch breakdown rendered offline
 
 1. kernel: task submit rejects a goal that is only whitespace (echoing the skip)
 2. brain: cache snapshot gains an average entry age
