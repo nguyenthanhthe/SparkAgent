@@ -176,10 +176,14 @@ class Scheduler:
             raise ValueError("goal must not be whitespace-only")
         trimmed = goal.strip()
         task_id = await self.memory.submit_task(trimmed, source, **kwargs)
-        # the audit line mirrors the stored goal (trimmed), not the raw input
+        # the audit line mirrors the stored goal (trimmed), not the raw
+        # input; dependencies ride along for traceability
+        deps = kwargs.get("depends_on")
+        dep_note = f" depends_on={deps}" if deps else ""
         self.bus.publish("audit", {"actor": f"scheduler:{source}",
                                    "action": "task.submit",
-                                   "detail": f"#{task_id} {trimmed[:200]}"})
+                                   "detail": f"#{task_id} "
+                                             f"{trimmed[:200]}{dep_note}"})
         # wake the loop so one-shot tasks start immediately
         self._stopping.set()
         self._stopping = asyncio.Event()
