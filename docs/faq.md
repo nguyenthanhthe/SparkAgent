@@ -82,3 +82,11 @@ archive (no manifest). A corrupt newest backup is not restorable; run
 disk for full-disk errors before trusting any archive in the window.
 `--verify`-style full-window checks stay in `python -m ops.backup
 verify-all`.
+
+**What happens when an approval expires?**
+Nothing runs. Expired requests flip to `status: "expired"` with
+`expire_reason: "ttl"` (ADR-0011), stay visible in the
+`/pending` queue and `/api/approvals` (so the missed decision is
+auditable), and the decision endpoints reject them — re-submit instead
+of trying to revive one. The approval gate stays fail-closed: TTL
+expiry is a timeout, not a veto override.
