@@ -735,9 +735,10 @@ class Memory:
     async def forget(self, key: str) -> int:
         """Delete every memory row carrying ``key`` (operator action;
         callers must audit). Returns how many rows were actually
-        removed — 0 means the key was already absent."""
+        removed — 0 means the key was already absent, which is distinct
+        from an empty key (a programming error, raised as such)."""
         if not key:
-            return 0
+            raise ValueError("forget needs a non-empty key")
 
         def op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute("DELETE FROM memories WHERE key = ?",

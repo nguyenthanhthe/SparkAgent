@@ -55,9 +55,11 @@ class MemoryTests(unittest.TestCase):
             await self.mem.remember("transient note two", kind="note",
                                     key="temp")
             self.assertEqual(await self.mem.forget("temp"), 2)
-            # second call: nothing left to remove
+            # second call: nothing left to remove — absent, not invalid
             self.assertEqual(await self.mem.forget("temp"), 0)
-            self.assertEqual(await self.mem.forget(""), 0)
+            # an empty key is a caller bug, not a miss
+            with self.assertRaises(ValueError):
+                await self.mem.forget("")
             hits = await self.mem.recall("transient note", k=5)
             self.assertEqual(hits, [])
         run(scenario())
