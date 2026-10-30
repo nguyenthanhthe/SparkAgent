@@ -126,10 +126,12 @@ class Scheduler:
                 else:
                     self.stats["episodes_failed"] += 1
                 await self.memory.finish_task(task_id, success)
+                retry_backoff_s = None
                 if transient:
                     self.stats["retries"] = self.stats.get("retries", 0) + 1
                     backoff = min(300, 30 * 2 ** min(
                         int(task.get("consecutive_failures", 0)), 4))
+                    retry_backoff_s = backoff
                     logger.info("task %s transient failure — requeued in %ds",
                                 task_id, backoff)
                     await self._memory_shift_next_run(task_id, backoff)
@@ -139,6 +141,7 @@ class Scheduler:
                     "event": "task_finished", "task_id": task_id,
                     "source": source, "status": result.status,
                     "steps": int(getattr(result, "steps", 0) or 0),
+                    "retry_backoff_s": retry_backoff_s,
                     "duration_s": round(time.monotonic() - started, 1)})
             except Exception as exc:  # noqa: BLE001 — record and reschedule
                 logger.exception("task %s crashed", task_id)

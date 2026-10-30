@@ -80,6 +80,8 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
                         embed_dim=64)
         await memory.connect()
         try:
+            bus = EventBus()
+            queue = bus.subscribe("scheduler")
             task_id = await memory.submit_task("flaky goal", "test")
             await memory.mark_task_running(task_id)
 
@@ -93,7 +95,7 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
                     return R()
 
             scheduler = Scheduler(memory, lambda: FlakyAgent(),
-                                  EventBus(), poll_seconds=1)
+                                  bus, poll_seconds=1)
             await scheduler._run_task({"id": task_id, "goal": "flaky goal",
                                        "source": "test",
                                        "consecutive_failures": 0})
@@ -102,6 +104,13 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 scheduler.stats.get("episodes_failed_transient"), 1)
             self.assertEqual(scheduler.stats.get("episodes_failed", 0), 0)
+            # the finished event carries the retry backoff it computed
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            finished = [e for e in events if e["event"] == "task_finished"]
+            self.assertEqual(len(finished), 1)
+            self.assertEqual(finished[0]["retry_backoff_s"], 30)
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["status"], "pending")  # requeued
             self.assertGreater(row["next_run_at"], 0)
