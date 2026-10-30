@@ -164,8 +164,12 @@ class Scheduler:
         self._stopping.set()
 
     async def submit(self, goal: str, source: str = "operator", **kwargs) -> int:
-        if not goal or not goal.strip():
+        if not goal:
             raise ValueError("goal must not be empty")
+        if not goal.strip():
+            # echo the skip reason — a whitespace-only goal would run as
+            # an empty episode otherwise
+            raise ValueError("goal must not be whitespace-only")
         task_id = await self.memory.submit_task(goal.strip(), source, **kwargs)
         self.bus.publish("audit", {"actor": f"scheduler:{source}",
                                    "action": "task.submit",

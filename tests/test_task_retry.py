@@ -42,6 +42,28 @@ class RetryOneShotTests(unittest.TestCase):
         self.assertFalse(run(self.mem.retry_one_shot(424242, 1.0)))
 
 
+class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
+    async def test_whitespace_goal_rejected_with_reason(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            scheduler = Scheduler(memory, lambda: None, EventBus(),
+                                  poll_seconds=1)
+            with self.assertRaises(ValueError) as ctx:
+                await scheduler.submit("   \n\t")
+            self.assertIn("whitespace-only", str(ctx.exception))
+            with self.assertRaises(ValueError) as ctx:
+                await scheduler.submit("")
+            self.assertIn("empty", str(ctx.exception))
+            # a padded goal is trimmed, not rejected
+            task_id = await scheduler.submit("  real goal  ")
+            row = (await memory.list_tasks(task_id=task_id))[0]
+            self.assertEqual(row["goal"], "real goal")
+        finally:
+            await memory.close()
+
+
 class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
     async def test_transient_failure_requeues_one_shot(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
