@@ -125,6 +125,9 @@ def stats(data: Any) -> dict:
             "leaf_count": _leaf_count(data),
             "depth": _depth(data),
             "nesting": _nesting(data) if isinstance(data, dict) else {},
+            "leaves_by_key": ({str(key): _leaf_count(value)
+                               for key, value in list(data.items())[:20]}
+                              if isinstance(data, dict) else {}),
             "sample": data[0] if isinstance(data, list) and data else None}
 
 

@@ -40,6 +40,9 @@ class JsonToolTests(unittest.TestCase):
         self.assertEqual(info["dict_keys"], 2)
         self.assertEqual(info["leaf_count"], 6)
         self.assertGreaterEqual(info["depth"], 1)
+        # per-key leaf counts split the total
+        self.assertEqual(sum(info["leaves_by_key"].values()),
+                         info["leaf_count"])
 
     def test_depth_measures_container_chain(self):
         self.assertEqual(_depth({"a": {"b": {"c": 1}}}), 3)
