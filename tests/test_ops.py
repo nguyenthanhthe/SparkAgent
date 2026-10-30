@@ -261,6 +261,20 @@ class BackupTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output),
+                       "--verify-immediately"])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertTrue(report["verified"])
+
+    def test_cli_create_retention_position(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
                        "--output-dir", str(output), "--keep", "5"])
         self.assertEqual(rc, 0)
         summary = json.loads(buffer.getvalue())

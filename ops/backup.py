@@ -307,9 +307,17 @@ def main(argv: list[str] | None = None) -> int:
         result = create_backup(Path(args.data_dir), Path(args.output_dir),
                                extra_dirs=extra, tag=args.tag)
         verified = False
+        verify_error = None
         if args.verify_immediately:
-            verify_backup(result.archive_path)   # raises on corruption
-            verified = True
+            try:
+                verify_backup(result.archive_path)
+                verified = True
+            except BackupError as exc:   # report, then re-raise-free exit
+                verify_error = str(exc)
+        if verify_error is not None:
+            print(json.dumps({"ok": False, "error": verify_error,
+                              "archive": str(result.archive_path)}))
+            return 1
         pruned = prune_backups(Path(args.output_dir), keep=args.keep)
         archives = sorted(Path(args.output_dir).glob(
             "sparkagent-backup-*.zip"))
