@@ -147,6 +147,7 @@ class Memory:
         self._embedder_fn = embedder_fn
         self._hashing = HashingEmbedder(embed_dim)
         self.recall_k = recall_k
+        self.last_recall_pool_size: int | None = None
         self.retention_days = retention_days
         self.graph_store = None   # optional GraphStore for graph-boosted recall
         self._lock = threading.Lock()
@@ -383,6 +384,9 @@ class Memory:
                 params.extend(int(i) for i in ids)
             rows = conn.execute(sql + "ORDER BY id DESC LIMIT 5000",
                                 tuple(params)).fetchall()
+            # candidate-pool size, exposed for recall tuning (why did
+            # my kind filter return nothing? how wide was the scan?)
+            self.last_recall_pool_size = len(rows)
             from memory_search.hybrid import HybridRanker
             ranker = HybridRanker(recency_weight=0.0)
             vector_by_id: dict[str, tuple[str, float]] = {}

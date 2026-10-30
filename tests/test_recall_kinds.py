@@ -120,6 +120,18 @@ class RecallKindFilterTests(unittest.TestCase):
             self.assertEqual(len(hits_all), 3)
         run(scenario())
 
+    def test_recall_exposes_candidate_pool_size(self):
+        async def scenario():
+            await self.mem.connect()
+            for i in range(3):
+                await self.mem.remember(f"gpu thermal note {i}")
+            self.assertIsNone(self.mem.last_recall_pool_size)
+            await self.mem.recall("gpu thermal")
+            self.assertEqual(self.mem.last_recall_pool_size, 3)
+            await self.mem.recall("gpu thermal", kinds=["nonexistent"])
+            self.assertEqual(self.mem.last_recall_pool_size, 0)
+        run(scenario())
+
     def test_created_after_validates_format(self):
         async def scenario():
             await self.mem.connect()
