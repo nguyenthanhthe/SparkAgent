@@ -876,7 +876,11 @@ def build_web_app(daemon) -> web.Application:
             "lifecycle": {"shutdown_drained_tasks": int(
                 REGISTRY.counter("shutdown_drained_tasks")),
                 "started_at": time.strftime(
-                    "%Y-%m-%dT%H:%M:%S", time.localtime(daemon.started_at))},
+                    "%Y-%m-%dT%H:%M:%S", time.localtime(daemon.started_at)),
+                "scheduler_started_at": time.strftime(
+                    "%Y-%m-%dT%H:%M:%S", time.localtime(
+                        daemon.scheduler.stats.get(
+                            "started_at", daemon.started_at)))},
             "adapters": {
                 "available": adapter_registry.available(),
                 # last-5 ping latency samples per adapter, as recorded by
