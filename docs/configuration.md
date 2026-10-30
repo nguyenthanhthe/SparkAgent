@@ -35,6 +35,12 @@ Defaults live in `kernel/config.py`. Overrides: `config.yaml` < environment (`SP
 | `brain.cache_entries` | `256` |  |
 | `brain.cache_ttl` | `900.0` |  |
 
+The daily budget veto: once the cost tracker's `today_usd` reaches
+`brain.daily_budget_usd`, remote-tier chats are vetoed (the local tier
+keeps working). Today's spend and the cap surface in `/api/brain`'s
+`budget` block and in the dashboard cost panel; the veto also shows up
+as a chat failure with "budget" in the detail.
+
 ## `memory`
 
 | Path | Default | Notes |
