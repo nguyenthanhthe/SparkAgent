@@ -245,6 +245,15 @@ class WebFetcher:
                              buckets=(10, 20, 30, 40, 50, 60, 80, 100))
             REGISTRY.incr(
                 f"promptguard_verdicts_{verdict.verdict}_total")
+            # per-band split alongside the verdict counters: low (pass
+            # band), medium (sanitize), high (quarantine)
+            if verdict.score >= 60:
+                band_key = "high"
+            elif verdict.score >= 30:
+                band_key = "medium"
+            else:
+                band_key = "low"
+            REGISTRY.incr(f"promptguard_band_{band_key}_total")
             band = {"pass": 0, "sanitize": 1, "quarantine": 2}
             REGISTRY.gauge("promptguard_band",
                            float(band.get(verdict.verdict, 0)))
