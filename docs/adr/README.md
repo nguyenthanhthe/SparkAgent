@@ -17,6 +17,7 @@ decision supersedes an old one via a new ADR.
 | [0009](0009-consolidation-idempotency.md) | Digest dedupe and consolidation idempotency | accepted |
 | [0010](0010-one-guarded-path-per-capability.md) | One guarded path per capability | accepted |
 | [0011](0011-approval-expiry-semantics.md) | Approval expiry semantics (TTL reason field) | accepted |
+| [0012](0012-quarantine-source-labels-and-release-auditing.md) | Quarantine source labels and release auditing | accepted |
 
 Format: one file per decision, `NNNN-slug.md`, sections **Context /
 Decision / Consequences / Alternatives**.
