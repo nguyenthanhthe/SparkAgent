@@ -32,6 +32,8 @@ class Request:
     status: str = PENDING
     decided_by: str | None = None
     decided_at: float | None = None
+    # why the request left PENDING without a decision — "ttl" on expiry
+    expire_reason: str | None = None
 
 
 Observer = Callable[[Request], None]
@@ -87,6 +89,7 @@ class ApprovalQueue:
         if (request.status == PENDING and request.expires_at is not None
                 and self.clock.now() > request.expires_at):
             request.status = EXPIRED
+            request.expire_reason = "ttl"
             self.counters["expired"] += 1
             self._notify(request)
         return request
@@ -108,6 +111,7 @@ class ApprovalQueue:
             if (request.status == PENDING and request.expires_at is not None
                     and now > request.expires_at):
                 request.status = EXPIRED
+                request.expire_reason = "ttl"
                 self.counters["expired"] += 1
                 self._notify(request)
 
@@ -134,4 +138,5 @@ def request_to_dict(request: Request) -> dict:
     return {"id": request.id, "kind": request.kind, "summary": request.summary,
             "detail": request.detail, "requested_by": request.requested_by,
             "status": request.status, "created_at": request.created_at,
-            "decided_by": request.decided_by}
+            "decided_by": request.decided_by,
+            "expire_reason": request.expire_reason}

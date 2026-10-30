@@ -39,6 +39,18 @@ class ApprovalQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.get(request.id).status, EXPIRED)
         self.assertEqual(self.queue.pending(), [])
 
+    def test_expiry_carries_ttl_reason(self):
+        request = self.queue.submit("skill", "x")
+        self.clock.advance(61)
+        expired = self.queue.get(request.id)
+        self.assertEqual(expired.expire_reason, "ttl")
+        payload = request_to_dict(expired)
+        self.assertEqual(payload["expire_reason"], "ttl")
+        # decided paths never set the reason
+        other = self.queue.submit("skill", "y")
+        decided = self.queue.approve(other.id)
+        self.assertIsNone(decided.expire_reason)
+
     def test_decision_after_expiry_is_rejected(self):
         request = self.queue.submit("skill", "x")
         self.clock.advance(61)
