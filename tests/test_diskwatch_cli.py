@@ -74,6 +74,24 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual(report.level, "ok")
         self.assertEqual(report.to_dict()["level"], "ok")
 
+    def test_subdirs_top_breakdown(self):
+        import json
+        from ops.diskwatch import subdirs_top
+        data = self.tmp / "data"
+        (data / "logs").mkdir(parents=True)
+        (data / "logs" / "big.log").write_bytes(b"x" * 5000)
+        (data / "quarantine").mkdir()
+        (data / "quarantine" / "blob.dat").write_bytes(b"x" * 2000)
+        top = subdirs_top(data)
+        self.assertEqual([item["dir"] for item in top],
+                         ["logs", "quarantine"])
+        # the --json payload carries the breakdown
+        code, out = run_main("--data-dir", str(data), "--json")
+        self.assertEqual(code, 0)
+        body = json.loads(out)
+        self.assertEqual([item["dir"] for item in body["subdirs_top"]],
+                         ["logs", "quarantine"])
+
 
 if __name__ == "__main__":
     unittest.main()

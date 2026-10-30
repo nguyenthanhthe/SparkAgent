@@ -53,6 +53,17 @@ def dir_size(path: Path) -> int:
     return total
 
 
+def subdirs_top(path: Path, keep: int = 3) -> list[dict]:
+    """Immediate subdirectories ranked by size (top ``keep``) — the
+    prune-target hint: which child to clean when the level goes warn."""
+    sizes = []
+    for child in path.iterdir():
+        if child.is_dir():
+            sizes.append({"dir": child.name, "bytes": dir_size(child)})
+    sizes.sort(key=lambda item: -item["bytes"])
+    return sizes[:keep]
+
+
 def check_usage(data_dir: Path, warn_mb: float = DEFAULT_WARN_MB,
                 critical_mb: float = DEFAULT_CRITICAL_MB) -> UsageReport:
     total = dir_size(data_dir) if data_dir.exists() else 0
@@ -94,14 +105,19 @@ def main(argv: list[str] | None = None) -> int:
 
     report = check_usage(args.data_dir, warn_mb=args.warn_mb,
                          critical_mb=args.critical_mb)
+    top = subdirs_top(args.data_dir)
     if args.json:
-        print(json.dumps(report.to_dict(), indent=2))
+        payload = report.to_dict()
+        payload["subdirs_top"] = top
+        print(json.dumps(payload, indent=2))
     else:
         print(f"data dir : {args.data_dir}")
         print(f"usage    : {report.total_mb:.1f} MB")
         print(f"warn at  : {report.warn_threshold_mb:g} MB")
         print(f"critical : {report.critical_threshold_mb:g} MB")
         print(f"level    : {report.level}")
+        for item in top:
+            print(f"  {item['dir']:20s} {item['bytes'] / MB:8.1f} MB")
         if report.level == "critical":
             print("tip      : prune logs/quarantine, then rerun; a "
                   "runaway skill is the usual cause (check the audit "
