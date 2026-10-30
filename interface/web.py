@@ -512,6 +512,9 @@ def build_web_app(daemon) -> web.Application:
                 "event": {"pause": "task_paused",
                           "resume": "task_resumed"}[action],
                 "task_id": task_id})
+        if action == "cancel":
+            daemon.bus.publish("scheduler", {
+                "event": "task_cancelled", "task_id": task_id})
         return web.json_response({"ok": True})
 
     async def api_episodes(request: web.Request) -> web.Response:

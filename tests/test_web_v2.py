@@ -236,6 +236,23 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_cancel_publishes_scheduler_event(self):
+        daemon, client = await self._setup()
+        try:
+            task_id = await daemon.memory.submit_task("demo", "test")
+            queue = daemon.bus.subscribe("scheduler")
+            response = await client.post(f"/api/tasks/{task_id}/cancel")
+            self.assertEqual(response.status, 200)
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            self.assertEqual([e["event"] for e in events],
+                             ["task_cancelled"])
+            self.assertEqual(events[0]["task_id"], task_id)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_memory_forget_endpoint_audited(self):
         daemon, client = await self._setup()
         try:
