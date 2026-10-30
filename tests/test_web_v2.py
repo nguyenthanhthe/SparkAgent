@@ -263,6 +263,11 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(stats["items"], 1)
             self.assertEqual(stats["bytes"], len(b"payload body"))
             self.assertRegex(body["uptime_human"], r"^\d+[hm]")
+            # the scheduler block mirrors the daemon's boot stamp in a
+            # human-readable form alongside the raw epoch seconds
+            self.assertIn("started_at", body["scheduler"])
+            self.assertRegex(body["scheduler"]["started_at_human"],
+                             r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
         finally:
             await client.close()
             await daemon.memory.close()

@@ -463,7 +463,12 @@ class AgentDaemon:
                              else f"{minutes}m{uptime % 60:02d}s"),
             "system": self._snapshot,
             "brain": self._brain_health or self.brain.stats(),
-            "scheduler": dict(self.scheduler.stats),
+            "scheduler": {**dict(self.scheduler.stats),
+                          "started_at_human": time.strftime(
+                              "%Y-%m-%dT%H:%M:%S",
+                              time.localtime(
+                                  self.scheduler.stats.get(
+                                      "started_at", time.time())))},
             "tools": self.registry.names(),
             "skills_pending": sorted(self.forge.pending),
             "approvals_pending": [request_to_dict(r) for r in
