@@ -146,7 +146,7 @@ function kv(k,v){return `<div class="kv"><span>${k}</span><b>${v==null?'—':v}<
 function badge(cls,text){return `<span class="badge ${cls}">${text}</span>`}
 
 async function refreshStatus(){try{const s=await api('/api/status');
-  $('uptime').textContent=`· up ${Math.floor(s.uptime_s/60)} min · ${s.agent}`;
+  $('uptime').textContent=`· up ${Math.floor(s.uptime_s/60)} min · ${s.agent} · v${s.version||'?'}`;
   const qb=$('quarbadge');
   if(s.quarantine&&s.quarantine.items>0){
     qb.style.display='inline';
