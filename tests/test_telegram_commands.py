@@ -468,6 +468,23 @@ class TelegramDbLimitTests(unittest.IsolatedAsyncioTestCase):
         reply, _ = await self._lookup_reply("/db tasks --limit abc")
         self.assertIn("usage:", reply)
 
+    async def test_db_usage_hint_lists_row_counts(self):
+        import sqlite3
+        gateway = make_gateway()
+        db = Path(tempfile.mkdtemp()) / "t.db"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE tasks (id INTEGER)")
+        conn.execute("INSERT INTO tasks VALUES (3)")
+        conn.commit()
+        conn.close()
+        gateway.daemon.cfg = SimpleNamespace(root=db.parent, db_path=db,
+                                             get=lambda d, default=None:
+                                             default)
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": "/db"})
+            reply = send.call_args[0][1]
+        self.assertIn("tasks=1", reply)
+
 
 class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
     async def _reply_with(self, skills, text="/skills"):

@@ -307,8 +307,31 @@ class TelegramGateway:
             table, _, rest = args.strip().partition(" ")
             table = table.strip().lower()
             if not table:
+                # the hint carries live row counts so the operator
+                # knows which table to drill into
+                import sqlite3
+                from pathlib import Path as _Path
+                counts = []
+                try:
+                    conn = sqlite3.connect(
+                        "file:" + _Path(daemon.cfg.db_path).as_posix()
+                        + "?mode=ro", uri=True)
+                    try:
+                        for table in ("episodes", "steps", "memories",
+                                      "tasks", "audit"):
+                            try:
+                                row = conn.execute(
+                                    "SELECT COUNT(*) FROM "
+                                    + table).fetchone()
+                                counts.append(f"{table}={row[0]}")
+                            except sqlite3.Error:
+                                counts.append(f"{table}=?")
+                    finally:
+                        conn.close()
+                except sqlite3.Error:
+                    counts = ["counts unavailable"]
                 return ("usage: /db <table> [col=value ...] — tables: "
-                        "episodes, steps, memories, tasks, audit")
+                        + ", ".join(counts))
             where: dict[str, str] = {}
             limit = 10
             # --limit N flag form (the inline `limit=N` also works)
