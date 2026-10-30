@@ -124,7 +124,7 @@ class TelegramGateway:
                     "/health — subsystem checks\n"
                     "/tasks — recent tasks\n"
                     "/blocked — dependency-stalled tasks\n"
-                    "/audit — recent audit trail\n"
+                    "/audit [--actor N] [--limit 1-100] — audit trail\n"
                     "/backup — backup window listing\n"
                     "/pending — operator approval queue\n"
                     "/approve <skill or id> — approve\n"
@@ -255,11 +255,18 @@ class TelegramGateway:
                 args, _, rest = args.partition("--actor")
                 actor = rest.strip().split()[0].lower() if rest.strip() \
                     else None
-            rows = await daemon.memory.recent_audit(limit=100)
+            limit = 15
+            if "--limit" in args:
+                args, _, rest = args.partition("--limit")
+                try:
+                    limit = max(1, min(int(rest.strip().split()[0]), 100))
+                except (IndexError, ValueError):
+                    return "usage: /audit [--actor NAME] [--limit N]"
+            rows = await daemon.memory.recent_audit(limit=200)
             if actor:
                 rows = [row for row in rows
                         if str(row.get("actor", "")).lower() == actor]
-            rows = rows[:15]
+            rows = rows[:limit]
             if not rows:
                 return "(audit trail empty)"
             lines = []

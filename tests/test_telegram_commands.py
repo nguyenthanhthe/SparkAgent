@@ -330,6 +330,37 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(seen["limit"], 7)
 
 
+class TelegramAuditLimitTests(unittest.IsolatedAsyncioTestCase):
+    async def _reply(self, text):
+        gateway = make_gateway()
+        rows = [{"created_at": f"2026-10-31T10:00:{i:02d}",
+                 "actor": "operator",
+                 "action": f"action.{i}",
+                 "detail": ""} for i in range(30)]
+        async def fake_recent_audit(limit=15):
+            return rows
+        gateway.daemon.memory.recent_audit = fake_recent_audit
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": text})
+            return send.call_args[0][1]
+
+    async def test_default_limit_is_15(self):
+        reply = await self._reply("/audit")
+        self.assertEqual(len(reply.splitlines()), 15)
+
+    async def test_limit_argument_truncates(self):
+        reply = await self._reply("/audit --limit 5")
+        self.assertEqual(len(reply.splitlines()), 5)
+
+    async def test_limit_clamped_to_100(self):
+        reply = await self._reply("/audit --limit 999")
+        self.assertEqual(len(reply.splitlines()), 30)
+
+    async def test_bad_limit_gets_usage(self):
+        reply = await self._reply("/audit --limit abc")
+        self.assertIn("usage:", reply)
+
+
 class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
     async def _reply_with(self, skills, text="/skills"):
         gateway = make_gateway()
