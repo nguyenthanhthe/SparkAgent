@@ -427,6 +427,8 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
              {"name": "disk_tool", "status": "pending_approval"}])
         self.assertLess(reply.index("/approve"), reply.index("word_count"))
         self.assertIn("disk_tool", reply)
+        # the pending block announces its count
+        self.assertIn("pending approval (1 —", reply)
 
     async def test_no_pending_shows_plain_list(self):
         reply = await self._reply_with(

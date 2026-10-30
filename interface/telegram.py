@@ -243,7 +243,8 @@ class TelegramGateway:
             pending = [s for s in skills if s["status"] == "pending_approval"]
             lines = []
             if pending:
-                lines.append("pending approval (use /approve <name>):")
+                lines.append(f"pending approval ({len(pending)} — use "
+                             f"/approve <name>):")
                 lines.extend(f"  {s['name']}" for s in pending)
                 lines.append("active:")
             active = [s for s in skills
