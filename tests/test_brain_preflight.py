@@ -11,10 +11,10 @@ class _FakeBrain:
     def __init__(self, local_ok, remote_ok, chat_error=None):
         self._health = {
             "local": {"ok": local_ok, "detail": "ok" if local_ok else "down",
-                      "model": "fake-local"},
+                      "duration_ms": 0.0, "model": "fake-local"},
             "remote": {"ok": remote_ok,
                        "detail": "ok" if remote_ok else "down",
-                       "model": "fake-remote"},
+                       "duration_ms": 0.0, "model": "fake-remote"},
             "stats": {}}
         self._chat_error = chat_error
         self.closed = False
@@ -41,6 +41,16 @@ class PreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(report["healthy"])
         self.assertTrue(report["chat"]["ok"])
         self.assertTrue(fake.closed)
+
+    async def test_preflight_chat_carries_duration_ms(self):
+        from brain.preflight import preflight
+        fake = _FakeBrain(local_ok=True, remote_ok=False)
+        with patch("brain.bridge.Brain", lambda *a, **k: fake):
+            report = await preflight(Config({}), with_chat=True)
+        self.assertGreaterEqual(report["chat"]["duration_ms"], 0)
+        # per-check durations ride the tier entries too (from Brain.health)
+        for tier in ("local", "remote"):
+            self.assertIn("duration_ms", report[tier])
 
     async def test_preflight_unhealthy_when_all_down(self):
         from brain.preflight import preflight

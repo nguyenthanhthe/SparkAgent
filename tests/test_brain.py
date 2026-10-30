@@ -113,6 +113,13 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(stats["local"]["requests"], 1)
         self.assertEqual(stats["remote"]["requests"], 0)
 
+    def test_health_reports_per_check_duration_ms(self):
+        brain = make_brain(FakeLocal(text="ok"), FakeRemote(text="r"))
+        health = self.run_async(brain.health())
+        for tier in ("local", "remote"):
+            self.assertIn("duration_ms", health[tier])
+            self.assertGreaterEqual(health[tier]["duration_ms"], 0)
+
     @staticmethod
     def run_async(coro):
         import asyncio

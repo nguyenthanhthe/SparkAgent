@@ -15,6 +15,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 
 from kernel.config import Config
 
@@ -32,15 +33,20 @@ async def preflight(config: Config, with_chat: bool = False) -> dict:
                   "local": health["local"],
                   "remote": health["remote"]}
         if with_chat:
+            t0 = time.perf_counter()
             try:
                 response = await brain.chat(
                     [{"role": "user",
                       "content": "Reply with the single word: ok"}])
                 report["chat"] = {"ok": bool(response.text.strip()),
                                   "model": response.model,
-                                  "chars": len(response.text)}
+                                  "chars": len(response.text),
+                                  "duration_ms": round(
+                                      (time.perf_counter() - t0) * 1000, 1)}
             except Exception as exc:   # noqa: BLE001 — report, don't crash
-                report["chat"] = {"ok": False, "error": str(exc)[:200]}
+                report["chat"] = {"ok": False, "error": str(exc)[:200],
+                                  "duration_ms": round(
+                                      (time.perf_counter() - t0) * 1000, 1)}
         chat_ok = report.get("chat", {}).get("ok", True)
         report["healthy"] = ((report["local"]["ok"]
                               or report["remote"]["ok"]) and chat_ok)

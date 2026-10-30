@@ -282,14 +282,20 @@ class Brain:
 
     # ----------------------------------------------------------------- health
     async def health(self) -> dict:
+        t0 = time.perf_counter()
         local_ok, detail = (False, "disabled") if not self.local_enabled \
             else await self.local.healthy()
+        local_ms = round((time.perf_counter() - t0) * 1000, 1)
+        t1 = time.perf_counter()
         remote_configured = bool(self.vault.get("GLM_API_KEY")) and self.remote_enabled
+        remote_ms = round((time.perf_counter() - t1) * 1000, 1)
         return {
             "local": {"ok": local_ok, "detail": detail,
+                      "duration_ms": local_ms,
                       "model": self.local.model if self.local_enabled else None},
             "remote": {"ok": remote_configured, "detail":
                        "ok" if remote_configured else "GLM_API_KEY not set or disabled",
+                       "duration_ms": remote_ms,
                        "model": self.remote.model if self.remote_enabled else None},
             "stats": {tier.value: {
                 "requests": st.requests, "failures": st.failures,
