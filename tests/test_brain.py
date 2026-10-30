@@ -112,6 +112,21 @@ class BridgeTests(unittest.TestCase):
         stats = brain.stats()
         self.assertEqual(stats["local"]["requests"], 1)
         self.assertEqual(stats["remote"]["requests"], 0)
+        # served counts successful completions, distinct from attempts
+        self.assertEqual(stats["local"]["served"], 1)
+
+    def test_served_not_counted_on_failure(self):
+        local = FakeLocal(error="daemon down")
+        remote = FakeRemote(text="remote answer")
+        brain = make_brain(local, remote)
+        self.run_async(brain.chat([{"role": "user", "content": "hi"}]))
+        stats = brain.stats()
+        # bridge semantics: requests counts completed calls, failures
+        # counts errors — served tracks completions alongside them
+        self.assertEqual(stats["local"]["requests"], 0)
+        self.assertEqual(stats["local"]["served"], 0)
+        self.assertEqual(stats["local"]["failures"], 1)
+        self.assertEqual(stats["remote"]["served"], 1)
 
     def test_health_reports_per_check_duration_ms(self):
         brain = make_brain(FakeLocal(text="ok"), FakeRemote(text="r"))

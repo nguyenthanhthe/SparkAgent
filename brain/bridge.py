@@ -55,6 +55,7 @@ class _TierState:
     consecutive_failures: int = 0
     cooldown_until: float = 0.0
     requests: int = 0
+    served: int = 0
     failures: int = 0
     last_error: str | None = None
 
@@ -165,6 +166,7 @@ class Brain:
                     text = await self.remote.chat(messages,
                                                   temperature=temperature)
                 state.requests += 1
+                state.served += 1
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
                 model = self.local.model if tier is Tier.LOCAL \
@@ -256,6 +258,7 @@ class Brain:
                 async for delta in client.chat_stream(messages):
                     if produced == 0:
                         state.requests += 1
+                        state.served += 1
                         state.consecutive_failures = 0
                         state.cooldown_until = 0.0
                     produced += 1
@@ -306,7 +309,8 @@ class Brain:
 
     # ------------------------------------------------------------------ stats
     def stats(self) -> dict[str, dict]:
-        return {tier.value: {"requests": st.requests, "failures": st.failures}
+        return {tier.value: {"requests": st.requests, "served": st.served,
+                             "failures": st.failures}
                 for tier, st in self._state.items()}
 
     def tier_details(self) -> dict[str, dict]:

@@ -59,7 +59,7 @@ class TierRouter:
             for tier in self.tiers}
         self._health_cache: dict[str, tuple[float, bool, str]] = {}
         self._veto_cache: dict[str, tuple[float, bool]] = {}
-        self.stats = {tier.name: {"requests": 0, "failures": 0,
+        self.stats = {tier.name: {"requests": 0, "served": 0, "failures": 0,
                                   "cache_hits": 0} for tier in self.tiers}
 
     # ------------------------------------------------------------------ chat
@@ -111,6 +111,7 @@ class TierRouter:
                 logger.warning("tier %s failed: %s", tier.name,
                                errors[tier.name])
                 continue
+            self.stats[tier.name]["served"] += 1
             if self.costs is not None:
                 self.costs.record(response.model,
                                   response.prompt_tokens or 0,
