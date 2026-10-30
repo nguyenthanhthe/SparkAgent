@@ -127,8 +127,8 @@ class QuarantineStore:
         """Return sanitized content and delete the item from quarantine.
 
         The release itself is audited on the ``audit`` bus channel with
-        the content's *length* only — the content never travels to the
-        audit log."""
+        the content's *length* and the quarantine reason — the content
+        never travels to the audit log."""
         item = self.get(item_id)
         self._delete_files(item_id)
         from security.promptguard import sanitize
@@ -136,7 +136,9 @@ class QuarantineStore:
         if self._bus is not None:
             self._bus.publish("audit", {
                 "actor": "system", "action": "quarantine.release",
-                "detail": {"item_id": item_id, "length": len(content)}})
+                "detail": {"item_id": item_id, "length": len(content),
+                           "reason": str(item["record"].get("reason",
+                                                           ""))[:100]}})
         return content
 
     def delete(self, item_id: str) -> bool:

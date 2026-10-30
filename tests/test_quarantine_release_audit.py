@@ -34,6 +34,7 @@ class ReleaseAuditTests(unittest.TestCase):
         detail = event["detail"]
         self.assertEqual(detail["item_id"], record["id"])
         self.assertEqual(detail["length"], len(content))
+        self.assertEqual(detail["reason"], "test flag")
         # the content itself must not travel to the audit log
         import json
         self.assertNotIn(content, json.dumps(event))
