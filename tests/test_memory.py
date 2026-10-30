@@ -134,6 +134,20 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(row["created_at"], stamped["created_at"])
         run(scenario())
 
+    def test_recall_highlight_needle_override(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember(
+                "gpu thermal cap is 85c and the fan curve follows it")
+            hits = await self.mem.recall("gpu thermal", k=1)
+            self.assertIn("**", hits[0].snippet)   # query terms marked
+            plain = hits[0].snippet
+            hits = await self.mem.recall("gpu thermal", k=1,
+                                         highlight="fan")
+            self.assertIn("**fan**", hits[0].snippet)
+            self.assertNotEqual(plain, hits[0].snippet)
+        run(scenario())
+
     def test_recall_snippet_width_param(self):
         async def scenario():
             await self.mem.connect()

@@ -329,7 +329,8 @@ class Memory:
                      exclude_kinds: list[str] | None = None,
                      created_after: str | None = None,
                      ids: list[int] | None = None,
-                     snippet_width: int = 220) -> list[MemoryHit]:
+                     snippet_width: int = 220,
+                     highlight: str | None = None) -> list[MemoryHit]:
         """Hybrid recall: cosine vectors fused with BM25 lexical matches.
 
         ``kinds`` optionally restricts results (e.g. ``["digest",
@@ -428,8 +429,8 @@ class Memory:
             self._attach_episode_tags(conn, hits)
             from memory_search.snippets import highlight_snippet
             for hit in hits:
-                hit.snippet = highlight_snippet(hit.text, query,
-                                                width=snippet_width)
+                hit.snippet = highlight_snippet(
+                    hit.text, highlight or query, width=snippet_width)
             return hits
         return await self._run(op)
 
