@@ -338,10 +338,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "verify-all":
         return _verify_all(Path(args.output_dir), quiet=args.quiet)
     if args.cmd == "prune":
-        removed = prune_backups(Path(args.output_dir), keep=args.keep,
+        output_dir = Path(args.output_dir)
+        total = len(list(output_dir.glob("sparkagent-backup-*.zip")))
+        removed = prune_backups(output_dir, keep=args.keep,
                                 dry_run=args.dry_run)
         print(json.dumps({"removed": removed, "keep": args.keep,
-                          "dry_run": args.dry_run}))
+                          "dry_run": args.dry_run,
+                          "would_remain": total - removed}))
         return 0
     if args.cmd == "drill":
         try:

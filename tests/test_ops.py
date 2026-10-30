@@ -179,6 +179,7 @@ class BackupTests(unittest.TestCase):
         report = json.loads(buffer.getvalue())
         self.assertTrue(report["dry_run"])
         self.assertEqual(report["removed"], 1)
+        self.assertEqual(report["would_remain"], 1)
         self.assertEqual(len(list(output.glob("*.zip"))), 2)
 
     def test_cli_verify_all_quiet(self):
