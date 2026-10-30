@@ -198,8 +198,9 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
   $('taskdetail').style.display='block';
 }catch(e){toast(e.message)}}
 async function refreshSkills(){try{const sk=await api('/api/skills');
-  $('skills').innerHTML='<tr><th>name</th><th>status</th><th></th></tr>'+
+  $('skills').innerHTML='<tr><th>name</th><th>status</th><th>source</th><th></th></tr>'+
    sk.map(s=>`<tr><td>${s.name}</td><td>${s.status==='active'?badge('b-ok','active'):badge('b-warn','pending')}</td>
+    <td style="color:var(--dim);font-size:12px">${s.source||''}</td>
     <td>${s.status!=='active'?`<button class="small" onclick="approveSkill('${s.name}')">approve</button>`:''}</td></tr>`).join('');
 }catch(e){}}
 async function submitTask(){const goal=$('goal').value.trim();if(!goal)return toast('goal is empty');
