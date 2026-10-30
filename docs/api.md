@@ -12,6 +12,7 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 | GET | `/api/episodes/{id}` | episode detail + step replay + `step_count` |
 | GET | `/api/memories?q=` | hybrid semantic recall |
 | DELETE | `/api/memories/{key}` | operator forget (audited) |
+| POST | `/api/memories/rename` | operator key repair (audited, refuses an existing target) |
 | GET | `/api/skills` · POST `/api/skills` | list / create (operator source) |
 | POST | `/api/skills/{name}/approve` | activate a pending skill |
 | GET | `/api/approvals` | operator approval queue |
