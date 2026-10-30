@@ -138,6 +138,7 @@ class Scheduler:
                 self.bus.publish("scheduler", {
                     "event": "task_finished", "task_id": task_id,
                     "source": source, "status": result.status,
+                    "steps": int(getattr(result, "steps", 0) or 0),
                     "duration_s": round(time.monotonic() - started, 1)})
             except Exception as exc:  # noqa: BLE001 — record and reschedule
                 logger.exception("task %s crashed", task_id)
