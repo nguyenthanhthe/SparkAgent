@@ -145,6 +145,14 @@ class TelegramGateway:
                 detail = f" — {check['detail'][:40]}" if check["detail"] \
                     else ""
                 lines.append(f"{check['name']}: {check['status']}{detail}")
+            # surface the worst check's full detail so the operator does
+            # not have to guess which line to fix first
+            worst = next((c for c in checks
+                          if c["status"] == "critical"), None) \
+                or next((c for c in checks if c["status"] == "warn"), None)
+            if worst and worst.get("detail"):
+                lines.append(f"worst ({worst['name']}): "
+                             f"{worst['detail'][:120]}")
             return "\n".join(lines)
         if command == "/status":
             status = daemon.status()

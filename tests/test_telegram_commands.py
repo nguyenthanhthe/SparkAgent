@@ -90,6 +90,36 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("overall: ok", reply)
         self.assertIn("0/0 checks ok", reply)
 
+    async def test_health_shows_worst_check_detail(self):
+        gateway = make_gateway()
+
+        class SickHealth:
+            async def check_all(self):
+                return {"status": "warn", "checks": [
+                    {"name": "memory", "status": "ok", "detail": ""},
+                    {"name": "disk", "status": "warn",
+                     "detail": "data dir 82% full — prune logs soon"},
+                    {"name": "brain", "status": "ok", "detail": ""}]}
+
+        gateway.daemon.health = SickHealth()
+        reply = await self._command("/health", gateway)
+        self.assertIn("worst (disk): data dir 82% full", reply)
+
+    async def test_health_worst_prefers_critical_over_warn(self):
+        gateway = make_gateway()
+
+        class MixedHealth:
+            async def check_all(self):
+                return {"status": "critical", "checks": [
+                    {"name": "disk", "status": "warn",
+                     "detail": "warn detail"},
+                    {"name": "memory", "status": "critical",
+                     "detail": "db cannot be opened"}]}
+
+        gateway.daemon.health = MixedHealth()
+        reply = await self._command("/health", gateway)
+        self.assertIn("worst (memory): db cannot be opened", reply)
+
     async def test_status(self):
         reply = await self._command("/status")
         self.assertIn("uptime: 5 min", reply)
