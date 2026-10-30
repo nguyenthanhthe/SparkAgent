@@ -85,7 +85,8 @@ class AgentDaemon:
         self.quarantine = QuarantineStore(
             self.cfg.root / "data" / "quarantine",
             ttl_seconds=float(self.cfg.get("security.quarantine.ttl_seconds",
-                                           7 * 24 * 3600)))
+                                           7 * 24 * 3600)),
+            bus=self.bus)
         self.health = HealthRegistry()
 
         # Brain + memory

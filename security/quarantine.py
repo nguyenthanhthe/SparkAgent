@@ -11,6 +11,7 @@ import json
 import time
 from pathlib import Path
 
+from kernel.bus import EventBus
 from kernel.correlation import new_id
 
 MAX_ITEM_BYTES = 512 * 1024
@@ -19,11 +20,13 @@ MAX_TOTAL_BYTES = 16 * 1024 * 1024
 
 class QuarantineStore:
     def __init__(self, root: Path, max_total_bytes: int = MAX_TOTAL_BYTES,
-                 ttl_seconds: float = 7 * 24 * 3600):
+                 ttl_seconds: float = 7 * 24 * 3600,
+                 bus: EventBus | None = None):
         self.root = root
         self.max_total_bytes = max_total_bytes
         # items older than the TTL are deleted by expire(); 0 disables
         self.ttl_seconds = ttl_seconds
+        self._bus = bus
         self.root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------- api
@@ -104,11 +107,20 @@ class QuarantineStore:
                 "top_reasons": top_reasons}
 
     def release(self, item_id: str) -> str:
-        """Return sanitized content and delete the item from quarantine."""
+        """Return sanitized content and delete the item from quarantine.
+
+        The release itself is audited on the ``audit`` bus channel with
+        the content's *length* only — the content never travels to the
+        audit log."""
         item = self.get(item_id)
         self._delete_files(item_id)
         from security.promptguard import sanitize
-        return sanitize(item["content"])
+        content = sanitize(item["content"])
+        if self._bus is not None:
+            self._bus.publish("audit", {
+                "actor": "system", "action": "quarantine.release",
+                "detail": {"item_id": item_id, "length": len(content)}})
+        return content
 
     def delete(self, item_id: str) -> bool:
         if not (self.root / f"{item_id}.json").exists():
