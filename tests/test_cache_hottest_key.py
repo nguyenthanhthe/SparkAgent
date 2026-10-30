@@ -35,6 +35,24 @@ class HottestKeyTests(unittest.TestCase):
         self.assertIsNone(cache.get("hot"))
         self.assertIsNone(cache.snapshot()["hottest_key"])
 
+    def test_saved_tokens_split_per_model(self):
+        cache = ResponseCache(clock=FakeClock())
+        cache.put("a", "text", {"model": "big", "total_tokens": 100})
+        cache.put("b", "text", {"model": "small", "total_tokens": 30})
+        cache.get("a")
+        cache.get("a")
+        cache.get("b")
+        saved = cache.snapshot()["saved_tokens_by_model"]
+        self.assertEqual(saved, {"big": 200, "small": 30})
+        self.assertEqual(cache.snapshot()["saved_tokens"], 230)
+
+    def test_missing_usage_counts_under_unknown(self):
+        cache = ResponseCache(clock=FakeClock())
+        cache.put("k", "text", None)
+        cache.get("k")
+        self.assertEqual(cache.snapshot()["saved_tokens_by_model"],
+                         {"unknown": 0})
+
 
 if __name__ == "__main__":
     unittest.main()

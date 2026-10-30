@@ -46,6 +46,7 @@ class ResponseCache:
         self._lock = threading.Lock()
         self._entries: OrderedDict[str, CacheEntry] = OrderedDict()
         self._hits_by_model: dict[str, int] = {}
+        self._saved_by_model: dict[str, int] = {}
         self.stats = {"hits": 0, "misses": 0, "stored": 0,
                       "evictions": 0, "expired": 0,
                       "saved_tokens": 0}
@@ -70,6 +71,9 @@ class ResponseCache:
                 self._hits_by_model.get(model, 0) + 1
             self.stats["saved_tokens"] += int(
                 entry.usage.get("total_tokens") or 0)
+            tokens = int(entry.usage.get("total_tokens") or 0)
+            self._saved_by_model[model] = \
+                self._saved_by_model.get(model, 0) + tokens
             return entry
 
     def put(self, key: str, text: str, usage: dict[str, Any] | None = None) \
@@ -124,6 +128,9 @@ class ResponseCache:
                 "hottest_key": hottest_key,
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
+                    key=lambda item: -item[1])),
+                "saved_tokens_by_model": dict(sorted(
+                    self._saved_by_model.items(),
                     key=lambda item: -item[1]))}
 
     def top_hits(self, limit: int = 5) -> list[dict]:
