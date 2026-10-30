@@ -116,6 +116,12 @@ class QuarantineStatsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.put("   \n", "reason")
 
+    def test_put_rejects_blank_reason(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        for bad in ("", "   ", "\t"):
+            with self.assertRaises(ValueError):
+                store.put("body", bad)
+
     def test_put_carries_source_label(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))
         record = store.put("body", "reason", source="web_fetch")
