@@ -62,14 +62,19 @@ class QuarantineStore:
         return {"record": record, "content": content}
 
     def list(self, limit: int = 100,
-             reason_contains: str | None = None) -> list[dict]:
+             reason_contains: str | None = None,
+             reason_prefix: str | None = None) -> list[dict]:
         """Newest-first listing, optionally narrowed to items whose
         reason contains any of the comma-separated ``reason_contains``
-        needles (case-insensitive)."""
+        needles (case-insensitive) or, with ``reason_prefix``, whose
+        reason *starts with* the given prefix — the --kind-style exact
+        family filter (e.g. ``prompt-injection`` matches
+        ``prompt-injection risk`` but not ``re-prompt-injection``)."""
         records = []
         needles = [part.strip().lower()
                    for part in (reason_contains or "").split(",")
                    if part.strip()]
+        prefix = (reason_prefix or "").strip().lower() or None
         for meta_path in self.root.glob("*.json"):
             try:
                 record = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -79,6 +84,9 @@ class QuarantineStore:
                 reason = str(record.get("reason", "")).lower()
                 if not any(needle in reason for needle in needles):
                     continue
+            if prefix and not str(record.get("reason", "")).lower() \
+                    .startswith(prefix):
+                continue
             records.append(record)
         records.sort(key=lambda r: r.get("created_at", ""), reverse=True)
         return records[:limit]

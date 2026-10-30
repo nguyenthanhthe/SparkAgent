@@ -766,8 +766,9 @@ def build_web_app(daemon) -> web.Application:
 
     async def api_quarantine(request: web.Request) -> web.Response:
         reason = request.query.get("reason") or None
+        prefix = request.query.get("reason_prefix") or None
         return web.json_response({"items": daemon.quarantine.list(
-            limit=100, reason_contains=reason)})
+            limit=100, reason_contains=reason, reason_prefix=prefix)})
 
     async def api_quarantine_item(request: web.Request) -> web.Response:
         try:

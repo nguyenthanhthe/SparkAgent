@@ -170,6 +170,22 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_quarantine_reason_prefix_filter(self):
+        daemon, client = await self._setup()
+        try:
+            hit = daemon.quarantine.put("injection body",
+                                        "prompt-injection risk")
+            daemon.quarantine.put("other body", "re-prompt-injection echo")
+            daemon.quarantine.put("more body", "oversized skill proposal")
+            response = await client.get(
+                "/api/quarantine?reason_prefix=prompt-injection")
+            items = (await response.json())["items"]
+            # prefix match excludes the re-prompt-injection echo row
+            self.assertEqual([i["id"] for i in items], [hit["id"]])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_backup_listing_endpoint(self):
         from ops.backup import create_backup
         daemon, client = await self._setup()
