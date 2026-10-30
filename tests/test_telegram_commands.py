@@ -301,11 +301,11 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
 
 
 class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
-    async def _reply_with(self, skills):
+    async def _reply_with(self, skills, text="/skills"):
         gateway = make_gateway()
         gateway.daemon.forge.list_skills = lambda: skills
         with mock.patch.object(TelegramGateway, "_send") as send:
-            await gateway._handle({"chat": {"id": 42}, "text": "/skills"})
+            await gateway._handle({"chat": {"id": 42}, "text": text})
             return send.call_args[0][1]
 
     async def test_pending_skills_come_first_with_hint(self):
@@ -332,6 +332,28 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("…and 5 more", reply)
         self.assertIn("skill_19", reply)
         self.assertNotIn("skill_24", reply)
+
+    async def test_name_filter_substring_case_insensitive(self):
+        skills = [{"name": "word_count", "status": "active"},
+                  {"name": "disk_watch", "status": "active"}]
+        reply = await self._reply_with(skills, text="/skills DISK")
+        self.assertIn("disk_watch — active", reply)
+        self.assertNotIn("word_count", reply)
+
+    async def test_name_filter_no_match(self):
+        reply = await self._reply_with(
+            [{"name": "word_count", "status": "active"}],
+            text="/skills nomatch")
+        self.assertIn("(no skills matching 'nomatch')", reply)
+
+    async def test_name_filter_applies_to_pending_too(self):
+        reply = await self._reply_with(
+            [{"name": "disk_tool", "status": "pending_approval"},
+             {"name": "word_count", "status": "active"}],
+            text="/skills disk")
+        self.assertIn("disk_tool", reply)
+        self.assertIn("/approve", reply)
+        self.assertNotIn("word_count", reply)
 
 
 class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):

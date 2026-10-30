@@ -8,7 +8,7 @@ is ignored (and logged). Commands:
     /tasks           recent tasks
     /task <goal>     submit a one-shot task
     /mem <query>     semantic memory recall
-    /skills          list skills
+    /skills [filter] list skills by name substring
     /audit           recent audit trail (redacted)
     /backup          backup window listing (newest, age, tag)
     /blocked         tasks stalled by unfinished dependencies
@@ -133,7 +133,7 @@ class TelegramGateway:
                     "/task <goal> — submit a task\n"
                     "/mem <query> — search memory\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
-                    "/skills — list skills\n"
+                    "/skills [filter] — list skills (name substring)\n"
                     "plain text — submit a task")
         if command == "/health":
             report = await daemon.health.check_all()
@@ -219,7 +219,13 @@ class TelegramGateway:
             return "\n\n".join(
                 f"[{h.kind}] {h.snippet or h.text[:250]}" for h in hits)
         if command == "/skills":
+            filter_name = args.strip().lower()
             skills = daemon.forge.list_skills()
+            if filter_name:
+                skills = [s for s in skills
+                          if filter_name in s["name"].lower()]
+                if not skills:
+                    return f"(no skills matching '{filter_name}')"
             if not skills:
                 return "(no skills)"
             pending = [s for s in skills if s["status"] == "pending_approval"]
