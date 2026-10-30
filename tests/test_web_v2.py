@@ -289,6 +289,32 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_memory_rename_endpoint_audits_row_count(self):
+        daemon, client = await self._setup()
+        try:
+            await daemon.memory.remember("note a", key="mistyped")
+            await daemon.memory.remember("note b", key="mistyped")
+            response = await client.post("/api/memories/rename",
+                                         json={"old": "mistyped",
+                                               "new": "correct"})
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertEqual(body["renamed"], 2)
+
+            rows = await daemon.memory.recent_audit(limit=10)
+            entry = next(r for r in rows
+                         if r["action"] == "memory.rename_key")
+            self.assertIn("rows=2", entry["detail"])
+
+            # bad bodies are rejected before any write
+            bad = await client.post("/api/memories/rename",
+                                    json={"old": "correct",
+                                          "new": "correct"})
+            self.assertEqual(bad.status, 400)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_tasks_list_marks_blocked_rows(self):
         daemon, client = await self._setup()
         try:

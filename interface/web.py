@@ -573,6 +573,25 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response({"ok": True, "key": key,
                                   "removed": removed})
 
+    async def api_memory_rename(request: web.Request) -> web.Response:
+        """Operator key repair: re-key every memory carrying ``old``;
+        the audit line carries the affected row count."""
+        body = await request.json()
+        old = str(body.get("old") or "")
+        new = str(body.get("new") or "")
+        if not old or not new or old == new:
+            raise web.HTTPBadRequest(
+                text="need two distinct non-empty keys: old, new")
+        try:
+            renamed = await daemon.memory.rename_key(old, new)
+        except ValueError as exc:
+            raise web.HTTPBadRequest(text=str(exc))
+        await daemon.memory.audit(
+            "operator", "memory.rename_key",
+            f"old={old[:100]} new={new[:100]} rows={renamed}")
+        return web.json_response({"ok": True, "old": old, "new": new,
+                                  "renamed": renamed})
+
     async def api_skills(_request: web.Request) -> web.Response:
         return web.json_response(daemon.forge.list_skills())
 
@@ -665,6 +684,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/episodes/{id}", api_episode_detail)
     app.router.add_get("/api/memories", api_memories)
     app.router.add_delete("/api/memories/{key}", api_memory_forget)
+    app.router.add_post("/api/memories/rename", api_memory_rename)
     app.router.add_get("/api/skills", api_skills)
     app.router.add_post("/api/skills", api_skills_create)
     app.router.add_post("/api/skills/{name}/approve", api_skills_approve)
