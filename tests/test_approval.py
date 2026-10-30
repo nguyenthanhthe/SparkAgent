@@ -51,6 +51,18 @@ class ApprovalQueueTests(unittest.TestCase):
         decided = self.queue.approve(other.id)
         self.assertIsNone(decided.expire_reason)
 
+    def test_decided_payload_carries_decided_at(self):
+        request = self.queue.submit("skill", "x")
+        self.clock.advance(5)
+        decided = self.queue.approve(request.id)
+        payload = request_to_dict(decided)
+        self.assertEqual(payload["decided_at"], 1000005.0)  # FakeClock base + 5s
+        self.assertEqual(payload["decided_by"], "operator")
+        # a pending request has neither decision field set
+        pending = self.queue.submit("skill", "y")
+        p_payload = request_to_dict(pending)
+        self.assertIsNone(p_payload["decided_at"])
+
     def test_decision_after_expiry_is_rejected(self):
         request = self.queue.submit("skill", "x")
         self.clock.advance(61)
