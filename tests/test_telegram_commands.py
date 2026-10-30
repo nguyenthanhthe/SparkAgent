@@ -543,6 +543,28 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/approve", reply)
         self.assertNotIn("word_count", reply)
 
+    async def test_status_filter(self):
+        reply = await self._reply_with(
+            [{"name": "disk_tool", "status": "pending_approval"},
+             {"name": "word_count", "status": "active"}],
+            text="/skills status=active")
+        self.assertIn("word_count — active", reply)
+        self.assertNotIn("disk_tool", reply)
+
+    async def test_status_filter_validated(self):
+        reply = await self._reply_with(
+            [{"name": "word_count", "status": "active"}],
+            text="/skills status=nope")
+        self.assertIn("usage:", reply)
+
+    async def test_status_and_name_filter_combine(self):
+        reply = await self._reply_with(
+            [{"name": "disk_tool", "status": "pending_approval"},
+             {"name": "disk_watch", "status": "active"}],
+            text="/skills disk status=pending_approval")
+        self.assertIn("disk_tool", reply)
+        self.assertNotIn("disk_watch", reply)
+
 
 class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
