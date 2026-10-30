@@ -139,6 +139,20 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
             reply = send.call_args[0][1]
         self.assertIn("cache: 3 hit(s) / 10 (30%)", reply)
 
+    async def test_status_shows_cache_hottest_key(self):
+        gateway = make_gateway()
+
+        class FakeBrain:
+            def cache_stats(self):
+                return {"hits": 4, "misses": 6, "hit_rate": 0.4,
+                        "hottest_key": {"key_hash": "abc123def456",
+                                        "hits": 3}}
+        gateway.daemon.brain = FakeBrain()
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42}, "text": "/status"})
+            reply = send.call_args[0][1]
+        self.assertIn("cache hottest: abc123def456 (3 hit(s))", reply)
+
     async def test_pending_lists_skills_and_approvals(self):
         gateway = make_gateway()
         gateway.daemon.approvals.submit("question", "reboot the server?")

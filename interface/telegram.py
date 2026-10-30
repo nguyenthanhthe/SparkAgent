@@ -183,6 +183,10 @@ class TelegramGateway:
                         f"cache: {cache['hits']} hit(s) / "
                         f"{cache['hits'] + cache['misses']} "
                         f"({round(cache['hit_rate'] * 100)}%)")
+                hot = cache.get("hottest_key")
+                if hot:
+                    lines.append(f"cache hottest: {hot['key_hash']} "
+                                 f"({hot['hits']} hit(s))")
             return "\n".join(lines)
         if command == "/tasks":
             limit = 10
