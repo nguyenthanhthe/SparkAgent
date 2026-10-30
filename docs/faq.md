@@ -98,3 +98,11 @@ in `episodes_failed_transient` (plus the `retries` counter), while
 `episodes_failed` only grows for permanent failures (bad plan, crash).
 The dashboard scheduler panel shows the split; a high transient number
 means your brain tiers are unhealthy, not that the agent planned badly.
+
+**Why do quarantine records carry a source label?**
+So triage can answer "where did this come from?" without opening the
+blob (ADR-0012). `web_fetch` stamps itself when it parks a page; the
+release audit carries the reason, so the trail reads "parked by
+web_fetch for prompt-injection risk, released with length N" — and the
+content itself still never enters the audit log. Older records simply
+say `unknown`.
