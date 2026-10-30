@@ -89,3 +89,4 @@ endpoint, CLI, and Telegram surfaces are thin adapters over it.
 | Auth | `security/auth_limiter.AuthRateLimiter` | failure window, lockout, expired-lockout cleanup |
 | Task write path | `kernel/memory.py` task methods | parameter-bound SQL, dependency cycle walk |
 | Agent memory | `kernel/memory.py` remember/recall/forget | empty-text validation, kind scoping |
+| Event bus | `kernel/bus.EventBus` | bounded queues with drop-oldest (`bus_overflow_total`), loop-safe publish |
