@@ -93,6 +93,18 @@ class QuarantineStatsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.put("   \n", "reason")
 
+    def test_put_carries_source_label(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        record = store.put("body", "reason", source="web_fetch")
+        self.assertEqual(record["source"], "web_fetch")
+        # default keeps the field present but honest
+        bare = store.put("body", "reason")
+        self.assertEqual(bare["source"], "unknown")
+        # the label survives the round-trip through list()
+        store2 = QuarantineStore(Path(tempfile.mkdtemp()))
+        store2.put("body", "reason", source="telegram")
+        self.assertEqual(store2.list()[0]["source"], "telegram")
+
     def test_empty_store_stats(self):
         stats = QuarantineStore(Path(tempfile.mkdtemp())).stats()
         self.assertEqual(stats["items"], 0)

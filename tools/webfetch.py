@@ -271,7 +271,8 @@ class WebFetcher:
                     self.quarantine.put(result["text"],
                                         "prompt-injection risk",
                                         {"url": url,
-                                         "score": verdict.score})
+                                         "score": verdict.score},
+                                        source="web_fetch")
                 result["text"] = (f"[BLOCKED] content from {url} quarantined "
                                   f"for prompt-injection risk (score "
                                   f"{verdict.score}). Ask the operator to "

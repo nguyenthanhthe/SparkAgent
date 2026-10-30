@@ -30,7 +30,8 @@ class QuarantineStore:
         self.root.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------- api
-    def put(self, content: str, reason: str, meta: dict | None = None) -> dict:
+    def put(self, content: str, reason: str, meta: dict | None = None,
+            source: str = "unknown") -> dict:
         if not (content or "").strip():
             raise ValueError("quarantined content must be non-empty")
         item_id = new_id()
@@ -40,6 +41,7 @@ class QuarantineStore:
         record = {
             "id": item_id,
             "reason": reason[:300],
+            "source": str(source)[:60],
             "meta": meta or {},
             "size_bytes": len(data),
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
