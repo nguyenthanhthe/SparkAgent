@@ -80,7 +80,9 @@ def register_tools(registry: ToolRegistry,
                          mode: str = "get", jsonl: bool = False,
                          where: str = "", sort_by: str = "",
                          descending: bool = False,
-                         max_depth: int = 0) -> dict:
+                         max_depth: int = 0,
+                         in_keys: bool = True,
+                         in_values: bool = True) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
@@ -103,7 +105,12 @@ def register_tools(registry: ToolRegistry,
                 raise ToolFailure(f"path {path!r} failed: {exc}") from exc
         if mode == "search":
             needle = require_str(path, "needle", min_len=1)
-            return {"matches": json_mod.search(parsed, needle)}
+            if not in_keys and not in_values:
+                raise ToolFailure(
+                    "search needs at least one of in_keys/in_values")
+            return {"matches": json_mod.search(parsed, needle,
+                                               in_keys=in_keys,
+                                               in_values=in_values)}
         if mode == "shape":
             depth = max(1, min(int(max_depth), 12)) if max_depth else 4
             return {"shape": json_mod.shape(parsed, max_depth=depth)}
@@ -196,7 +203,13 @@ def register_tools(registry: ToolRegistry,
                     "descending": {"type": "boolean", "required": False},
                     "max_depth": {"type": "integer", "required": False,
                                   "desc": "shape mode: recursion limit "
-                                          "(1-12, default 4)"}},
+                                          "(1-12, default 4)"},
+                    "in_keys": {"type": "boolean", "required": False,
+                                "desc": "search mode: match keys "
+                                        "(default true)"},
+                    "in_values": {"type": "boolean", "required": False,
+                                  "desc": "search mode: match string "
+                                          "values (default true)"}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze

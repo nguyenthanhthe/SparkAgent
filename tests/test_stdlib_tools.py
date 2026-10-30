@@ -132,6 +132,25 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                            "operation": "regression"}, self.ctx)
         self.assertIn("slope", result)
 
+    async def test_json_query_search_toggles(self):
+        import json as json_lib
+        data = '{"hostname": "gpu-01", "note": "hostname alias"}'
+        both = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "hostname"}, self.ctx))
+        self.assertIn("hostname", both["matches"])
+        # values-only: the key match disappears, the value match stays
+        values_only = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "hostname", "in_keys": False},
+            self.ctx))
+        self.assertEqual(values_only["matches"], ["note"])
+        with self.assertRaises(ToolFailure):
+            await self.registry.call(
+                "json_query", {"data": data, "mode": "search",
+                               "path": "x", "in_keys": False,
+                               "in_values": False}, self.ctx)
+
     async def test_csv_head_honors_limit(self):
         import json as json_lib
         csv_text = "n\n" + "".join(f"{i}\n" for i in range(40))
