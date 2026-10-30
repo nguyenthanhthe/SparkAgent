@@ -547,6 +547,16 @@ class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/backup")
         self.assertIn("newest: UNVERIFIED", reply)
 
+    async def test_backup_tag_filter(self):
+        reply = await self._command("/backup --tag nightly")
+        self.assertIn("tagged 'nightly'", reply)
+        self.assertIn("sparkagent-backup-", reply)
+        self.assertIn("newest: verified", reply)
+
+    async def test_backup_tag_filter_no_match(self):
+        reply = await self._command("/backup --tag weekend")
+        self.assertIn("(no backups tagged 'weekend')", reply)
+
 
 if __name__ == "__main__":
     unittest.main()

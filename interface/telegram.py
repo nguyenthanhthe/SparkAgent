@@ -351,12 +351,22 @@ class TelegramGateway:
             from ops.backup import list_backups, verify_backup, BackupError
             backup_dir = daemon.cfg.root / daemon.cfg.get(
                 "ops.backup_dir", "backups")
-            listing = list_backups(backup_dir, limit=5)
+            listing = list_backups(backup_dir, limit=20)
             archives = listing["archives"]
+            tag_filter = ""
+            if "--tag" in args:
+                args, _, rest = args.partition("--tag")
+                tag_filter = rest.strip().lower()
+                archives = [a for a in archives
+                            if a.get("tag") and
+                            tag_filter in str(a["tag"]).lower()]
+                if not archives:
+                    return f"(no backups tagged '{tag_filter}')"
             if not archives:
                 return (f"no backups in {listing['dir']} — run "
                         "python -m ops.backup create")
-            lines = [f"backups ({len(archives)} newest):"]
+            suffix = f" tagged '{tag_filter}'" if tag_filter else ""
+            lines = [f"backups ({len(archives)} newest){suffix}:"]
             for item in archives:
                 age = item["age_s"]
                 age_text = (f"{age // 3600}h{(age % 3600) // 60:02d}m"
