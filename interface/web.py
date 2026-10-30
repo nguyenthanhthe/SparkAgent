@@ -515,10 +515,12 @@ def build_web_app(daemon) -> web.Application:
         if not ok:
             raise web.HTTPBadRequest(text=f"could not {action} task {task_id}")
         if action in ("pause", "resume"):
+            rows = await daemon.memory.list_tasks(task_id=task_id)
+            source = rows[0].get("source", "unknown") if rows else "unknown"
             daemon.bus.publish("scheduler", {
                 "event": {"pause": "task_paused",
                           "resume": "task_resumed"}[action],
-                "task_id": task_id})
+                "task_id": task_id, "source": source})
         if action == "cancel":
             daemon.bus.publish("scheduler", {
                 "event": "task_cancelled", "task_id": task_id})
