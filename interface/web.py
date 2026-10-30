@@ -300,6 +300,10 @@ async function refreshCost(){try{const b=await api('/api/brain');
     kv('today','$'+today.toFixed(4))+kv('7-day avg','$'+avg.toFixed(4))+arrow+
     kv('total','$'+b.costs.total_usd.toFixed(4))+
     kv('cache hits',`${cache.hits||0} of ${(cache.hits||0)+(cache.misses||0)} · ${Math.round((cache.hit_rate||0)*100)}%`)+
+    (()=>{const saved=cache.saved_tokens_by_model||{};
+      const total=Object.values(saved).reduce((a,v)=>a+v,0);
+      return total?kv('tokens saved',total.toLocaleString()+' ('+
+        Object.entries(saved).map(([m,t])=>`${m}: ${t.toLocaleString()}`).join(', ')+')'):''})()+
     (byModel?'<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+
       byModel+'</div>':'<div style="color:var(--dim);font-size:12px">'+
       'no spend recorded yet (local tier is free)</div>');
