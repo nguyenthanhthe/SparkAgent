@@ -317,7 +317,8 @@ class Brain:
         """Per-tier counters including the last error, for /api/adapters."""
         now = time.monotonic()
         return {tier.value: {
-            "requests": st.requests, "failures": st.failures,
+            "requests": st.requests, "served": st.served,
+            "failures": st.failures,
             "consecutive_failures": st.consecutive_failures,
             "cooldown_active": st.cooldown_until > now,
             "cooldown_remaining_s": round(max(0.0, st.cooldown_until - now),

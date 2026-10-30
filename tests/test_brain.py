@@ -128,6 +128,13 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(stats["local"]["failures"], 1)
         self.assertEqual(stats["remote"]["served"], 1)
 
+    def test_tier_details_carry_served(self):
+        brain = make_brain(FakeLocal(text="ok"), FakeRemote(text="r"))
+        self.run_async(brain.chat([{"role": "user", "content": "hi"}]))
+        details = brain.tier_details()
+        self.assertEqual(details["local"]["served"], 1)
+        self.assertEqual(details["remote"]["served"], 0)
+
     def test_health_reports_per_check_duration_ms(self):
         brain = make_brain(FakeLocal(text="ok"), FakeRemote(text="r"))
         health = self.run_async(brain.health())
