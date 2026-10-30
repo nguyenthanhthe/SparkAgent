@@ -151,6 +151,9 @@ async function refreshStatus(){try{const s=await api('/api/status');
   if(s.quarantine&&s.quarantine.items>0){
     qb.style.display='inline';
     qb.textContent=`quarantine ${s.quarantine.items} · ${(s.quarantine.bytes/1024).toFixed(0)} KB`;
+    qb.onclick=()=>{document.getElementById('quarantine').scrollIntoView({behavior:'smooth'});refreshQuarantine();};
+    qb.style.cursor='pointer';
+    qb.title='click to jump to the quarantine panel';
   } else qb.style.display='none';
   const b=s.brain||{};let h='';
   if(b.local)h+=kv('tier 1 · local',`${b.local.model} ${b.local.ok?badge('b-ok','ok'):badge('b-err',b.local.detail||'down')}`);
