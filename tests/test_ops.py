@@ -313,6 +313,17 @@ class BackupTests(unittest.TestCase):
         untagged = create_backup(data, output)
         self.assertIsNone(verify_backup(untagged.archive_path).get("tag"))
 
+    def test_blank_tag_rejected(self):
+        data = make_data_dir()
+        output = data.parent / "backups"
+        for bad in ("", "   ", "\t\n"):
+            with self.assertRaises(BackupError):
+                create_backup(data, output, tag=bad)
+        # a whitespace-padded tag is trimmed, not rejected
+        result = create_backup(data, output, tag="  nightly  ")
+        self.assertEqual(verify_backup(result.archive_path)["tag"],
+                         "nightly")
+
     def test_cli_tag_surfaces_in_verify_and_verify_all(self):
         import contextlib
         import io

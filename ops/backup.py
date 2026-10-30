@@ -102,8 +102,11 @@ def create_backup(data_dir: Path, output_dir: Path,
     manifest = {"created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "version": 1, "file_count": len(entries),
                 "total_bytes": total, "digest": combined, "files": entries}
-    if tag:
-        manifest["tag"] = str(tag)[:100]
+    if tag is not None:
+        tag = str(tag).strip()
+        if not tag:
+            raise BackupError("tag must not be empty or whitespace")
+        manifest["tag"] = tag[:100]
     with zipfile.ZipFile(archive_path, "a") as archive:
         archive.writestr(MANIFEST_NAME, json.dumps(manifest, indent=1))
     return BackupResult(archive_path=archive_path, file_count=len(entries),
