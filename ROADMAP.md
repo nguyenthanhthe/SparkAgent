@@ -1,33 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[390/500]** commits · **1058 tests green** · self-check passing.
+Progress counter: **[401/500]** commits · **1062 tests green** · self-check passing.
 
-## Wave AL status (complete)
+## Wave AM status (complete)
 
-1. ✅ kernel: task cancel publishes a task_cancelled event on the scheduler channel
-2. ✅ brain: cache snapshot splits saved tokens per model
-3. ✅ memory: POST /api/memories/rename audits the affected row count
-4. ✅ security: promptguard counters gain a per-band split (low/medium/high)
-5. ✅ interface: dashboard tasks panel badges the task source
-6. ✅ interface: telegram /audit accepts a --limit argument (1-100)
-7. ✅ tools: csv_analyze head honors a caller limit (1-50, default 25)
-8. ✅ ops: backup verify reports corrupt archives as JSON ok=false (verify-all already emitted JSON — stale item substituted)
-9. ✅ docs: faq.md entry — what happens when an approval expires
-10. ✅ examples: bus demo — publish/subscribe and subscriber_count offline
+1. ✅ kernel: scheduler splits transient (requeued) failures from permanent episodes_failed
+2. ✅ brain: /api/brain lifecycle carries the scheduler's started_at
+3. ✅ memory: recall gains a created_after time bound (parameter-bound SQL)
+4. ✅ security: quarantine list gains a reason_prefix family filter wired to /api/quarantine
+5. ✅ interface: dashboard quarantine badge is a clickable link to the panel
+6. ✅ interface: telegram /status shows the cache hottest key line
+7. ✅ tools: json_query mode=search honors in_keys/in_values toggles
+8. ✅ ops: backup drill summary names the archive (tag already present — stale item substituted)
+9. ✅ docs: testing.md documents the process-global registry gotcha
+10. ✅ examples: json depth demo — shape max_depth + stats depth offline
 
-## Wave AM backlog (next)
+## Wave AN backlog (next)
 
-1. kernel: scheduler stats gains episodes_failed transient split (retries counted separately)
-2. brain: /api/brain lifecycle carries the scheduler's started_at
-3. memory: recall gains a created_after filter (parameter-bound SQL)
-4. security: quarantine list gains a reason prefix filter (--kind style)
-5. interface: dashboard quarantined badge links the quarantine panel
-6. interface: telegram /status shows the cache hottest key line
-7. tools: json_query mode=search honors in_keys/in_values toggles
-8. ops: backup drill --tag records the tag in its JSON summary
-9. docs: testing.md documents the process-global registry gotcha
-10. examples: json depth demo — shape max_depth + stats depth offline
+1. kernel: EventBus drop-oldest overflow is counted (bus_overflow counter)
+2. brain: tier_details gains a served counter beside requests
+3. memory: count() accepts a key substring filter
+4. security: approval queue exposes counters() beyond the raw dict
+5. interface: dashboard scheduler panel shows the transient-failure split
+6. interface: telegram /db accepts a --limit argument
+7. tools: json_query mode=get honors a default when the path misses
+8. ops: diskwatch check_usage gains an ok-level total bytes report
+9. docs: faq.md entry — why are transient failures not counted as failures
+10. examples: rename demo — memory key repair via /api/memories/rename offline
 
 ## Wave S status (complete)
 
