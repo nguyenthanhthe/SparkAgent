@@ -391,6 +391,19 @@ class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/backup --verify")
         self.assertIn("verify: newest ok", reply)
 
+    async def test_backup_default_shows_verified_state(self):
+        reply = await self._command("/backup")
+        self.assertIn("newest: verified", reply)
+
+    async def test_backup_default_flags_unverified(self):
+        import zipfile
+        tampered = (self.root / "backups" /
+                    "sparkagent-backup-29990101-000000.zip")
+        with zipfile.ZipFile(tampered, "w") as archive:
+            archive.writestr("blob.txt", "not a sparkagent backup")
+        reply = await self._command("/backup")
+        self.assertIn("newest: UNVERIFIED", reply)
+
 
 if __name__ == "__main__":
     unittest.main()

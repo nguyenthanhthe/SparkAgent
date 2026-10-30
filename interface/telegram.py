@@ -332,6 +332,15 @@ class TelegramGateway:
                                  f"({manifest['file_count']} files)")
                 except BackupError as exc:
                     lines.append(f"verify: FAILED — {exc}")
+            else:
+                # default view: hash-verify the newest archive so the
+                # listing states its verified state, not just its age
+                newest = backup_dir / archives[0]["name"]
+                try:
+                    verify_backup(newest)
+                    lines.append("newest: verified ✓")
+                except BackupError as exc:
+                    lines.append(f"newest: UNVERIFIED — {exc}")
             return "\n".join(lines)
         if command == "/pending":
             lines = []
