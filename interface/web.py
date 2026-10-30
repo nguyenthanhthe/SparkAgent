@@ -336,8 +336,14 @@ async function refreshBackup(){try{const b=await api('/api/backup');
   const rows=items.slice(0,5).map(a=>
     `${esc(a.name)} · ${(a.bytes/1024).toFixed(0)} KB`+
     (a.tag?` · ${esc(a.tag)}`:'')).join('<br>');
+  const v=b.verified;
+  const vbadge=!v?'':(v.ok
+    ?badge('b-ok','verified')
+    :'<span style="color:var(--b-warn,#c9a227);font-size:11px" title="'+
+     esc(v.detail||'')+'">unverified</span>');
   $('backups').innerHTML=
     kv('newest',`${esc(newest.name)} (${age} old)`)+
+    (v?vbadge+' ':'')+
     (newest.tag?kv('tag',esc(newest.tag)):'')+
     '<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+rows+'</div>';
 }catch(e){}}
@@ -388,12 +394,25 @@ def build_web_app(daemon) -> web.Application:
         return web.json_response(payload)
 
     async def api_backup(_request: web.Request) -> web.Response:
-        """Backup window listing: newest archive, age, tag. Listing only —
-        hash verification stays in `python -m ops.backup verify-all`."""
-        from ops.backup import list_backups
+        """Backup window listing: newest archive, age, tag, plus a hash
+        verification of the newest archive (drill-down state for the
+        dashboard panel). Full-window verification stays in
+        `python -m ops.backup verify-all`."""
+        from ops.backup import BackupError, list_backups, verify_backup
         backup_dir = daemon.cfg.root / daemon.cfg.get(
             "ops.backup_dir", "backups")
-        return web.json_response(list_backups(backup_dir))
+        payload = list_backups(backup_dir)
+        archives = payload.get("archives") or []
+        if archives:
+            newest = backup_dir / archives[0]["name"]
+            try:
+                verify_backup(newest)
+                payload["verified"] = {"ok": True, "detail": "",
+                                       "name": archives[0]["name"]}
+            except (BackupError, OSError, ValueError) as exc:
+                payload["verified"] = {"ok": False, "detail": str(exc),
+                                       "name": archives[0]["name"]}
+        return web.json_response(payload)
 
     async def api_doc(request: web.Request) -> web.Response:
         """Read-only runbook/docs serving — allowlisted names only, so

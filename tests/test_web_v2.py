@@ -190,6 +190,33 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_backup_listing_reports_newest_verified_state(self):
+        import zipfile
+        from ops.backup import create_backup
+        daemon, client = await self._setup()
+        try:
+            data = daemon.cfg.root / "data"
+            data.mkdir(parents=True, exist_ok=True)
+            (data / "sparkagent.db").write_bytes(b"x")
+            backup_dir = daemon.cfg.root / "backups"
+            create_backup(data, backup_dir, tag="nightly")
+
+            body = await (await client.get("/api/backup")).json()
+            self.assertTrue(body["verified"]["ok"])
+            self.assertEqual(body["verified"]["detail"], "")
+
+            # a corrupt newer archive must surface as unverified
+            tampered = backup_dir / "sparkagent-backup-29990101-000000.zip"
+            with zipfile.ZipFile(tampered, "w") as archive:
+                archive.writestr("blob.txt", "not a sparkagent backup")
+            body = await (await client.get("/api/backup")).json()
+            self.assertFalse(body["verified"]["ok"])
+            self.assertIn("manifest", body["verified"]["detail"].lower())
+            self.assertEqual(body["verified"]["name"], tampered.name)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_pause_resume_publish_scheduler_events(self):
         daemon, client = await self._setup()
         try:
