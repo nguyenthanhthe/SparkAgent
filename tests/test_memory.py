@@ -87,6 +87,20 @@ class MemoryTests(unittest.TestCase):
             await self.mem.remember("real note")   # unaffected
         run(scenario())
 
+    def test_rename_key_refuses_existing_target(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("keep me", key="good-key")
+            await self.mem.remember("fix me", key="typo")
+            with self.assertRaises(ValueError) as ctx:
+                await self.mem.rename_key("typo", "good-key")
+            self.assertIn("already exists", str(ctx.exception))
+            # the refused rename leaves both keys intact
+            self.assertEqual(await self.mem.count(key_contains="typo"), 1)
+            self.assertEqual(await self.mem.count(key_contains="good-key"),
+                             1)
+        run(scenario())
+
     def test_count_key_substring_filter(self):
         async def scenario():
             await self.mem.connect()

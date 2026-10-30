@@ -748,11 +748,18 @@ class Memory:
 
     async def rename_key(self, old: str, new: str) -> int:
         """Re-key memories from ``old`` to ``new`` (operator repair for
-        mistyped keys; callers must audit). Returns the row count."""
+        mistyped keys; callers must audit). Returns the row count.
+        Refuses when ``new`` is already taken — merging keys silently
+        would blur two distinct memories."""
         if not old or not new or old == new:
             raise ValueError("rename_key needs two distinct non-empty keys")
 
         def op(conn: sqlite3.Connection) -> int:
+            taken = conn.execute("SELECT COUNT(*) AS n FROM memories "
+                                 "WHERE key = ?", (new,)).fetchone()
+            if int(taken["n"]) > 0:
+                raise ValueError(f"key {new!r} already exists — forget it "
+                                 "first if the merge is intended")
             cursor = conn.execute(
                 "UPDATE memories SET key = ? WHERE key = ?", (new, old))
             conn.commit()
