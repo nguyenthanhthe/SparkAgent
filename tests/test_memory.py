@@ -87,6 +87,19 @@ class MemoryTests(unittest.TestCase):
             await self.mem.remember("real note")   # unaffected
         run(scenario())
 
+    def test_count_key_substring_filter(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("note one", kind="note", key="ep:1")
+            await self.mem.remember("note two", kind="note", key="ep:2")
+            await self.mem.remember("digest", kind="digest", key="ep:1")
+            self.assertEqual(await self.mem.count(), 3)
+            self.assertEqual(await self.mem.count(key_contains="ep:1"), 2)
+            self.assertEqual(await self.mem.count(kind="note",
+                                                  key_contains="ep:2"), 1)
+            self.assertEqual(await self.mem.count(key_contains="nope"), 0)
+        run(scenario())
+
     def test_remember_reports_created_at_stamp(self):
         async def scenario():
             await self.mem.connect()

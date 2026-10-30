@@ -752,17 +752,23 @@ class Memory:
             return cursor.rowcount
         return await self._run(op)
 
-    async def count(self, kind: str | None = None) -> int:
-        """Total memory rows, optionally restricted to one kind — the
-        cheap totals dashboards poll."""
+    async def count(self, kind: str | None = None,
+                    key_contains: str | None = None) -> int:
+        """Total memory rows, optionally restricted to one kind and/or
+        rows whose ``key`` contains the given substring — the cheap
+        totals dashboards poll (e.g. count episode-tagged rows whose key
+        carries an episode id)."""
         def op(conn: sqlite3.Connection) -> int:
-            if kind is None:
-                row = conn.execute(
-                    "SELECT COUNT(*) AS n FROM memories").fetchone()
-            else:
-                row = conn.execute(
-                    "SELECT COUNT(*) AS n FROM memories WHERE kind = ?",
-                    (kind,)).fetchone()
+            clauses, params = [], []
+            if kind is not None:
+                clauses.append("kind = ?")
+                params.append(kind)
+            if key_contains:
+                clauses.append("key LIKE ?")
+                params.append("%" + key_contains + "%")
+            where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+            row = conn.execute("SELECT COUNT(*) AS n FROM memories" + where,
+                               tuple(params)).fetchone()
             return int(row["n"])
         return await self._run(op)
 
