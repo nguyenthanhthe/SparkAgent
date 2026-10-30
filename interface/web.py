@@ -194,7 +194,7 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
   const badge=({done:'b-ok',cancelled:'b-err'})[t.status]||'b-warn';
   $('taskdetail').innerHTML=`<b>#${t.id}</b> ${esc(t.goal)}<br>
     <span class="badge ${badge}">${t.status}</span>
-    priority ${t.priority??5} · runs ${t.last_run_at?new Date(t.last_run_at*1000).toLocaleTimeString():'never'}
+    source ${esc(t.source||'unknown')} · priority ${t.priority??5} · runs ${t.last_run_at?new Date(t.last_run_at*1000).toLocaleTimeString():'never'}
     ${t.depends_on?`· depends on ${(t.depends_on||[]).map(b=>'#'+b).join(', ')} (${blocked?'blocked by '+blocked:'satisfied'})`:''}`;
   $('taskdetail').style.display='block';
 }catch(e){toast(e.message)}}
