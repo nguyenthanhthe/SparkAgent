@@ -90,3 +90,11 @@ Nothing runs. Expired requests flip to `status: "expired"` with
 auditable), and the decision endpoints reject them — re-submit instead
 of trying to revive one. The approval gate stays fail-closed: TTL
 expiry is a timeout, not a veto override.
+
+**Why are transient failures not counted as failures?**
+They are — just in their own bucket. A task whose episode died on
+"all LLM tiers failed" is requeued automatically with backoff and lands
+in `episodes_failed_transient` (plus the `retries` counter), while
+`episodes_failed` only grows for permanent failures (bad plan, crash).
+The dashboard scheduler panel shows the split; a high transient number
+means your brain tiers are unhealthy, not that the agent planned badly.
