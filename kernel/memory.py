@@ -434,10 +434,13 @@ class Memory:
                     deduped[key] = hit
             hits = list(deduped.values())[:k]
             self._attach_episode_tags(conn, hits)
-            from memory_search.snippets import highlight_snippet
-            for hit in hits:
-                hit.snippet = highlight_snippet(
-                    hit.text, highlight or query, width=snippet_width)
+            if snippet_width > 0:
+                from memory_search.snippets import highlight_snippet
+                for hit in hits:
+                    hit.snippet = highlight_snippet(
+                        hit.text, highlight or query, width=snippet_width)
+            # snippet_width <= 0 skips the windowing entirely — callers
+            # that only need ids/scores pay no snippet cost
             return hits
         return await self._run(op)
 

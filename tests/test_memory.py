@@ -134,6 +134,15 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(row["created_at"], stamped["created_at"])
         run(scenario())
 
+    def test_recall_zero_snippet_width_skips_windowing(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("gpu thermal data " * 10)
+            hits = await self.mem.recall("gpu thermal", k=1,
+                                         snippet_width=0)
+            self.assertIsNone(hits[0].snippet)
+        run(scenario())
+
     def test_recall_highlight_needle_override(self):
         async def scenario():
             await self.mem.connect()
