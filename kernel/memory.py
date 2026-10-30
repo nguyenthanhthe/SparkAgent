@@ -363,10 +363,17 @@ class Memory:
             if created_after:
                 # created_at is ISO local time; a date-only bound
                 # compares lexicographically against the zero time
-                bound = created_after if "T" in created_after \
-                    else created_after + "T00:00:00"
+                raw = created_after.strip()
+                probe = raw if "T" in raw else raw + "T00:00:00"
+                try:
+                    time.strptime(probe, "%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    raise ValueError(
+                        "created_after must be YYYY-MM-DD or "
+                        "YYYY-MM-DDTHH:MM:SS, got "
+                        f"{created_after!r}") from None
                 sql += "AND created_at > ? "
-                params.append(bound)
+                params.append(probe)
             rows = conn.execute(sql + "ORDER BY id DESC LIMIT 5000",
                                 tuple(params)).fetchall()
             from memory_search.hybrid import HybridRanker

@@ -106,6 +106,17 @@ class RecallKindFilterTests(unittest.TestCase):
                                       created_after="2025-12-31T23:59:59"))
         self.assertEqual(len(hits_dt), 1)
 
+    def test_created_after_validates_format(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("gpu thermal data")
+        run(scenario())
+        for bad in ("not-a-date", "2026-13-01", "2026-01-01T99:00"):
+            with self.assertRaises(ValueError) as ctx:
+                run(self.mem.recall("gpu thermal", created_after=bad))
+            self.assertIn("created_after", str(ctx.exception))
+            self.assertIn(bad, str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
