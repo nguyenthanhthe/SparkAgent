@@ -327,14 +327,17 @@ class Memory:
     async def recall(self, query: str, k: int | None = None,
                      kinds: list[str] | None = None,
                      exclude_kinds: list[str] | None = None,
+                     created_after: str | None = None,
                      snippet_width: int = 220) -> list[MemoryHit]:
         """Hybrid recall: cosine vectors fused with BM25 lexical matches.
 
         ``kinds`` optionally restricts results (e.g. ``["digest",
         "episode"]``); ``exclude_kinds`` is the complement — drop those
-        kinds (e.g. ``["note"]``) from the candidate pool. Filtering
-        happens in SQL, parameter-bound. Digest markers stay excluded
-        unless explicitly asked for via ``kinds``.
+        kinds (e.g. ``["note"]``) from the candidate pool.
+        ``created_after`` keeps only rows stamped after the given
+        ``YYYY-MM-DD[THH:MM:SS]`` instant. Filtering happens in SQL,
+        parameter-bound. Digest markers stay excluded unless explicitly
+        asked for via ``kinds``.
         """
         k = k or self.recall_k
         query_vec = await self.embed(query)
@@ -357,6 +360,13 @@ class Memory:
                 sql += ("AND kind NOT IN ("
                         + ", ".join("?" * len(exclude_kinds)) + ") ")
                 params.extend(exclude_kinds)
+            if created_after:
+                # created_at is ISO local time; a date-only bound
+                # compares lexicographically against the zero time
+                bound = created_after if "T" in created_after \
+                    else created_after + "T00:00:00"
+                sql += "AND created_at > ? "
+                params.append(bound)
             rows = conn.execute(sql + "ORDER BY id DESC LIMIT 5000",
                                 tuple(params)).fetchall()
             from memory_search.hybrid import HybridRanker

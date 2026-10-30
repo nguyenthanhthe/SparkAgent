@@ -84,6 +84,28 @@ class RecallKindFilterTests(unittest.TestCase):
                                    exclude_kinds=["episode"]))
         self.assertEqual(hits, [])
 
+    def test_created_after_keeps_only_recent_rows(self):
+        async def scenario():
+            await self.mem.connect()
+            old_id = await self.mem.remember("gpu thermal old data",
+                                             kind="note")
+            # backdate the stored stamp directly — the SQL bound does the
+            # time travel, not the clock
+            self.mem._conn.execute(
+                "UPDATE memories SET created_at = '2020-01-01T00:00:00' "
+                "WHERE id = ?", (old_id,))
+            self.mem._conn.commit()
+            await self.mem.remember("gpu thermal new data", kind="note")
+        run(scenario())
+        hits = run(self.mem.recall("gpu thermal",
+                                   created_after="2026-01-01"))
+        self.assertEqual(len(hits), 1)
+        self.assertIn("new data", hits[0].text)
+        # date-only and datetime bounds behave the same at midnight
+        hits_dt = run(self.mem.recall("gpu thermal",
+                                      created_after="2025-12-31T23:59:59"))
+        self.assertEqual(len(hits_dt), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
