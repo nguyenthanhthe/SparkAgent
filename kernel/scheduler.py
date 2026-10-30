@@ -118,6 +118,11 @@ class Scheduler:
                              and "all LLM tiers failed" in result.answer)
                 if success:
                     self.stats["episodes_done"] += 1
+                elif transient:
+                    # requeued automatically — tracked apart from the
+                    # permanent failures so the operator sees the split
+                    self.stats["episodes_failed_transient"] = \
+                        self.stats.get("episodes_failed_transient", 0) + 1
                 else:
                     self.stats["episodes_failed"] += 1
                 await self.memory.finish_task(task_id, success)

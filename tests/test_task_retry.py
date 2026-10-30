@@ -66,6 +66,10 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
                                        "source": "test",
                                        "consecutive_failures": 0})
             self.assertEqual(scheduler.stats.get("retries"), 1)
+            # transient failures split off from the permanent count
+            self.assertEqual(
+                scheduler.stats.get("episodes_failed_transient"), 1)
+            self.assertEqual(scheduler.stats.get("episodes_failed", 0), 0)
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["status"], "pending")  # requeued
             self.assertGreater(row["next_run_at"], 0)
@@ -94,6 +98,9 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
                                        "source": "test",
                                        "consecutive_failures": 0})
             self.assertEqual(scheduler.stats.get("retries", 0), 0)
+            self.assertEqual(scheduler.stats.get("episodes_failed"), 1)
+            self.assertEqual(
+                scheduler.stats.get("episodes_failed_transient", 0), 0)
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["status"], "failed")
         finally:
