@@ -142,6 +142,24 @@ class QuarantineStatsTests(unittest.TestCase):
         self.assertIsNone(stats["oldest_human"])
         self.assertEqual(stats["top_reasons"], {})
 
+    def test_stats_source_breakdown(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        store.put("a", "r1", source="web_fetch")
+        store.put("b", "r2", source="web_fetch")
+        store.put("c", "r3")   # default label
+        stats = store.stats()
+        self.assertEqual(stats["by_source"], {"web_fetch": 2,
+                                              "unknown": 1})
+        # legacy records without a source roll up as unknown
+        import json
+        legacy = QuarantineStore(Path(tempfile.mkdtemp()))
+        record = legacy.put("x", "r")
+        meta = next(legacy.root.glob("*.json"))
+        data = json.loads(meta.read_text(encoding="utf-8"))
+        del data["source"]
+        meta.write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(legacy.stats()["by_source"], {"unknown": 1})
+
 
 if __name__ == "__main__":
     unittest.main()

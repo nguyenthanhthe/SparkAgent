@@ -119,11 +119,17 @@ class QuarantineStore:
             oldest_human = (f"{hours}h{remainder // 60:02d}m" if hours
                             else f"{oldest_age_s // 60}m"
                             f"{oldest_age_s % 60:02d}s")
+        by_source: dict[str, int] = {}
+        for item in items:
+            source = str(item.get("source", "unknown"))[:40] or "unknown"
+            by_source[source] = by_source.get(source, 0) + 1
         return {"items": len(items),
                 "bytes": sum(item.get("size_bytes", 0) for item in items),
                 "oldest_age_s": oldest_age_s,
                 "oldest_human": oldest_human,
-                "top_reasons": top_reasons}
+                "top_reasons": top_reasons,
+                "by_source": dict(sorted(by_source.items(),
+                                         key=lambda kv: -kv[1]))}
 
     def release(self, item_id: str) -> str:
         """Return sanitized content and delete the item from quarantine.
