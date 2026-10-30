@@ -1,33 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[401/500]** commits · **1062 tests green** · self-check passing.
+Progress counter: **[412/500]** commits · **1072 tests green** · self-check passing.
 
-## Wave AM status (complete)
+## Wave AN status (complete)
 
-1. ✅ kernel: scheduler splits transient (requeued) failures from permanent episodes_failed
-2. ✅ brain: /api/brain lifecycle carries the scheduler's started_at
-3. ✅ memory: recall gains a created_after time bound (parameter-bound SQL)
-4. ✅ security: quarantine list gains a reason_prefix family filter wired to /api/quarantine
-5. ✅ interface: dashboard quarantine badge is a clickable link to the panel
-6. ✅ interface: telegram /status shows the cache hottest key line
-7. ✅ tools: json_query mode=search honors in_keys/in_values toggles
-8. ✅ ops: backup drill summary names the archive (tag already present — stale item substituted)
-9. ✅ docs: testing.md documents the process-global registry gotcha
-10. ✅ examples: json depth demo — shape max_depth + stats depth offline
+1. ✅ kernel: bus drop-oldest overflow counted in bus_overflow_total
+2. ✅ brain: tier_details carries the served counter beside requests
+3. ✅ memory: count() accepts a key substring filter (parameter-bound LIKE)
+4. ✅ security: approval queue exposes counters_snapshot() with live pending depth
+5. ✅ interface: dashboard scheduler panel shows the transient-failure split
+6. ✅ interface: telegram /db accepts a --limit N flag (1-50)
+7. ✅ tools: json_query mode=get honors default_json on a path miss
+8. ✅ ops: diskwatch reports a top-subdirectory size breakdown (stale bytes item substituted)
+9. ✅ docs: faq.md entry — why are transient failures not counted as failures
+10. ✅ examples: rename demo — audited memory key repair offline
 
-## Wave AN backlog (next)
+## Wave AO backlog (next)
 
-1. kernel: EventBus drop-oldest overflow is counted (bus_overflow counter)
-2. brain: tier_details gains a served counter beside requests
-3. memory: count() accepts a key substring filter
-4. security: approval queue exposes counters() beyond the raw dict
-5. interface: dashboard scheduler panel shows the transient-failure split
-6. interface: telegram /db accepts a --limit argument
-7. tools: json_query mode=get honors a default when the path misses
-8. ops: diskwatch check_usage gains an ok-level total bytes report
-9. docs: faq.md entry — why are transient failures not counted as failures
-10. examples: rename demo — memory key repair via /api/memories/rename offline
+1. kernel: task submit rejects a goal that is only whitespace (echoing the skip)
+2. brain: cache snapshot gains an average entry age
+3. memory: recall created_after validates its format with a clear error
+4. security: quarantine put() carries a source label in meta
+5. interface: dashboard skills panel shows the source column
+6. interface: telegram /skills pending block shows the count
+7. tools: csv_analyze describe gains a per-column distinct count
+8. ops: backup prune --dry-run reports what would remain
+9. docs: runbook-backups.md cross-links the FAQ unverified entry
+10. examples: counters demo — approval queue lifecycle offline
 
 ## Wave S status (complete)
 
