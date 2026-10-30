@@ -85,6 +85,24 @@ class MemoryTests(unittest.TestCase):
             await self.mem.remember("real note")   # unaffected
         run(scenario())
 
+    def test_remember_reports_created_at_stamp(self):
+        async def scenario():
+            await self.mem.connect()
+            # default return stays the plain row id
+            plain = await self.mem.remember("plain note")
+            self.assertIsInstance(plain, int)
+            stamped = await self.mem.remember("stamped note",
+                                              with_stamp=True)
+            self.assertIsInstance(stamped, dict)
+            self.assertIsInstance(stamped["id"], int)
+            self.assertIn("T", stamped["created_at"])
+            # the persisted row really carries the reported stamp
+            row = self.mem._conn.execute(
+                "SELECT created_at FROM memories WHERE id = ?",
+                (stamped["id"],)).fetchone()
+            self.assertEqual(row["created_at"], stamped["created_at"])
+        run(scenario())
+
     def test_recall_snippet_width_param(self):
         async def scenario():
             await self.mem.connect()

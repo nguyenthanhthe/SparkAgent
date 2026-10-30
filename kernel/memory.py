@@ -300,17 +300,27 @@ class Memory:
         return self._hashing.embed(text)
 
     async def remember(self, text: str, kind: str = "note",
-                       key: str | None = None, meta: dict | None = None) -> int:
+                       key: str | None = None, meta: dict | None = None,
+                       with_stamp: bool = False):
+        """Store a memory; returns the row id (default) or, with
+        ``with_stamp=True``, a dict carrying the exact ``created_at``
+        stamp that was persisted — callers no longer guess the stamp
+        from the clock."""
         if not (text or "").strip():
             raise ValueError("memory text must be non-empty")
         vector = await self.embed(text)
-        def op(conn: sqlite3.Connection) -> int:
+        created_at = _now_iso()
+
+        def op(conn: sqlite3.Connection):
             cursor = conn.execute(
                 "INSERT INTO memories (created_at, kind, key, text, embedding, meta) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (_now_iso(), kind, key, text[:8000], _pack(vector),
+                (created_at, kind, key, text[:8000], _pack(vector),
                  json.dumps(meta) if meta else None))
             conn.commit()
+            if with_stamp:
+                return {"id": int(cursor.lastrowid),
+                        "created_at": created_at}
             return int(cursor.lastrowid)
         return await self._run(op)
 
