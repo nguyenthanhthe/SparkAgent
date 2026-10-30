@@ -122,6 +122,7 @@ class ResponseCache:
                             "hits": hottest[1].hits}
                            if hottest else None)
         avg_age = (round(sum(ages) / len(ages), 1) if ages else None)
+        total_hits = sum(self._hits_by_model.values())
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3),
                 "oldest_entry_age_s": (round(oldest, 1)
@@ -131,6 +132,13 @@ class ResponseCache:
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
                     key=lambda item: -item[1])),
+                # share of all cache hits each model represents — misses
+                # are not attributable to a model (the lookup happens
+                # before routing), so this is a hits split, not a rate
+                "hit_share_by_model": {
+                    model: round(hits / total_hits, 3)
+                    for model, hits in sorted(self._hits_by_model.items(),
+                                              key=lambda item: -item[1])},
                 "saved_tokens_by_model": dict(sorted(
                     self._saved_by_model.items(),
                     key=lambda item: -item[1]))}

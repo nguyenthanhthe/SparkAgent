@@ -62,6 +62,20 @@ class HottestKeyTests(unittest.TestCase):
         # a is 30s old, b is 0s old -> average 15s
         self.assertEqual(cache.snapshot()["average_entry_age_s"], 15.0)
 
+    def test_hit_share_per_model(self):
+        cache = ResponseCache(clock=FakeClock())
+        cache.put("a", "text", {"model": "big"})
+        cache.put("b", "text", {"model": "small"})
+        cache.get("a")
+        cache.get("a")
+        cache.get("a")
+        cache.get("b")
+        share = cache.snapshot()["hit_share_by_model"]
+        self.assertEqual(share, {"big": 0.75, "small": 0.25})
+        # no hits -> empty split, not an error
+        empty = ResponseCache(clock=FakeClock())
+        self.assertEqual(empty.snapshot()["hit_share_by_model"], {})
+
 
 if __name__ == "__main__":
     unittest.main()
