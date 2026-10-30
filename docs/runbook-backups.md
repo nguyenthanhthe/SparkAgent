@@ -53,3 +53,7 @@ the next backup overwrites the evidence.
 - Tags ride in the manifest: `verify` and `verify-all` output show them,
   and the dashboard backup panel lists the newest archive's tag.
 - A backup you have never restored is a hope, not a backup.
+- The dashboard backup panel and telegram `/backup` hash-verify the
+  newest archive on every view; `unverified` means that check failed.
+  See the FAQ entry [why does my backup show unverified?](faq.md) for
+  what that means and what to do next.
