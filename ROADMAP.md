@@ -1,33 +1,33 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[357/500]** commits · **1029 tests green** · self-check passing.
+Progress counter: **[368/500]** commits · **1039 tests green** · self-check passing.
 
-## Wave AI status (complete)
+## Wave AJ status (complete)
 
-1. ✅ kernel: scheduler stats gains `started_at` mirroring the daemon's
-2. ✅ brain: /api/brain adapters section merges the ping history (recent_ms)
-3. ✅ memory: recall accepts an explicit `exclude_kinds` complement to kinds
-4. ✅ security: quarantine release() audits the content length, not the content
-5. ✅ interface: telegram /skills accepts a name filter argument
-6. ✅ interface: dashboard backups panel shows the newest archive's verified state when drilled
-7. ✅ tools: json_query mode=shape honors a caller max_depth
-8. ✅ ops: preflight --json includes per-check duration_ms
-9. ✅ docs: operations.md links the backup + quarantine runbooks inline
-10. ✅ examples: metrics demo — REGISTRY snapshot rendered as text offline
+1. ✅ kernel: task_started/task_finished events carry the task source
+2. ✅ brain: cache stats gains a `hottest_key` (most-hit entry, digested)
+3. ✅ memory: remember() reports the created_at stamp back to the caller
+4. ✅ security: approval queue expiry is surfaced with a TTL reason, not silently dropped
+5. ✅ interface: /api/status scheduler block carries started_at human form
+6. ✅ interface: telegram /backup shows the newest archive's verified state
+7. ✅ tools: csv_analyze describe reports per-column missing counts
+8. ✅ ops: preflight text output shows per-check durations (diskwatch --json already existed — stale backlog item replaced)
+9. ✅ docs: faq.md entry — "why does my backup show unverified?"
+10. ✅ examples: preflight demo — fake brain tiers rendered offline
 
-## Wave AJ backlog (next)
+## Wave AK backlog (next)
 
-1. kernel: task_started/task_finished events carry the task source
-2. brain: cache stats gains a `hottest_key` (most-hit entry)
-3. memory: remember() reports the created_at stamp back to the caller
-4. security: approval queue expiry is surfaced with a TTL reason, not silently dropped
-5. interface: /api/status scheduler block carries started_at human form
-6. interface: telegram /backup shows the newest archive's verified state
-7. tools: csv_analyze describe reports per-column missing counts
-8. ops: diskwatch gains a --json output mode
-9. docs: faq.md entry — "why does my backup show unverified?"
-10. examples: preflight demo — fake brain tiers rendered offline
+1. kernel: EventBus exposes a subscriber count for observability
+2. brain: router tier stats gain a requests-served counter per tier
+3. memory: forget() reports whether a keyed memory was actually removed
+4. security: quarantine stats gains an oldest-item age in human form
+5. interface: dashboard shows the cache hottest_key in the adapters card
+6. interface: telegram /health shows the worst check's detail line
+7. tools: json_query mode=stats reports a depth field alongside nesting
+8. ops: backup create --tag validates against empty/whitespace tags
+9. docs: ADR-0011 — approval expiry semantics (TTL reason field)
+10. examples: csv demo — describe/filter/sort/group offline walkthrough
 
 ## Wave S status (complete)
 
