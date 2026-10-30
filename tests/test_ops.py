@@ -280,6 +280,8 @@ class BackupTests(unittest.TestCase):
         self.assertTrue(summary["ok"])
         self.assertEqual(summary["files"], 3)
         self.assertEqual(summary["tag"], "drill")
+        # the summary names the archive it exercised
+        self.assertEqual(summary["archive"], str(result.archive_path))
         # live data dir untouched, scratch dir gone
         self.assertEqual((data / "sparkagent.db").read_bytes(),
                          b"database-bytes-0123")

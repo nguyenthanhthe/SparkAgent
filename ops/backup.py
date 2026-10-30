@@ -193,7 +193,8 @@ def restore_drill(archive_path: Path, work_dir: Path | None = None,
         shutil.rmtree(scratch, ignore_errors=True)
     return {"ok": byte_ok, "files": outcome["restored_files"],
             "bytes": manifest["total_bytes"],
-            "tag": manifest.get("tag")}
+            "tag": manifest.get("tag"),
+            "archive": str(archive_path)}
 
 
 def list_backups(backup_dir: Path, limit: int = 20) -> dict:
