@@ -116,6 +116,16 @@ class QuarantineStatsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.put("   \n", "reason")
 
+    def test_get_exposes_human_age(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        record = store.put("body", "reason")
+        got = store.get(record["id"])
+        import re
+        self.assertRegex(got["age_human"], r"^\d+m\d{2}s$")
+        # unknown ids still raise
+        with self.assertRaises(KeyError):
+            store.get("nope")
+
     def test_put_rejects_blank_reason(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))
         for bad in ("", "   ", "\t"):

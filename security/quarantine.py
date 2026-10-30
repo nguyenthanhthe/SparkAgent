@@ -55,7 +55,8 @@ class QuarantineStore:
         return record
 
     def get(self, item_id: str) -> dict:
-        """Return {record, content}; raises KeyError for unknown ids."""
+        """Return {record, content, age_human}; raises KeyError for
+        unknown ids."""
         meta_path = self.root / f"{item_id}.json"
         if not meta_path.exists():
             raise KeyError(f"no quarantined item {item_id!r}")
@@ -63,7 +64,23 @@ class QuarantineStore:
         data_path = self.root / f"{item_id}.dat"
         content = data_path.read_text(encoding="utf-8", errors="replace") \
             if data_path.exists() else ""
-        return {"record": record, "content": content}
+        return {"record": record, "content": content,
+                "age_human": self._human_age(
+                    record.get("created_at", ""))}
+
+    @staticmethod
+    def _human_age(created_at: str) -> str | None:
+        """Age of a '%Y-%m-%dT%H:%M:%S' stamp in human form, or None
+        when the stamp is unparsable."""
+        try:
+            created_ts = time.mktime(
+                time.strptime(created_at, "%Y-%m-%dT%H:%M:%S"))
+        except (ValueError, TypeError):
+            return None
+        age_s = max(0, int(time.time() - created_ts))
+        hours, remainder = divmod(age_s, 3600)
+        return (f"{hours}h{remainder // 60:02d}m" if hours
+                else f"{age_s // 60}m{age_s % 60:02d}s")
 
     def list(self, limit: int = 100,
              reason_contains: str | None = None,
@@ -113,12 +130,7 @@ class QuarantineStore:
             by_reason[kind] = by_reason.get(kind, 0) + 1
         top_reasons = dict(sorted(by_reason.items(),
                                   key=lambda kv: -kv[1])[:3])
-        oldest_human = None
-        if oldest_age_s is not None:
-            hours, remainder = divmod(oldest_age_s, 3600)
-            oldest_human = (f"{hours}h{remainder // 60:02d}m" if hours
-                            else f"{oldest_age_s // 60}m"
-                            f"{oldest_age_s % 60:02d}s")
+        oldest_human = self._human_age(oldest) if oldest else None
         by_source: dict[str, int] = {}
         for item in items:
             source = str(item.get("source", "unknown"))[:40] or "unknown"
