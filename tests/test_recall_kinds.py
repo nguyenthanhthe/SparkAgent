@@ -106,6 +106,20 @@ class RecallKindFilterTests(unittest.TestCase):
                                       created_after="2025-12-31T23:59:59"))
         self.assertEqual(len(hits_dt), 1)
 
+    def test_ids_filter_pins_the_candidate_pool(self):
+        async def scenario():
+            await self.mem.connect()
+            first = await self.mem.remember("gpu thermal data one")
+            await self.mem.remember("gpu thermal data two")
+            third = await self.mem.remember("gpu thermal data three")
+            hits = await self.mem.recall("gpu thermal",
+                                         ids=[first, third])
+            self.assertEqual({h.id for h in hits}, {first, third})
+            # an empty ids list is treated as no filter
+            hits_all = await self.mem.recall("gpu thermal", ids=[])
+            self.assertEqual(len(hits_all), 3)
+        run(scenario())
+
     def test_created_after_validates_format(self):
         async def scenario():
             await self.mem.connect()

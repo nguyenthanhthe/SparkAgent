@@ -328,6 +328,7 @@ class Memory:
                      kinds: list[str] | None = None,
                      exclude_kinds: list[str] | None = None,
                      created_after: str | None = None,
+                     ids: list[int] | None = None,
                      snippet_width: int = 220) -> list[MemoryHit]:
         """Hybrid recall: cosine vectors fused with BM25 lexical matches.
 
@@ -335,9 +336,10 @@ class Memory:
         "episode"]``); ``exclude_kinds`` is the complement — drop those
         kinds (e.g. ``["note"]``) from the candidate pool.
         ``created_after`` keeps only rows stamped after the given
-        ``YYYY-MM-DD[THH:MM:SS]`` instant. Filtering happens in SQL,
-        parameter-bound. Digest markers stay excluded unless explicitly
-        asked for via ``kinds``.
+        ``YYYY-MM-DD[THH:MM:SS]`` instant; ``ids`` pins the candidate
+        pool to explicit row ids (direct re-ranking lookups).
+        Filtering happens in SQL, parameter-bound. Digest markers stay
+        excluded unless explicitly asked for via ``kinds``.
         """
         k = k or self.recall_k
         query_vec = await self.embed(query)
@@ -374,6 +376,10 @@ class Memory:
                         f"{created_after!r}") from None
                 sql += "AND created_at > ? "
                 params.append(probe)
+            if ids:
+                sql += ("AND id IN ("
+                        + ", ".join("?" * len(ids)) + ") ")
+                params.extend(int(i) for i in ids)
             rows = conn.execute(sql + "ORDER BY id DESC LIMIT 5000",
                                 tuple(params)).fetchall()
             from memory_search.hybrid import HybridRanker
