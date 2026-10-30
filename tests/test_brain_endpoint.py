@@ -35,6 +35,10 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("shutdown_drained_tasks", body["lifecycle"])
             self.assertGreaterEqual(body["lifecycle"]["shutdown_drained_tasks"],
                                     0)
+            # the bus drop-oldest counter rides the lifecycle block
+            self.assertIn("bus_overflow_total", body["lifecycle"])
+            self.assertGreaterEqual(
+                body["lifecycle"]["bus_overflow_total"], 0)
             self.assertIn("T", body["lifecycle"]["started_at"])
             # the scheduler's own boot stamp rides the lifecycle block
             self.assertIn("T", body["lifecycle"]["scheduler_started_at"])
