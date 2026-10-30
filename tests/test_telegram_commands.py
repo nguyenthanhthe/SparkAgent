@@ -430,6 +430,25 @@ class TelegramAuditLimitTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._reply("/audit --limit abc")
         self.assertIn("usage:", reply)
 
+    async def test_action_filter(self):
+        gateway = make_gateway()
+
+        async def fake_recent_audit(limit=15):
+            return [{"created_at": "2026-10-31T10:00:00",
+                     "actor": "executor", "action": "exec.start",
+                     "detail": "python -c print(1)"},
+                    {"created_at": "2026-10-31T10:00:05",
+                     "actor": "operator", "action": "memory.forget",
+                     "detail": "key=temp"}]
+
+        gateway.daemon.memory.recent_audit = fake_recent_audit
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/audit --action exec"})
+            reply = send.call_args[0][1]
+        self.assertIn("exec.start", reply)
+        self.assertNotIn("memory.forget", reply)
+
 
 class TelegramDbLimitTests(unittest.IsolatedAsyncioTestCase):
     async def _lookup_reply(self, text):
