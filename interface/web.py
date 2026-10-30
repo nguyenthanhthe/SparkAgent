@@ -897,6 +897,7 @@ def build_web_app(daemon) -> web.Application:
                             "started_at", daemon.started_at)))},
             "adapters": {
                 "available": adapter_registry.available(),
+                "checked_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 # last-5 ping latency samples per adapter, as recorded by
                 # the /api/adapters probes — merged here so /api/brain is
                 # the one-stop report; no new probes are fired
