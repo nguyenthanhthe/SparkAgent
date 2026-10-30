@@ -79,7 +79,8 @@ def register_tools(registry: ToolRegistry,
     async def json_query(ctx: ToolContext, data: str, path: str = "",
                          mode: str = "get", jsonl: bool = False,
                          where: str = "", sort_by: str = "",
-                         descending: bool = False) -> dict:
+                         descending: bool = False,
+                         max_depth: int = 0) -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
@@ -104,7 +105,8 @@ def register_tools(registry: ToolRegistry,
             needle = require_str(path, "needle", min_len=1)
             return {"matches": json_mod.search(parsed, needle)}
         if mode == "shape":
-            return {"shape": json_mod.shape(parsed)}
+            depth = max(1, min(int(max_depth), 12)) if max_depth else 4
+            return {"shape": json_mod.shape(parsed, max_depth=depth)}
         if mode == "filter":
             where = require_str(where, "where", min_len=1, max_len=500)
             try:
@@ -191,7 +193,10 @@ def register_tools(registry: ToolRegistry,
                                       "(mode=filter)"},
                     "sort_by": {"type": "string", "required": False,
                                 "desc": "row key to sort by (mode=sort)"},
-                    "descending": {"type": "boolean", "required": False}},
+                    "descending": {"type": "boolean", "required": False},
+                    "max_depth": {"type": "integer", "required": False,
+                                  "desc": "shape mode: recursion limit "
+                                          "(1-12, default 4)"}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze

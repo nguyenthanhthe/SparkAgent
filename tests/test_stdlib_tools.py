@@ -75,6 +75,23 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                 "json_query", {"data": "{not json", "mode": "shape"},
                 self.ctx)
 
+    async def test_json_query_shape_honors_max_depth(self):
+        deep = '{"a": {"b": {"c": {"d": {"e": 1}}}}}'
+        # default depth 4 truncates at level 4
+        default = await self.registry.call(
+            "json_query", {"data": deep, "mode": "shape"}, self.ctx)
+        self.assertIn("…", default)
+        # caller raises the limit and level e becomes visible
+        deep_result = await self.registry.call(
+            "json_query", {"data": deep, "mode": "shape", "max_depth": 6},
+            self.ctx)
+        self.assertIn("int", deep_result)
+        # caller clamps down to a single level
+        shallow = await self.registry.call(
+            "json_query", {"data": deep, "mode": "shape", "max_depth": 1},
+            self.ctx)
+        self.assertEqual(shallow.strip(), '{"shape": {"a": "…"}}')
+
     async def test_json_query_jsonl_mode(self):
         jsonl = '{"name": "alice", "n": 1}\n\n{"name": "bob", "n": 2}\n'
         result = await self.registry.call(
