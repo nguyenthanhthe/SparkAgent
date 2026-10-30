@@ -180,6 +180,7 @@ def register_tools(registry: ToolRegistry,
         if mode == "keys":
             # path doubles as the (optional, case-insensitive) prefix
             return {"keys": json_mod.top_keys(parsed, prefix=path)}
+        return json_mod.stats(parsed)
 
     registry.register(Tool(
         name="json_query",
