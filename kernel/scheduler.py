@@ -132,7 +132,7 @@ class Scheduler:
                             time.monotonic() - started)
                 self.bus.publish("scheduler", {
                     "event": "task_finished", "task_id": task_id,
-                    "status": result.status,
+                    "source": source, "status": result.status,
                     "duration_s": round(time.monotonic() - started, 1)})
             except Exception as exc:  # noqa: BLE001 — record and reschedule
                 logger.exception("task %s crashed", task_id)
@@ -140,7 +140,7 @@ class Scheduler:
                 await self.memory.finish_task(task_id, success=False)
                 self.bus.publish("scheduler", {
                     "event": "task_finished", "task_id": task_id,
-                    "status": "failed",
+                    "source": source, "status": "failed",
                     "duration_s": round(time.monotonic() - started, 1)})
 
     async def _memory_shift_next_run(self, task_id: int,

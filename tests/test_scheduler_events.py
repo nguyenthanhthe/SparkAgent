@@ -123,7 +123,35 @@ class TaskStartedEventTests(unittest.IsolatedAsyncioTestCase):
             finished = [e for e in events if e["event"] == "task_finished"]
             self.assertEqual(len(finished), 1)
             self.assertEqual(finished[0]["status"], "done")
+            self.assertEqual(finished[0]["source"], "test")
             self.assertGreaterEqual(finished[0]["duration_s"], 0)
+        finally:
+            await memory.close()
+
+    async def test_finished_event_carries_source_on_crash(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+
+        class ExplodingAgent:
+            async def run(self, goal, source=None):
+                raise RuntimeError("episode blew up")
+
+        try:
+            await memory.connect()
+            task_id = await memory.submit_task("crash me", "cron")
+            task = (await memory.list_tasks(task_id=task_id))[0]
+            bus = EventBus()
+            queue = bus.subscribe("scheduler")
+            scheduler = Scheduler(memory, lambda: ExplodingAgent(), bus,
+                                  poll_seconds=1)
+            await scheduler._run_task(task)
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            finished = [e for e in events if e["event"] == "task_finished"]
+            self.assertEqual(len(finished), 1)
+            self.assertEqual(finished[0]["source"], "cron")
+            self.assertEqual(finished[0]["status"], "failed")
         finally:
             await memory.close()
 
