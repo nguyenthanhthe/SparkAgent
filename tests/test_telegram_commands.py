@@ -26,7 +26,7 @@ class FakeDaemon:
                 return {"skill": name, "status": "active"}
 
         class FakeMemory:
-            async def list_tasks(self, limit=10):
+            async def list_tasks(self, limit=10, status=None):
                 return [{"id": 1, "status": "pending", "goal": "g",
                          "enabled": 1}]
 
@@ -241,17 +241,45 @@ class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         seen = {}
 
-        async def list_tasks(limit=10):
+        async def list_tasks(limit=10, status=None):
             seen["limit"] = limit
+            seen["status"] = status
             return []
         gateway.daemon.memory.list_tasks = list_tasks
         with mock.patch.object(TelegramGateway, "_send"):
             await gateway._handle({"chat": {"id": 42},
                                    "text": "/tasks --limit 25"})
-        return seen["limit"]
+        return seen
 
     async def test_limit_passed_through(self):
-        self.assertEqual(await self._reply_with_limit(), 25)
+        seen = await self._reply_with_limit()
+        self.assertEqual(seen["limit"], 25)
+        self.assertIsNone(seen["status"])
+
+    async def test_status_filter_passed_through(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def list_tasks(limit=10, status=None):
+            seen["status"] = status
+            return [{"id": 2, "status": "done", "goal": "finished",
+                     "enabled": 1}]
+
+        gateway.daemon.memory.list_tasks = list_tasks
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/tasks --status done"})
+            reply = send.call_args[0][1]
+        self.assertEqual(seen["status"], "done")
+        self.assertIn("[done] finished", reply)
+
+    async def test_status_filter_validated(self):
+        gateway = make_gateway()
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/tasks --status nope"})
+            reply = send.call_args[0][1]
+        self.assertIn("usage:", reply)
 
     async def test_tasks_show_blockers_inline(self):
         gateway = make_gateway()
