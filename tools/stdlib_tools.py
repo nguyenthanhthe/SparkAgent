@@ -82,7 +82,8 @@ def register_tools(registry: ToolRegistry,
                          descending: bool = False,
                          max_depth: int = 0,
                          in_keys: bool = True,
-                         in_values: bool = True) -> dict:
+                         in_values: bool = True,
+                         default_json: str = "") -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
                      ["get", "search", "shape", "stats", "filter", "sort",
@@ -101,8 +102,14 @@ def register_tools(registry: ToolRegistry,
             require_str(path, "path", min_len=1)
             try:
                 return {"value": json_mod.get_path(parsed, path)}
-            except (KeyError, IndexError, TypeError) as exc:
-                raise ToolFailure(f"path {path!r} failed: {exc}") from exc
+            except (KeyError, IndexError, TypeError):
+                if default_json:
+                    try:
+                        return {"value": json_mod.parse(default_json),
+                                "default_used": True}
+                    except json_lib.JSONDecodeError:
+                        pass   # fall through to the failure below
+                raise ToolFailure(f"path {path!r} failed") from None
         if mode == "search":
             needle = require_str(path, "needle", min_len=1)
             if not in_keys and not in_values:
@@ -209,7 +216,12 @@ def register_tools(registry: ToolRegistry,
                                         "(default true)"},
                     "in_values": {"type": "boolean", "required": False,
                                   "desc": "search mode: match string "
-                                          "values (default true)"}},
+                                          "values (default true)"},
+                    "default_json": {"type": "string", "required": False,
+                                     "desc": "get mode: JSON literal "
+                                             "returned (with "
+                                             "default_used=true) when "
+                                             "the path misses"}},
         handler=json_query))
 
     # ------------------------------------------------------------- csv_analyze

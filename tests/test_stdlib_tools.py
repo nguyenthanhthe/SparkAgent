@@ -151,6 +151,31 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                                "path": "x", "in_keys": False,
                                "in_values": False}, self.ctx)
 
+    async def test_json_query_get_default_on_miss(self):
+        import json as json_lib
+        # a miss without a default still fails
+        with self.assertRaises(ToolFailure):
+            await self.registry.call(
+                "json_query", {"data": '{"a": 1}', "path": "b",
+                               "mode": "get"}, self.ctx)
+        result = json_lib.loads(await self.registry.call(
+            "json_query", {"data": '{"a": 1}', "path": "b", "mode": "get",
+                           "default_json": "42"}, self.ctx))
+        self.assertEqual(result["value"], 42)
+        self.assertTrue(result["default_used"])
+        # a hit ignores the default
+        hit = json_lib.loads(await self.registry.call(
+            "json_query", {"data": '{"a": 1}', "path": "a", "mode": "get",
+                           "default_json": "42"}, self.ctx))
+        self.assertEqual(hit["value"], 1)
+        self.assertNotIn("default_used", hit)
+        # an unparsable default degrades to the normal failure
+        with self.assertRaises(ToolFailure):
+            await self.registry.call(
+                "json_query", {"data": '{"a": 1}', "path": "b",
+                               "mode": "get", "default_json": "{nope"},
+                self.ctx)
+
     async def test_csv_head_honors_limit(self):
         import json as json_lib
         csv_text = "n\n" + "".join(f"{i}\n" for i in range(40))
