@@ -57,6 +57,14 @@ class CsvToolTests(unittest.TestCase):
         self.assertEqual(info["columns"], ["name", "score", "region"])
         self.assertEqual(info["column_types"]["score"], "number")
         self.assertEqual(info["column_types"]["name"], "text")
+        # fully-populated columns report zero missing
+        self.assertEqual(info["missing"],
+                         {"name": 0, "score": 0, "region": 0})
+
+    def test_describe_reports_missing_cells(self):
+        table = Table.parse("name,score\nalice,90\nbob,\n,cara\n")
+        info = table.describe()
+        self.assertEqual(info["missing"], {"name": 1, "score": 1})
 
     def test_filter_equality(self):
         emea = self.table.filter("region", "==", "emea")

@@ -91,6 +91,7 @@ class Table:
         info: dict[str, Any] = {"rows": len(self.rows),
                                 "columns": self.columns}
         types = {}
+        missing = {}
         for column in self.columns:
             values = [row.get(column, "") for row in self.rows]
             if all(v == "" for v in values):
@@ -99,7 +100,9 @@ class Table:
                 types[column] = "number"
             else:
                 types[column] = "text"
+            missing[column] = sum(1 for v in values if v == "")
         info["column_types"] = types
+        info["missing"] = missing
         return info
 
 
