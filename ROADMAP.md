@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[435/500]** commits · **1084 tests green** · self-check passing.
+Progress counter: **[446/500]** commits · **1089 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -29,7 +29,31 @@ Progress counter: **[435/500]** commits · **1084 tests green** · self-check pa
 9. ✅ docs: architecture capability table gains the event bus row
 10. ✅ examples: diskwatch demo — level + subdirectory breakdown offline
 
-## Wave AQ backlog (next)
+## Wave AQ status (complete)
+
+1. ✅ kernel: pause/resume events carry the task source
+2. ✅ brain: cache snapshot splits hit share per model
+3. ✅ memory: forget() raises on an empty key, distinct from an absent one
+4. ✅ security: quarantine release audit carries the quarantine reason
+5. ✅ interface: adapters card shows the per-adapter probe failure ledger
+6. ✅ interface: telegram /backup --tag filter narrows the listing
+7. ✅ tools: json_query filter gains a $= ends-with operator
+8. ✅ ops: verify-all summaries carry a checked_at stamp
+9. ✅ docs: ADR-0012 — quarantine source labels and release auditing
+10. ✅ examples: keys demo — json_query mode=keys + prefix offline
+
+## Wave AR backlog (next)
+
+1. kernel: submit() audits with the trimmed goal, not the raw input
+2. brain: /api/brain adapters section gains a checked_at stamp
+3. memory: recall honors an explicit ids filter for direct lookups
+4. security: quarantine expire() audits what it swept (counts per run)
+5. interface: dashboard episode table shows the step count column
+6. interface: telegram /mem accepts an --after date filter
+7. tools: json_query mode=stats gains a per-key leaf count
+8. ops: backup create logs its file count into the daemon audit trail
+9. docs: faq.md entry — why quarantine records carry a source label
+10. examples: filter demo — the full where-term grammar offline
 
 1. kernel: task pause/resume events carry the task source
 2. brain: cache snapshot gains a hit-rate-per-model split
