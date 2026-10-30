@@ -115,9 +115,10 @@ def register_tools(registry: ToolRegistry,
             if not in_keys and not in_values:
                 raise ToolFailure(
                     "search needs at least one of in_keys/in_values")
-            return {"matches": json_mod.search(parsed, needle,
-                                               in_keys=in_keys,
-                                               in_values=in_values)}
+            matches = json_mod.search(parsed, needle,
+                                      in_keys=in_keys,
+                                      in_values=in_values)
+            return {"matches": matches, "count": len(matches)}
         if mode == "shape":
             depth = max(1, min(int(max_depth), 12)) if max_depth else 4
             return {"shape": json_mod.shape(parsed, max_depth=depth)}

@@ -139,6 +139,7 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
             "json_query", {"data": data, "mode": "search",
                            "path": "hostname"}, self.ctx))
         self.assertIn("hostname", both["matches"])
+        self.assertEqual(both["count"], 2)   # key + the alias value
         # values-only: the key match disappears, the value match stays
         values_only = json_lib.loads(await self.registry.call(
             "json_query", {"data": data, "mode": "search",
