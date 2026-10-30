@@ -33,7 +33,7 @@ class FakeDaemon:
             async def blocked_pending_tasks(self, limit=50):
                 return [{"id": 1, "goal": "g", "blocked_by": [7]}]
 
-            async def recall(self, query, k=5, kinds=None):
+            async def recall(self, query, k=5, kinds=None, created_after=None):
                 return []
 
             async def recent_audit(self, limit=15):
@@ -202,7 +202,7 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         seen = {}
 
-        async def recall(query, k=5, kinds=None):
+        async def recall(query, k=5, kinds=None, created_after=None):
             seen["kinds"] = kinds
             return []
         gateway.daemon.memory.recall = recall
@@ -210,6 +210,34 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
             await gateway._handle({"chat": {"id": 42},
                                    "text": "/mem thermals --kind fact"})
         self.assertEqual(seen["kinds"], ["fact"])
+
+    async def test_mem_after_filter_passed_through(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def recall(query, k=5, kinds=None, created_after=None):
+            seen["after"] = created_after
+            return []
+
+        gateway.daemon.memory.recall = recall
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/mem thermals --after 2026-01-01"})
+        self.assertEqual(seen["after"], "2026-01-01")
+
+    async def test_mem_after_filter_validated(self):
+        gateway = make_gateway()
+
+        async def strict_recall(query, k=5, kinds=None, created_after=None):
+            # mirror the real Memory.recall validation contract
+            raise ValueError("created_after must be YYYY-MM-DD or "
+                             f"YYYY-MM-DDTHH:MM:SS, got {created_after!r}")
+
+        gateway.daemon.memory.recall = strict_recall
+        reply = await self._command("/mem thermals --after not-a-date",
+                                    gateway)
+        self.assertIn("error:", reply)
+        self.assertIn("created_after", reply)
 
     async def test_audit_lists_redacted_rows(self):
         reply = await self._command("/audit")
