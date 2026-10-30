@@ -106,3 +106,12 @@ release audit carries the reason, so the trail reads "parked by
 web_fetch for prompt-injection risk, released with length N" — and the
 content itself still never enters the audit log. Older records simply
 say `unknown`.
+
+**What does the bus overflow counter mean?**
+Event-bus queues are bounded (500 entries per subscriber); when a
+subscriber falls behind, the oldest entry is dropped to make room and
+`bus_overflow_total` ticks (visible in `/api/brain`'s lifecycle block).
+An occasional tick is normal under burst load. A steadily climbing
+counter means a consumer is too slow for its channel — usually a stuck
+dashboard stream or a backed-up audit persist loop; restart the daemon
+and check the subscriber's own logs.
