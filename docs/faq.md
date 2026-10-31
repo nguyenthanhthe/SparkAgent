@@ -124,3 +124,11 @@ scheduler's `episodes_failed_transient` counter (`/api/status` →
 `task_finished` event (`retry_backoff_s`, e.g. 30s doubling to a 300s
 cap). If `/status` shows 0 failed but tasks keep re-running, your brain
 tiers are flapping — check `/health` before blaming the tasks.
+
+**What does a refused rename mean?**
+`POST /api/memories/rename` refuses when the target key already
+exists — merging two keys silently would blur distinct memories. The
+refusal is audited (`memory.rename_key.refused`) with both keys, and
+neither key changes. If you really want the merge, `DELETE
+/api/memories/{target}` first, then rename — the audit trail shows the
+delete, the rename, and the row counts for both.
