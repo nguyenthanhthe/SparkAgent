@@ -115,3 +115,12 @@ An occasional tick is normal under burst load. A steadily climbing
 counter means a consumer is too slow for its channel — usually a stuck
 dashboard stream or a backed-up audit persist loop; restart the daemon
 and check the subscriber's own logs.
+
+**What does the transient split look like from chat?**
+Telegram `/status` shows `episodes: N done / M failed` — the failed
+number is *permanent* failures only. Requeued ones live in the
+scheduler's `episodes_failed_transient` counter (`/api/status` →
+`scheduler`), and every requeue carries its backoff in the
+`task_finished` event (`retry_backoff_s`, e.g. 30s doubling to a 300s
+cap). If `/status` shows 0 failed but tasks keep re-running, your brain
+tiers are flapping — check `/health` before blaming the tasks.
