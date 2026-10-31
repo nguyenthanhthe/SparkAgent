@@ -395,6 +395,9 @@ class TelegramGateway:
                 token = rest.strip().split()[0] if rest.strip() else ""
                 if token.isdigit():
                     limit = min(50, max(1, int(token)))
+            if "--all" in args:
+                args = args.replace("--all", "", 1)
+                limit = 200   # store cap for the blocked scan
             stalled = await daemon.memory.blocked_pending_tasks(limit=limit)
             if not stalled:
                 return "(no dependency-stalled tasks)"

@@ -399,6 +399,20 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
                                    "text": "/blocked --limit 7"})
         self.assertEqual(seen["limit"], 7)
 
+    async def test_blocked_all_lifts_the_limit(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def blocked_pending_tasks(limit=50):
+            seen["limit"] = limit
+            return []
+
+        gateway.daemon.memory.blocked_pending_tasks = blocked_pending_tasks
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/blocked --all"})
+        self.assertEqual(seen["limit"], 200)
+
 
 class TelegramAuditLimitTests(unittest.IsolatedAsyncioTestCase):
     async def _reply(self, text):
