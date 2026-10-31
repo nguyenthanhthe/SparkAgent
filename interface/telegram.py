@@ -371,12 +371,23 @@ class TelegramGateway:
                         + ", ".join(counts))
             where: dict[str, str] = {}
             limit = 10
+            order_by = None
+            # --order COL sorts the result (Python-side, read-only)
+            if "--order" in rest:
+                before, _, after = rest.partition("--order")
+                token = after.strip().split()[0] if after.strip() else ""
+                if not token or not token.replace("_", "").isalnum():
+                    return ("usage: /db <table> [col=value ...] "
+                            "[--limit N] [--order COL]")
+                order_by = token
+                rest = before + after.replace(token, "", 1)
             # --limit N flag form (the inline `limit=N` also works)
             if "--limit" in rest:
                 before, _, after = rest.partition("--limit")
                 token = after.strip().split()[0] if after.strip() else ""
                 if not token.isdigit():
-                    return "usage: /db <table> [col=value ...] [--limit N]"
+                    return ("usage: /db <table> [col=value ...] "
+                            "[--limit N] [--order COL]")
                 limit = min(50, max(1, int(token)))
                 rest = before + after.replace(token, "", 1)
             for token in rest.split():
@@ -389,7 +400,8 @@ class TelegramGateway:
                     return f"error: bad term {token!r} (want col=value or limit=N)"
             try:
                 result = await lookup(daemon.cfg.db_path, table,
-                                      where=where, limit=limit)
+                                      where=where, limit=limit,
+                                      order_by=order_by)
             except ToolFailure as exc:
                 return f"error: {exc}"
             rows = result.get("rows", [])

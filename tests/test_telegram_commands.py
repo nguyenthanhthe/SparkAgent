@@ -533,7 +533,8 @@ class TelegramDbLimitTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         seen = {}
 
-        async def fake_lookup(db_path, table, where=None, limit=10):
+        async def fake_lookup(db_path, table, where=None, limit=10,
+                              order_by=None):
             seen.update(table=table, where=where, limit=limit)
             return {"rows": [{"id": 1}]}
 
@@ -562,6 +563,31 @@ class TelegramDbLimitTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_db_limit_flag_bad_value(self):
         reply, _ = await self._lookup_reply("/db tasks --limit abc")
+        self.assertIn("usage:", reply)
+
+    async def test_db_order_flag_sorts(self):
+        import tools.sqlite_query as sqlite_mod
+        gateway = make_gateway()
+        seen = {}
+
+        async def fake_lookup(db_path, table, where=None, limit=10,
+                              order_by=None):
+            seen["order_by"] = order_by
+            return {"rows": [{"id": 1}]}
+
+        gateway.daemon.cfg = SimpleNamespace(
+            root=Path(tempfile.mkdtemp()), db_path="fake.db",
+            get=lambda dotted, default=None: default)
+        with mock.patch.object(sqlite_mod, "lookup", fake_lookup), \
+                mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/db tasks --order priority"})
+            reply = send.call_args[0][1]
+        self.assertEqual(seen["order_by"], "priority")
+        self.assertIn("tasks: 1 row(s)", reply)
+
+    async def test_db_order_flag_bad_column(self):
+        reply, _ = await self._lookup_reply("/db tasks --order $")
         self.assertIn("usage:", reply)
 
     async def test_db_usage_hint_lists_row_counts(self):
