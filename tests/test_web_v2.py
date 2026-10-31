@@ -283,6 +283,7 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([e["event"] for e in events], [event])
                 self.assertEqual(events[0]["task_id"], task_id)
                 self.assertEqual(events[0]["source"], "test")
+                self.assertEqual(events[0]["actor"], "operator")
         finally:
             await client.close()
             await daemon.memory.close()

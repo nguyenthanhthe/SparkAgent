@@ -566,7 +566,8 @@ def build_web_app(daemon) -> web.Application:
             daemon.bus.publish("scheduler", {
                 "event": {"pause": "task_paused",
                           "resume": "task_resumed"}[action],
-                "task_id": task_id, "source": source})
+                "task_id": task_id, "source": source,
+                "actor": "operator"})
         if action == "cancel":
             daemon.bus.publish("scheduler", {
                 "event": "task_cancelled", "task_id": task_id})
