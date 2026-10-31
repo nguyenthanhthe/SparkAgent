@@ -1003,7 +1003,8 @@ def build_web_app(daemon) -> web.Application:
             "recent_failures": {name: list(history) for name, history in
                                 adapter_registry.failure_history.items()},
             "catalog": {"available": adapter_registry.available(),
-                        "models": models},
+                        "models": models,
+                        "ping_counts": dict(adapter_registry.ping_counts)},
         })
 
     async def api_tools(_request: web.Request) -> web.Response:

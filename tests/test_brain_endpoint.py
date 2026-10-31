@@ -139,6 +139,9 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("T", body["ping"]["ollama"]["checked_at"])
             self.assertIn("models", body["catalog"])
             self.assertTrue(body["catalog"]["models"]["openai_compat"])
+            # the catalog counts the probes fired per adapter
+            self.assertGreaterEqual(
+                body["catalog"]["ping_counts"].get("mock", 0), 1)
         finally:
             await client.close()
             await daemon.memory.close()

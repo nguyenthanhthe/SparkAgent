@@ -28,6 +28,8 @@ class AdapterRegistry:
         self.latency_history: dict[str, list[float]] = {}
         # name -> last-5 probe failure details, recorded by ping()
         self.failure_history: dict[str, list[str]] = {}
+        # name -> total probes fired (ok or failed)
+        self.ping_counts: dict[str, int] = {}
 
     def register(self, name: str, factory: Factory,
                  *, replace: bool = False) -> None:
@@ -63,6 +65,7 @@ class AdapterRegistry:
             probe = await adapter.ping()
         finally:
             await adapter.close()
+        self.ping_counts[name] = self.ping_counts.get(name, 0) + 1
         if probe.get("ok") is False:
             failures = self.failure_history.setdefault(name, [])
             failures.append({"at": time.strftime("%Y-%m-%dT%H:%M:%S"),
