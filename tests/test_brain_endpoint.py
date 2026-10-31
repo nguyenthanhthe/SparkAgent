@@ -44,6 +44,10 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("T", body["lifecycle"]["scheduler_started_at"])
             self.assertIn("hit_rate", body["cache"])
             self.assertIn("bridge_hits", body["cache"])
+            # the snapshot-to-snapshot trend rides the cache section
+            # (a None here just means fewer than two windows elapsed)
+            self.assertIn("hit_rate_trend", body["cache"])
+            self.assertIsNone(body["cache"]["hit_rate_trend"])
             self.assertIn("local", body["health"])
             self.assertIn("glm-5.3", body["costs"]["by_model"])
             self.assertIn("total_usd", body["costs"])
