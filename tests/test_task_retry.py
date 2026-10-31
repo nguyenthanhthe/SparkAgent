@@ -73,6 +73,30 @@ class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_submit_publishes_task_submitted_event(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            bus = EventBus()
+            queue = bus.subscribe("scheduler")
+            scheduler = Scheduler(memory, lambda: None, bus,
+                                  poll_seconds=1)
+            upstream = await memory.submit_task("upstream", "test")
+            task_id = await scheduler.submit("downstream", "cron",
+                                             depends_on=[upstream])
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            submitted = [e for e in events
+                         if e["event"] == "task_submitted"]
+            self.assertEqual(len(submitted), 1)
+            self.assertEqual(submitted[0]["task_id"], task_id)
+            self.assertEqual(submitted[0]["source"], "cron")
+            self.assertEqual(submitted[0]["depends_on"], [upstream])
+        finally:
+            await memory.close()
+
     async def test_submit_audit_carries_dependencies(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)

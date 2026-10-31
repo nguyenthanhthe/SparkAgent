@@ -193,6 +193,12 @@ class Scheduler:
                                    "action": "task.submit",
                                    "detail": f"#{task_id} "
                                              f"{trimmed[:200]}{dep_note}"})
+        # dashboards learn about the new task without re-polling
+        self.bus.publish("scheduler", {"event": "task_submitted",
+                                       "task_id": task_id,
+                                       "source": source,
+                                       "depends_on": list(deps) if deps
+                                       else []})
         # wake the loop so one-shot tasks start immediately
         self._stopping.set()
         self._stopping = asyncio.Event()
