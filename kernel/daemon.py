@@ -154,12 +154,17 @@ class AgentDaemon:
     # ------------------------------------------------------------------ guard
     def _sweep_expired_approvals(self) -> int:
         """Trigger lazy expiry (the queue announces each transition via
-        its on_change observer onto the logs bus) and report the count."""
+        its on_change observer onto the logs bus) and report the count.
+        The sweep count lands on the audit channel too."""
         before = self.approvals.counters["expired"]
         self.approvals.pending()               # runs _expire_all internally
         expired = self.approvals.counters["expired"] - before
         if expired:
             logger.info("%d approval(s) expired without a decision", expired)
+            self.bus.publish("audit", {
+                "actor": "system", "action": "approval.expire",
+                "detail": {"expired": expired,
+                           "pending_now": len(self.approvals.pending())}})
         return expired
 
     async def _vram_guard(self) -> bool:

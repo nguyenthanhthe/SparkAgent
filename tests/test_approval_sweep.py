@@ -35,6 +35,25 @@ class ApprovalSweepTests(unittest.IsolatedAsyncioTestCase):
         # second sweep finds nothing new
         self.assertEqual(daemon._sweep_expired_approvals(), 0)
 
+    async def test_sweep_publishes_to_audit_channel(self):
+        clock = FakeClock()
+        daemon = AgentDaemon(Config.load())
+        daemon.approvals = ApprovalQueue(ttl_seconds=10, clock=clock)
+        daemon.approvals.submit("generic", "will expire")
+        clock.advance(11)
+        queue = daemon.bus.subscribe("audit")
+        try:
+            daemon._sweep_expired_approvals()
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["action"], "approval.expire")
+            self.assertEqual(events[0]["detail"], {"expired": 1,
+                                                   "pending_now": 0})
+        finally:
+            daemon.bus.unsubscribe("audit", queue)
+
     async def test_default_queue_uses_real_clock(self):
         daemon = AgentDaemon(Config.load())
         self.assertIsInstance(daemon.approvals.clock, Clock)
