@@ -73,6 +73,19 @@ class HottestKeyTests(unittest.TestCase):
         cache.get("old")     # now the stale one gets a hit too
         self.assertEqual(cache.snapshot()["oldest_hit_age_s"], 50.0)
 
+    def test_hit_rate_trend(self):
+        cache = ResponseCache(clock=FakeClock())
+        # first snapshot: no prior window -> no trend
+        cache.put("k", "text", {"model": "m"})
+        cache.get("k")
+        self.assertIsNone(cache.snapshot()["hit_rate_trend"])
+        # second window identical rate -> trend 0.0
+        cache.get("k")
+        self.assertEqual(cache.snapshot()["hit_rate_trend"], 0.0)
+        # third window all misses -> trend drops by the prior rate
+        trend = cache.snapshot()["hit_rate_trend"]
+        self.assertEqual(trend, -1.0)
+
     def test_hit_share_per_model(self):
         cache = ResponseCache(clock=FakeClock())
         cache.put("a", "text", {"model": "big"})

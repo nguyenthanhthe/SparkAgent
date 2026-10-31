@@ -47,6 +47,10 @@ class ResponseCache:
         self._entries: OrderedDict[str, CacheEntry] = OrderedDict()
         self._hits_by_model: dict[str, int] = {}
         self._saved_by_model: dict[str, int] = {}
+        # snapshot-to-snapshot window for the hit-rate trend: totals as
+        # of the previous snapshot() call
+        self._window_start = {"hits": 0, "misses": 0}
+        self._prev_window_rate: float | None = None
         self.stats = {"hits": 0, "misses": 0, "stored": 0,
                       "evictions": 0, "expired": 0,
                       "saved_tokens": 0}
@@ -110,6 +114,19 @@ class ResponseCache:
 
     def snapshot(self) -> dict:
         with self._lock:
+            # hit-rate trend: the window since the previous snapshot vs
+            # the window before that (None until two windows exist)
+            window_hits = self.stats["hits"] - self._window_start["hits"]
+            window_misses = (self.stats["misses"]
+                             - self._window_start["misses"])
+            window_total = window_hits + window_misses
+            window_rate = (window_hits / window_total
+                           if window_total else 0.0)
+            trend = (round(window_rate - self._prev_window_rate, 3)
+                     if self._prev_window_rate is not None else None)
+            self._prev_window_rate = window_rate
+            self._window_start = {"hits": self.stats["hits"],
+                                  "misses": self.stats["misses"]}
             now = self.clock.now()
             ages = [now - entry.stored_at
                     for entry in self._entries.values()]
@@ -137,6 +154,7 @@ class ResponseCache:
                 "oldest_hit_age_s": (round(oldest_hit_age, 1)
                                      if oldest_hit_age is not None
                                      else None),
+                "hit_rate_trend": trend,
                 "hottest_key": hottest_key,
                 "hits_by_model": dict(sorted(
                     self._hits_by_model.items(),
