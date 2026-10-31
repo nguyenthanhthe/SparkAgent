@@ -365,10 +365,14 @@ async function refreshBackup(){try{const b=await api('/api/backup');
     ?badge('b-ok','verified')
     :'<span style="color:var(--b-warn,#c9a227);font-size:11px" title="'+
      esc(v.detail||'')+'">unverified</span>');
+  const pp=b.prune_preview;
+  const ppline=pp&&pp.would_remove
+    ?kv('retention',`${items.length} archived · prune --keep ${pp.keep} would remove ${pp.would_remove}`):'';
   $('backups').innerHTML=
     kv('newest',`${esc(newest.name)} (${age} old)`)+
     (v?vbadge+' ':'')+
     (newest.tag?kv('tag',esc(newest.tag)):'')+
+    ppline+
     '<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+rows+'</div>';
 }catch(e){}}
 
@@ -427,6 +431,13 @@ def build_web_app(daemon) -> web.Application:
             "ops.backup_dir", "backups")
         payload = list_backups(backup_dir)
         archives = payload.get("archives") or []
+        # retention preview (never executed here): what `prune --keep N`
+        # would remove, so the panel can show the headroom
+        keep = int(daemon.cfg.get("ops.backup_keep", 10))
+        payload["prune_preview"] = {
+            "keep": keep,
+            "would_remove": max(0, len(archives) - keep),
+            "would_remain": min(len(archives), keep)}
         if archives:
             newest = backup_dir / archives[0]["name"]
             try:

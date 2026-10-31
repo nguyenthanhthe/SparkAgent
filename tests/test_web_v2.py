@@ -220,6 +220,11 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             body = await (await client.get("/api/backup")).json()
             self.assertTrue(body["verified"]["ok"])
             self.assertEqual(body["verified"]["detail"], "")
+            # the retention preview is a plan, never an execution
+            preview = body["prune_preview"]
+            self.assertEqual(preview["keep"], 10)
+            self.assertEqual(preview["would_remain"], 1)
+            self.assertEqual(preview["would_remove"], 0)
 
             # a corrupt newer archive must surface as unverified
             tampered = backup_dir / "sparkagent-backup-29990101-000000.zip"
