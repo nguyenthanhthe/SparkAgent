@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[513/500] — 500-commit milestone passed** · **1122 tests green** · self-check passing.
+Progress counter: **[524/500] — 500-commit milestone passed** · **1129 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -120,7 +120,31 @@ Progress counter: **[513/500] — 500-commit milestone passed** · **1122 tests 
 9. ✅ docs: faq.md entry — the transient split from chat
 10. ✅ examples: slice demo — path-slicing grammar offline
 
-## Wave AX backlog (next)
+## Wave AX status (complete)
+
+1. ✅ kernel: resume of a dependency-blocked task pinned as unclaimable (gate lives in due_tasks)
+2. ✅ brain: hit_rate_trend pinned in the /api/brain cache section
+3. ✅ memory: refused key merges audited as memory.rename_key.refused
+4. ✅ security: quarantine list rows carry age_human
+5. ✅ interface: task detail exposes the retry backoff; drawer shows the window
+6. ✅ interface: telegram /status shows transient + blocked lines
+7. ✅ tools: slice-as-final-segment pinned by contract test
+8. ✅ ops: verify-all --tag verifies only matching archives
+9. ✅ docs: architecture invariants state the drop-oldest overflow rule
+10. ✅ examples: trend demo — hit-rate trend offline
+
+## Wave AY backlog (next)
+
+1. kernel: task retry backoff is audited on the audit channel too
+2. brain: adapter ping failures carry a checked_at stamp
+3. memory: recall exclude_kinds pins the digest-marker default in a contract test
+4. security: approval expiry publishes on the audit channel via the daemon
+5. interface: dashboard quarantine rows show the source label column
+6. interface: telegram /health accepts a --verbose flag beyond truncation
+7. tools: csv_analyze head validates a negative limit cleanly
+8. ops: backup create --tag truncation is visible in its own summary
+9. docs: faq.md entry — what a refused rename means
+10. examples: failure-ledger demo — adapter probe failures offline
 
 1. kernel: task dependencies gate resumes too (a paused release re-checks blockers)
 2. brain: /api/brain cache section carries the trend beside the rate
