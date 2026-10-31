@@ -73,6 +73,13 @@ class HottestKeyTests(unittest.TestCase):
         cache.get("old")     # now the stale one gets a hit too
         self.assertEqual(cache.snapshot()["oldest_hit_age_s"], 50.0)
 
+    def test_invalidate_reports_key_existence(self):
+        cache = ResponseCache(clock=FakeClock())
+        cache.put("k", "text", {"model": "m"})
+        self.assertTrue(cache.invalidate("k"))
+        self.assertFalse(cache.invalidate("k"))    # already gone
+        self.assertFalse(cache.invalidate("never-there"))
+
     def test_hit_rate_trend(self):
         cache = ResponseCache(clock=FakeClock())
         # first snapshot: no prior window -> no trend
