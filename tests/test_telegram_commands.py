@@ -225,7 +225,18 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
                                    "text": "/mem thermals --after 2026-01-01"})
         self.assertEqual(seen["after"], "2026-01-01")
 
-    async def test_mem_after_filter_validated(self):
+    async def test_task_whitespace_goal_rejected_cleanly(self):
+        gateway = make_gateway()
+
+        async def strict_submit(goal, source="operator", **kw):
+            # mirrors the kernel guard for non-telegram callers; the
+            # handler must surface it, not crash
+            raise ValueError("goal must not be whitespace-only")
+
+        gateway.daemon.submit_task = strict_submit
+        reply = await self._command("/task real goal", gateway)
+        self.assertIn("error:", reply)
+        self.assertIn("whitespace-only", reply)
         gateway = make_gateway()
 
         async def strict_recall(query, k=5, kinds=None, created_after=None):

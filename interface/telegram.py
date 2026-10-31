@@ -225,7 +225,10 @@ class TelegramGateway:
         if command == "/task":
             if not args.strip():
                 return "usage: /task <goal>"
-            task_id = await daemon.submit_task(args, source="telegram")
+            try:
+                task_id = await daemon.submit_task(args, source="telegram")
+            except ValueError as exc:
+                return f"error: {exc}"
             return f"Task #{task_id} submitted."
         if command == "/mem":
             args = args.strip()
