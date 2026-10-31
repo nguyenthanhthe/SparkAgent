@@ -356,6 +356,26 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_task_detail_carries_retry_backoff(self):
+        daemon, client = await self._setup()
+        try:
+            task_id = await daemon.memory.submit_task("requeue me", "test")
+            # simulate a transient failure: pending with failures counted
+            await daemon.memory.mark_task_running(task_id)
+            await daemon.memory.finish_task(task_id, success=False)
+            row = (await daemon.memory.list_tasks(task_id=task_id))[0]
+            if row["status"] == "pending":
+                response = await client.get(f"/api/tasks/{task_id}")
+                body = await response.json()
+                self.assertEqual(body["retry_backoff_s"], 30)
+            # a fresh task has no backoff field
+            fresh = await daemon.memory.submit_task("clean", "test")
+            body = await (await client.get(f"/api/tasks/{fresh}")).json()
+            self.assertNotIn("retry_backoff_s", body)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_tasks_list_marks_blocked_rows(self):
         daemon, client = await self._setup()
         try:

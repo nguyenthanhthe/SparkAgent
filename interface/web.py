@@ -195,6 +195,7 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
   $('taskdetail').innerHTML=`<b>#${t.id}</b> ${esc(t.goal)}<br>
     <span class="badge ${badge}">${t.status}</span>
     source ${esc(t.source||'unknown')} · priority ${t.priority??5} · runs ${t.last_run_at?new Date(t.last_run_at*1000).toLocaleTimeString():'never'}
+    ${t.retry_backoff_s?` · requeued, retry window ${t.retry_backoff_s}s`:''}
     ${t.depends_on?`· depends on ${(t.depends_on||[]).map(b=>'#'+b).join(', ')} (${blocked?'blocked by '+blocked:'satisfied'})`:''}`;
   $('taskdetail').style.display='block';
 }catch(e){toast(e.message)}}
@@ -496,6 +497,11 @@ def build_web_app(daemon) -> web.Application:
             raise web.HTTPNotFound(text=f"no task {task_id}")
         detail = rows[0]
         detail["blocked_by"] = await daemon.memory.blocked_by(task_id)
+        failures = int(detail.get("consecutive_failures") or 0)
+        if detail.get("status") == "pending" and failures:
+            # mirror the scheduler's backoff formula so the drawer can
+            # explain why this requeued task has not run again yet
+            detail["retry_backoff_s"] = min(300, 30 * 2 ** min(failures, 4))
         return web.json_response(detail)
 
     async def api_tasks_create(request: web.Request) -> web.Response:
