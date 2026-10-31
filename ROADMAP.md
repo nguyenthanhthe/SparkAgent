@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[546/500] — 500-commit milestone passed** · **1139 tests green** · self-check passing.
+Progress counter: **[557/500] — 500-commit milestone passed** · **1142 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -159,7 +159,31 @@ Progress counter: **[546/500] — 500-commit milestone passed** · **1139 tests 
 9. ✅ docs: quarantine runbook cross-links ADR-0012
 10. ✅ examples: retry-audit demo — the task.retry trail offline
 
-## Wave BA backlog (next)
+## Wave BA status (complete)
+
+1. ✅ kernel: task_finished carries depends_on for tracing
+2. ✅ brain: invalidate()'s key-existence boolean pinned by contract
+3. ✅ memory: snippet width hard-cap pinned by contract
+4. ✅ security: quarantine stats splits parked bytes by source
+5. ✅ interface: task drawer links the most recent matching episode
+6. ✅ interface: telegram /backup header shows keep + headroom
+7. ✅ tools: csv filter reports matched and total counts
+8. ✅ ops: verify-all quiet summary lists the verified tags
+9. ✅ docs: brain.md documents the cache trend field
+10. ✅ examples: submit-event demo — task_submitted fan-out offline
+
+## Wave BB backlog (next)
+
+1. kernel: scheduler logs its poll cadence config at boot
+2. brain: /api/adapters catalog lists per-adapter ping counts
+3. memory: count() gains a created_after bound matching recall
+4. security: approval queue exposes its observer count
+5. interface: dashboard episode detail links back to tasks by goal
+6. interface: telegram /mem shows the hit score per result
+7. tools: json_query mode=stats carries the root key count for lists too
+8. ops: backup drill --data-dir audit includes the tag
+9. docs: api.md documents /api/backup's prune_preview
+10. examples: quarantine-triage demo refresh with source + age columns
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
