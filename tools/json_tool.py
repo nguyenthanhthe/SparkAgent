@@ -143,7 +143,9 @@ def shape(data: Any, depth: int = 0, max_depth: int = 4) -> Any:
 
 def stats(data: Any) -> dict:
     return {"root_type": type(data).__name__,
-            "dict_keys": len(data) if isinstance(data, dict) else None,
+            "dict_keys": (len(data) if isinstance(data, dict)
+                          else len(data) if isinstance(data, list)
+                          else None),
             "list_len": len(data) if isinstance(data, list) else None,
             "leaf_count": _leaf_count(data),
             "depth": _depth(data),

@@ -44,6 +44,12 @@ class JsonToolTests(unittest.TestCase):
         self.assertEqual(sum(info["leaves_by_key"].values()),
                          info["leaf_count"])
 
+    def test_stats_counts_list_roots_too(self):
+        info = stats([{"a": 1}, {"a": 2}, {"a": 3}])
+        self.assertEqual(info["root_type"], "list")
+        self.assertEqual(info["dict_keys"], 3)   # top-level entries
+        self.assertIsNone(stats("scalar")["dict_keys"])
+
     def test_depth_measures_container_chain(self):
         self.assertEqual(_depth({"a": {"b": {"c": 1}}}), 3)
         self.assertEqual(_depth([{"a": 1}]), 2)
