@@ -203,7 +203,20 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
 async function refreshSkills(){try{const sk=await api('/api/skills');
   const pend=(sk||[]).filter(s=>s.status==='pending_approval').length;
   const sp=$('skillspending');
-  if(pend){sp.style.display='inline';sp.textContent=pend+' pending approval'}
+  if(pend){
+    sp.style.display='inline';
+    sp.textContent=pend+' pending approval';
+    sp.style.cursor='pointer';
+    sp.title='click to highlight pending rows';
+    sp.onclick=()=>{const table=$('skills');
+      const warn=table.querySelectorAll('.badge.b-warn');
+      const any=table.dataset.pend==='1';
+      table.dataset.pend=any?'':'1';
+      table.querySelectorAll('tr').forEach(tr=>{
+        const isPending=tr.querySelector('.badge.b-warn');
+        tr.style.display=(any||!isPending)?'':'none';});
+      sp.textContent=any?pend+' pending approval':'showing pending only';};
+  }
   else sp.style.display='none';
   $('skills').innerHTML='<tr><th>name</th><th>status</th><th>source</th><th></th></tr>'+
    sk.map(s=>`<tr><td>${s.name}</td><td>${s.status==='active'?badge('b-ok','active'):badge('b-warn','pending')}</td>
