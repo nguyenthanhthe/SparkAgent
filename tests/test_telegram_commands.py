@@ -587,6 +587,15 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("/approve", reply)
         self.assertIn("word_count — active", reply)
 
+    async def test_source_shown_when_present(self):
+        reply = await self._reply_with(
+            [{"name": "word_count", "status": "active",
+              "source": "skill"},
+             {"name": "builtin_tool", "status": "active"}])
+        self.assertIn("word_count — active (skill)", reply)
+        # no source key -> no suffix, no "(None)"
+        self.assertIn("builtin_tool — active\n", reply + "\n")
+
     async def test_empty(self):
         reply = await self._reply_with([])
         self.assertIn("(no skills)", reply)
