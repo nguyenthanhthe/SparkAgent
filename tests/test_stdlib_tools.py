@@ -152,6 +152,17 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                                "path": "x", "in_keys": False,
                                "in_values": False}, self.ctx)
 
+    async def test_csv_head_negative_limit_clamps_to_one(self):
+        import json as json_lib
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": "n\n1\n2\n", "operation": "head",
+                            "limit": -5}, self.ctx))
+        self.assertEqual(len(result["rows"]), 1)   # clamped, no crash
+        over = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": "n\n1\n2\n", "operation": "head",
+                            "limit": 5000}, self.ctx))
+        self.assertEqual(len(over["rows"]), 2)     # capped at the data
+
     async def test_json_query_get_default_on_miss(self):
         import json as json_lib
         # a miss without a default still fails
