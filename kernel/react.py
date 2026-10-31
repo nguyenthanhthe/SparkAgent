@@ -97,6 +97,7 @@ class EpisodeResult:
     answer: str
     steps: int = 0
     tier: str = ""
+    episode_id: int = 0             # 0 when the episode never started
     actions: list[dict] = field(default_factory=list)
 
 
@@ -196,6 +197,7 @@ class ReactAgent:
         goal = goal.strip()
         result = EpisodeResult(goal=goal, status="failed", answer="")
         episode_id = await self.memory.start_episode(goal, source)
+        result.episode_id = episode_id
         result.actions.append({"episode": "start", "id": episode_id})
         self.bus.publish("logs", f"[agent] episode {episode_id} start "
                                  f"({source}): {goal[:120]}")

@@ -143,6 +143,8 @@ class Scheduler:
                     "source": source, "status": result.status,
                     "steps": int(getattr(result, "steps", 0) or 0),
                     "model_tier": str(getattr(result, "tier", "") or ""),
+                    "episode_id": int(getattr(result, "episode_id", 0)
+                                      or 0),
                     "retry_backoff_s": retry_backoff_s,
                     "duration_s": round(time.monotonic() - started, 1)})
             except Exception as exc:  # noqa: BLE001 — record and reschedule
