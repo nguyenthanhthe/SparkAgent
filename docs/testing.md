@@ -116,3 +116,18 @@ git add <files> && git commit -m "..." && git push
 
 Read `RC` before committing. Chaining `git commit` with `;` after the
 check re-creates the red-commit bug this page already documents.
+
+## Wave-cadence checklist
+
+The autonomous build runs in ten-item waves (see ROADMAP.md). Per
+item, in order:
+
+1. read the code around the item before touching it — the item may be
+   stale (already done) → convert it to a contract test instead of
+   re-implementing;
+2. implement module change + test in one pass;
+3. run the targeted test module, then the full suite with the
+   gated-commit chain (above); read `RC` before `git add`;
+4. commit with the wave counter `[n/500]`, push immediately;
+5. at wave close: ROADMAP.md status section + next backlog, full
+   suite, `python main.py --check`, ledger update.
