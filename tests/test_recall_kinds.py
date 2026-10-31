@@ -46,6 +46,9 @@ class RecallKindFilterTests(unittest.TestCase):
         self.seed()
         hits = run(self.mem.recall("gpu thermal"))
         self.assertEqual(len(hits), 3)
+        # an empty kinds list is an explicit no-filter, same contract
+        hits = run(self.mem.recall("gpu thermal", kinds=[]))
+        self.assertEqual(len(hits), 3)
 
     def test_unknown_kind_returns_empty(self):
         self.seed()
