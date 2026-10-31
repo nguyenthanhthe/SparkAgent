@@ -152,6 +152,17 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                                "path": "x", "in_keys": False,
                                "in_values": False}, self.ctx)
 
+    async def test_csv_filter_reports_counts(self):
+        import json as json_lib
+        csv_text = "name,status\nalice,active\nbob,done\ncara,active\n"
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_text, "operation": "filter",
+                            "column": "status", "op": "==",
+                            "value": "active"}, self.ctx))
+        self.assertEqual(len(result["rows"]), 2)
+        self.assertEqual(result["matched"], 2)
+        self.assertEqual(result["total"], 3)
+
     async def test_csv_head_negative_limit_clamps_to_one(self):
         import json as json_lib
         result = json_lib.loads(await self.registry.call(

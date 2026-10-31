@@ -245,10 +245,12 @@ def register_tools(registry: ToolRegistry,
             if operation == "describe":
                 return table.describe()
             if operation == "filter":
-                rows = table.filter(column, op, value).head(50)
+                matched = table.filter(column, op, value)
+                rows = matched.head(50)
                 if limit:
                     rows = rows[:max(1, min(int(limit), 50))]
-                return {"rows": rows}
+                return {"rows": rows, "matched": len(matched.rows),
+                        "total": len(table.rows)}
             if operation == "sort":
                 rows = table.sort(column,
                                   descending=descending).head(50)
