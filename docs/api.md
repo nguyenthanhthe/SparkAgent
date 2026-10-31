@@ -20,7 +20,7 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 | GET | `/api/quarantine?reason=` | quarantined content (reason filter) |
 | GET | `/api/quarantine/{id}` | one item: record + content |
 | POST | `/api/quarantine/{id}/{release\|restore\|delete}` | sanitized release / two-step restore / deletion |
-| GET | `/api/backup` | backup window listing (name, age, tag) |
+| GET | `/api/backup` | backup window listing (name, age, tag) + newest-archive verification + prune retention preview |
 | GET | `/api/docs/{name}` | allowlisted runbook text (e.g. `runbook-backups`) |
 | GET | `/api/brain` | tier health, stats, cache, costs (`costs_last_7_days`), lifecycle |
 | GET | `/api/adapters` | tier stats + per-adapter ping latency (`interface.ping_skip` opts out) |
