@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[568/500] — 500-commit milestone passed** · **1145 tests green** · self-check passing.
+Progress counter: **[579/500] — 500-commit milestone passed** · **1149 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -185,7 +185,31 @@ Progress counter: **[568/500] — 500-commit milestone passed** · **1145 tests 
 9. ✅ docs: api.md documents /api/backup's verification + preview
 10. ✅ examples: triage demo renders source + age columns
 
-## Wave BC backlog (next)
+## Wave BC status (complete)
+
+1. ✅ kernel: pause/resume events carry the acting surface (actor)
+2. ✅ brain: adapter registry reset() clears histories, registrations survive
+3. ✅ memory: exclude_kinds logs a debug hint for absent kinds
+4. ✅ security: api.md documents both quarantine filter parameters
+5. ✅ interface: skills pending badge toggles a pending-only filter
+6. ✅ interface: telegram /db accepts an --order COL flag
+7. ✅ tools: csv sort result carries key + direction
+8. ✅ ops: backup verify reports the manifest created_at stamp
+9. ✅ docs: testing.md gains the wave-cadence checklist
+10. ✅ examples: score demo — ranked output offline
+
+## Wave BD backlog (next)
+
+1. kernel: task_submitted carries the trimmed goal for log correlation
+2. brain: bridge chat records per-tier latency in tier_details (last_ms)
+3. memory: recall created_after pins its lexicographic caveat in the docstring
+4. security: approval require_approval error carries the request summary
+5. interface: dashboard backups panel links the runbook at the bottom
+6. interface: telegram /blocked shows the goal status beside the blocker
+7. tools: json_query mode=search accepts a path needle with regex=False
+8. ops: backup verify-all quiet carries the checked dir
+9. docs: index.md links the ADR index
+10. examples: submit-trim demo — whitespace goal handling rendered offline
 
 1. kernel: task_paused/task_resumed carry the actor (operator|telegram)
 2. brain: adapter registry gains a reset() for its histories
