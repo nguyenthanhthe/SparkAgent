@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[524/500] — 500-commit milestone passed** · **1129 tests green** · self-check passing.
+Progress counter: **[535/500] — 500-commit milestone passed** · **1133 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -133,7 +133,31 @@ Progress counter: **[524/500] — 500-commit milestone passed** · **1129 tests 
 9. ✅ docs: architecture invariants state the drop-oldest overflow rule
 10. ✅ examples: trend demo — hit-rate trend offline
 
-## Wave AY backlog (next)
+## Wave AY status (complete)
+
+1. ✅ kernel: transient requeues audited as task.retry with the backoff
+2. ✅ brain: adapter probe failures carry their checked_at stamp
+3. ✅ memory: digest-marker default under exclude_kinds pinned by contract
+4. ✅ security: approval expiry sweeps publish approval.expire on the audit channel
+5. ✅ interface: quarantine table shows source and age columns
+6. ✅ interface: telegram /health --verbose lifts the detail cap
+7. ✅ tools: head limit clamping pinned by contract test
+8. ✅ ops: create summary reports the same tag the manifest stores
+9. ✅ docs: faq.md entry — what a refused rename means
+10. ✅ examples: failure-ledger demo — stamped probe failures offline
+
+## Wave AZ backlog (next)
+
+1. kernel: task submit returns the audited task id in the scheduler channel event
+2. brain: /api/adapters recent_failures decode into structured entries
+3. memory: recall graph boost skips when the query has no entities
+4. security: quarantine put() caps the meta dict size too
+5. interface: dashboard backup panel shows the prune keep setting
+6. interface: telegram /skills shows the source column
+7. tools: json_query mode=keys caps its output size for huge dicts
+8. ops: backup restore prints the file count it wrote
+9. docs: runbook-quarantine.md cross-links ADR-0012
+10. examples: retry-audit demo — task.retry trail rendered offline
 
 1. kernel: task retry backoff is audited on the audit channel too
 2. brain: adapter ping failures carry a checked_at stamp
