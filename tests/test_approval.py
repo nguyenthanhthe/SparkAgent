@@ -82,6 +82,7 @@ class ApprovalQueueTests(unittest.TestCase):
         self.assertEqual(snap["approved"], 1)
         self.assertEqual(snap["pending_now"], 1)
         self.assertEqual(snap["ttl_seconds"], 60)   # the queue's TTL
+        self.assertEqual(snap["observers"], 0)      # none registered here
         # the snapshot is a copy — mutating it must not touch the queue
         snap["submitted"] = 99
         self.assertEqual(self.queue.counters["submitted"], 2)
