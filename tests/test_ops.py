@@ -35,6 +35,21 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(manifest["file_count"], 3)
         self.assertEqual(manifest["digest"], result.digest)
 
+    def test_cli_verify_reports_byte_size(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        created = create_backup(data, output)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify", str(created.archive_path)])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertEqual(report["bytes"],
+                         created.archive_path.stat().st_size)
+        self.assertGreater(report["bytes"], 0)
+
     def test_cli_verify_corrupt_archive_is_machine_readable(self):
         import contextlib
         import io

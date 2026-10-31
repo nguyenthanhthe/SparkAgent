@@ -378,6 +378,7 @@ def main(argv: list[str] | None = None) -> int:
                               "archive": args.archive}))
             return 1
         print(json.dumps({"ok": True, "files": manifest["file_count"],
+                          "bytes": Path(args.archive).stat().st_size,
                           "digest": manifest["digest"],
                           "tag": manifest.get("tag")}))
         return 0
