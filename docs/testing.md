@@ -101,3 +101,18 @@ the value before the action, act, then compare after. To isolate a
 counter assertion, swap the module attribute for a fresh
 `MetricsRegistry` and restore it in `finally` (see
 `tests/test_webfetch_guard.py::test_verdict_counter_increments`).
+
+## The gated-commit chain (verbatim)
+
+The one-command pattern that worked all session — pipefail captures
+pytest's real exit code, and `&&` (never `;`) keeps the commit gated on
+it:
+
+```bash
+set -o pipefail; python -m pytest tests/ -q 2>&1 | tail -2; RC=$?
+echo "RC=$RC"
+git add <files> && git commit -m "..." && git push
+```
+
+Read `RC` before committing. Chaining `git commit` with `;` after the
+check re-creates the red-commit bug this page already documents.
