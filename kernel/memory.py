@@ -421,9 +421,13 @@ class Memory:
             if self.graph_store is not None:
                 from memory_search.graph_boost import GraphBooster
                 booster = GraphBooster(self.graph_store)
-                for hit in hits:
-                    hit.score += booster.boost(query, hit.text)
-                hits.sort(key=lambda h: h.score, reverse=True)
+                # the query side is computed once; when it names no
+                # graph nodes the whole pass is skipped
+                related = booster.related_entities(query)
+                if related:
+                    for hit in hits:
+                        hit.score += booster.boost_from(related, hit.text)
+                    hits.sort(key=lambda h: h.score, reverse=True)
             # same key can reach the ranker twice (episode-linked rows);
             # keep only the best-scoring hit per key so recall pages
             # don't waste slots on duplicates

@@ -52,6 +52,13 @@ class GraphBooster:
         related = self.related_entities(query)
         if not related:
             return 0.0
+        return self.boost_from(related, text)
+
+    def boost_from(self, related: dict[str, set[str]], text: str) -> float:
+        """Boost using precomputed related entities — recall computes
+        the query side once, not per candidate."""
+        if not related:
+            return 0.0
         lowered = text.lower()
         entities = {entity for neighbors in related.values()
                     for entity in neighbors}
