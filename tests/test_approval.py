@@ -62,6 +62,9 @@ class ApprovalQueueTests(unittest.TestCase):
         pending = self.queue.submit("skill", "y")
         p_payload = request_to_dict(pending)
         self.assertIsNone(p_payload["decided_at"])
+        # the deadline is visible so operators know when it dies
+        # (submitted at 1000005 after the advance, ttl 60s)
+        self.assertEqual(p_payload["expires_at"], 1000065.0)
 
     def test_decision_after_expiry_is_rejected(self):
         request = self.queue.submit("skill", "x")

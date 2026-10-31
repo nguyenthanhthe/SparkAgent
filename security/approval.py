@@ -145,6 +145,7 @@ def request_to_dict(request: Request) -> dict:
     return {"id": request.id, "kind": request.kind, "summary": request.summary,
             "detail": request.detail, "requested_by": request.requested_by,
             "status": request.status, "created_at": request.created_at,
+            "expires_at": request.expires_at,
             "decided_by": request.decided_by,
             "decided_at": request.decided_at,
             "expire_reason": request.expire_reason}
