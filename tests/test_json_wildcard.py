@@ -67,6 +67,12 @@ class GetPathWildcardTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             get_path({"a": 1}, "a.0:1")
 
+    def test_slice_as_final_segment(self):
+        # the slice may be the last hop: it returns the raw window
+        self.assertEqual(get_path({"n": [1, 2, 3, 4, 5]}, "n.1:3"),
+                         [2, 3])
+        self.assertEqual(get_path({"n": [1, 2, 3]}, "n.:"), [1, 2, 3])
+
 
 if __name__ == "__main__":
     unittest.main()
