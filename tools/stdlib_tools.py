@@ -256,7 +256,9 @@ def register_tools(registry: ToolRegistry,
                                   descending=descending).head(50)
                 if limit:
                     rows = rows[:max(1, min(int(limit), 50))]
-                return {"rows": rows}
+                return {"rows": rows,
+                        "sort_by": column,
+                        "descending": bool(descending)}
             if operation == "aggregate":
                 return table.aggregate(column)
             if operation == "group":

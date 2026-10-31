@@ -152,6 +152,15 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                                "path": "x", "in_keys": False,
                                "in_values": False}, self.ctx)
 
+    async def test_csv_sort_carries_direction(self):
+        import json as json_lib
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": "n\n1\n2\n", "operation": "sort",
+                            "column": "n", "descending": True}, self.ctx))
+        self.assertEqual(result["sort_by"], "n")
+        self.assertTrue(result["descending"])
+        self.assertEqual([r["n"] for r in result["rows"]], ["2", "1"])
+
     async def test_csv_filter_reports_counts(self):
         import json as json_lib
         csv_text = "name,status\nalice,active\nbob,done\ncara,active\n"
