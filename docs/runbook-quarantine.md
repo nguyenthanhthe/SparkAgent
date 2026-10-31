@@ -60,3 +60,7 @@ From chat: the audit trail around a quarantine decision is visible via
   expired items, so triage "later" has a deadline.
 - Released content passes through `promptguard.sanitize` — it is
   wrapped as untrusted data, not trusted raw. Release ≠ trust.
+- Records carry a `source` label (who parked it) and rows expose a
+  human-readable age; releases are audited with the content length and
+  reason only — the design rationale lives in
+  [ADR-0012](adr/0012-quarantine-source-labels-and-release-auditing.md).
