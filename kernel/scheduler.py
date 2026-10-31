@@ -48,6 +48,10 @@ class Scheduler:
                         recovered)
         logger.info("scheduler started (poll=%ss concurrency=%d)",
                     self.poll_seconds, self._semaphore._value)  # noqa: SLF001
+        pending = await self.memory.list_tasks(status="pending", limit=500)
+        enabled = sum(1 for row in pending if row.get("enabled"))
+        logger.info("scheduler workload at boot: %d enabled pending task(s)",
+                    enabled)
         while not self._stopping.is_set():
             try:
                 await self._tick()
