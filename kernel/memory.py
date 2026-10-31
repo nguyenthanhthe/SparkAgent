@@ -364,6 +364,15 @@ class Memory:
                        "FROM memories WHERE kind != 'digest-marker' ")
                 params = []
             if exclude_kinds:
+                # a kind never stored in this db is usually a caller
+                # typo — say so, but keep the filter honest (no veto)
+                known = {row["kind"] for row in conn.execute(
+                    "SELECT DISTINCT kind FROM memories")}
+                for wanted in exclude_kinds:
+                    if wanted not in known:
+                        logger.debug("exclude_kinds %r matches no stored "
+                                     "kind (stored: %s)", wanted,
+                                     sorted(known))
                 sql += ("AND kind NOT IN ("
                         + ", ".join("?" * len(exclude_kinds)) + ") ")
                 params.extend(exclude_kinds)
