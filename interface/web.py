@@ -196,6 +196,7 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
     <span class="badge ${badge}">${t.status}</span>
     source ${esc(t.source||'unknown')} · priority ${t.priority??5} · runs ${t.last_run_at?new Date(t.last_run_at*1000).toLocaleTimeString():'never'}
     ${t.retry_backoff_s?` · requeued, retry window ${t.retry_backoff_s}s`:''}
+    ${t.episode_id?` · <a href="#" onclick="showEpisode(${t.episode_id});return false">episode #${t.episode_id}</a>`:''}
     ${t.depends_on?`· depends on ${(t.depends_on||[]).map(b=>'#'+b).join(', ')} (${blocked?'blocked by '+blocked:'satisfied'})`:''}`;
   $('taskdetail').style.display='block';
 }catch(e){toast(e.message)}}
@@ -509,6 +510,12 @@ def build_web_app(daemon) -> web.Application:
             # mirror the scheduler's backoff formula so the drawer can
             # explain why this requeued task has not run again yet
             detail["retry_backoff_s"] = min(300, 30 * 2 ** min(failures, 4))
+        # episodes are goal-linked, not task-id-linked: surface the most
+        # recent episode whose goal matches so the drawer can link to it
+        for episode in await daemon.memory.recent_episodes(limit=50):
+            if episode.get("goal") == detail["goal"]:
+                detail["episode_id"] = episode["id"]
+                break
         return web.json_response(detail)
 
     async def api_tasks_create(request: web.Request) -> web.Response:
