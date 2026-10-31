@@ -17,7 +17,8 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 | POST | `/api/skills/{name}/approve` | activate a pending skill |
 | GET | `/api/approvals` | operator approval queue |
 | POST | `/api/approvals/{id}/{approve\|deny}` | decide |
-| GET | `/api/quarantine?reason=` | quarantined content (reason filter) |
+| GET | `/api/quarantine?reason=` | quarantined content (reason contains-filter, comma-separated OR) |
+| GET | `/api/quarantine?reason_prefix=` | family filter — reasons starting with the prefix (e.g. `prompt-injection` excludes `re-prompt-injection`) |
 | GET | `/api/quarantine/{id}` | one item: record + content |
 | POST | `/api/quarantine/{id}/{release\|restore\|delete}` | sanitized release / two-step restore / deletion |
 | GET | `/api/backup` | backup window listing (name, age, tag) + newest-archive verification + prune retention preview |
