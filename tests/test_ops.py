@@ -177,6 +177,40 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(removed, 2)
         self.assertEqual(len(list(output.glob("*.zip"))), 1)
 
+    def test_cli_verify_all_tag_filter(self):
+        import contextlib
+        import io
+        import shutil
+        from unittest import mock
+        data = make_data_dir()
+        output = data.parent / "backups"
+        counter = {"n": 0}
+
+        def fake_strftime(fmt, t=None):
+            if "T" in fmt:
+                return "2026-01-01T00:00:00"
+            counter["n"] += 1
+            return f"20260101-0000{counter['n']:02d}"
+
+        with mock.patch("ops.backup.time.strftime", fake_strftime):
+            create_backup(data, output, tag="nightly")
+            create_backup(data, output, tag="weekly")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["verify-all", "--output-dir", str(output),
+                       "--tag", "nightly"])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertEqual(report["count"], 1)
+        self.assertEqual(report["archives"][0]["tag"], "nightly")
+        # no match -> honest failure exit with the tag echoed
+        buffer2 = io.StringIO()
+        with contextlib.redirect_stdout(buffer2):
+            rc = main(["verify-all", "--output-dir", str(output),
+                       "--tag", "never"])
+        self.assertEqual(rc, 1)
+        self.assertEqual(json.loads(buffer2.getvalue())["tag"], "never")
+
     def test_cli_prune_audits_removals(self):
         import contextlib
         import io

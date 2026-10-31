@@ -240,13 +240,28 @@ def audit_log(db_path: Path, actor: str, action: str, detail: str) -> bool:
         conn.close()
 
 
-def _verify_all(output_dir: Path, quiet: bool = False) -> int:
-    """Verify every archive in the retention window; exit 1 if any fails.
-    ``quiet`` prints a single-line summary (cron mail friendly)."""
+def _verify_all(output_dir: Path, quiet: bool = False,
+                tag: str | None = None) -> int:
+    """Verify every archive in the retention window (or only those
+    tagged ``tag`` when given); exit 1 if any fails. ``quiet`` prints a
+    single-line summary (cron mail friendly)."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
+    if tag:
+        wanted = tag.strip().lower()
+        selected = []
+        for archive in archives:
+            try:
+                manifest = verify_backup(archive)
+                archive_tag = str(manifest.get("tag") or "").lower()
+            except BackupError:
+                archive_tag = ""
+            if wanted in archive_tag:
+                selected.append(archive)
+        archives = selected
     if not archives:
-        print(json.dumps({"ok": False, "error": "no backups found",
-                          "dir": str(output_dir)}))
+        print(json.dumps({"ok": False, "error": "no matching backups",
+                          "dir": str(output_dir),
+                          "tag": tag}))
         return 1
     results = []
     for archive in archives:
@@ -304,6 +319,9 @@ def main(argv: list[str] | None = None) -> int:
                                   help="verify every archive in the "
                                        "backup dir")
     p_verify_all.add_argument("--output-dir", required=True)
+    p_verify_all.add_argument("--tag", default=None,
+                              help="verify only archives whose tag "
+                                   "contains this substring")
     p_verify_all.add_argument("--quiet", action="store_true",
                               help="single-line summary (cron-friendly)")
     p_prune = sub.add_parser("prune", help="apply retention to the dir")
@@ -383,7 +401,8 @@ def main(argv: list[str] | None = None) -> int:
                           "tag": manifest.get("tag")}))
         return 0
     if args.cmd == "verify-all":
-        return _verify_all(Path(args.output_dir), quiet=args.quiet)
+        return _verify_all(Path(args.output_dir), quiet=args.quiet,
+                           tag=args.tag)
     if args.cmd == "prune":
         output_dir = Path(args.output_dir)
         total = len(list(output_dir.glob("sparkagent-backup-*.zip")))
