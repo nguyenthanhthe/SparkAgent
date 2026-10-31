@@ -116,6 +116,13 @@ class QuarantineStatsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.put("   \n", "reason")
 
+    def test_list_rows_carry_age_human(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        store.put("body", "reason")
+        row = store.list()[0]
+        import re
+        self.assertRegex(row["age_human"], r"^\d+m\d{2}s$")
+
     def test_get_exposes_human_age(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))
         record = store.put("body", "reason")

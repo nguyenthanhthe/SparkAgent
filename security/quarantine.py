@@ -108,6 +108,8 @@ class QuarantineStore:
             if prefix and not str(record.get("reason", "")).lower() \
                     .startswith(prefix):
                 continue
+            record["age_human"] = self._human_age(
+                record.get("created_at", ""))
             records.append(record)
         records.sort(key=lambda r: r.get("created_at", ""), reverse=True)
         return records[:limit]
