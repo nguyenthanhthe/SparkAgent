@@ -135,6 +135,11 @@ class Scheduler:
                     retry_backoff_s = backoff
                     logger.info("task %s transient failure — requeued in %ds",
                                 task_id, backoff)
+                    # the requeue is an auditable lifecycle moment: the
+                    # line carries the backoff, never the answer text
+                    self.bus.publish("audit", {
+                        "actor": "scheduler", "action": "task.retry",
+                        "detail": f"#{task_id} requeued in {backoff}s"})
                     await self._memory_shift_next_run(task_id, backoff)
                 logger.info("task %s %s in %.1fs", task_id, result.status,
                             time.monotonic() - started)

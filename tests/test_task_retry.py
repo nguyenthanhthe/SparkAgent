@@ -103,6 +103,7 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
         try:
             bus = EventBus()
             queue = bus.subscribe("scheduler")
+            audit_queue = bus.subscribe("audit")
             task_id = await memory.submit_task("flaky goal", "test")
             await memory.mark_task_running(task_id)
 
@@ -132,6 +133,13 @@ class SchedulerRetryTests(unittest.IsolatedAsyncioTestCase):
             finished = [e for e in events if e["event"] == "task_finished"]
             self.assertEqual(len(finished), 1)
             self.assertEqual(finished[0]["retry_backoff_s"], 30)
+            # the requeue is audited with the backoff
+            audits = []
+            while not audit_queue.empty():
+                audits.append(audit_queue.get_nowait())
+            retry_audit = next(a for a in audits if a["action"] == "task.retry")
+            self.assertEqual(retry_audit["actor"], "scheduler")
+            self.assertIn("requeued in 30s", retry_audit["detail"])
             row = (await memory.list_tasks(task_id=task_id))[0]
             self.assertEqual(row["status"], "pending")  # requeued
             self.assertGreater(row["next_run_at"], 0)
