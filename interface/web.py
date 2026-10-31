@@ -372,8 +372,10 @@ async function refreshBackup(){try{const b=await api('/api/backup');
     :'<span style="color:var(--b-warn,#c9a227);font-size:11px" title="'+
      esc(v.detail||'')+'">unverified</span>');
   const pp=b.prune_preview;
-  const ppline=pp&&pp.would_remove
-    ?kv('retention',`${items.length} archived · prune --keep ${pp.keep} would remove ${pp.would_remove}`):'';
+  const ppline=pp
+    ?kv('retention',`keep=${pp.keep} · ${items.length} archived`+
+      (pp.would_remove?` · prune would remove ${pp.would_remove}`:''))
+    :'';
   $('backups').innerHTML=
     kv('newest',`${esc(newest.name)} (${age} old)`)+
     (v?vbadge+' ':'')+

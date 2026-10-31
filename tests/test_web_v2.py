@@ -1,4 +1,5 @@
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -234,6 +235,34 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(body["verified"]["ok"])
             self.assertIn("manifest", body["verified"]["detail"].lower())
             self.assertEqual(body["verified"]["name"], tampered.name)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
+    async def test_backup_preview_reflects_keep_setting(self):
+        from ops.backup import create_backup
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")},
+             "ops": {"backup_keep": 1}},
+            root=Path(tempfile.mkdtemp())))
+        await daemon.memory.connect()
+        from aiohttp.test_utils import TestClient, TestServer
+        from interface.web import build_web_app
+        client = TestClient(TestServer(build_web_app(daemon)))
+        await client.start_server()
+        try:
+            data = daemon.cfg.root / "data"
+            data.mkdir(parents=True, exist_ok=True)
+            (data / "sparkagent.db").write_bytes(b"x")
+            backup_dir = daemon.cfg.root / "backups"
+            create_backup(data, backup_dir)
+            time.sleep(1.1)   # same-second archives collide on filename
+            create_backup(data, backup_dir)
+            body = await (await client.get("/api/backup")).json()
+            preview = body["prune_preview"]
+            self.assertEqual(preview["keep"], 1)
+            self.assertEqual(preview["would_remove"], 1)
+            self.assertEqual(preview["would_remain"], 1)
         finally:
             await client.close()
             await daemon.memory.close()
