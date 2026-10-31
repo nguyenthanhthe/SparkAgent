@@ -96,7 +96,7 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 </div>
 <div class="grid">
 <div class="card"><h2>Tasks</h2><div id="taskdetail" style="display:none;margin-bottom:8px;font:12px var(--mono)"></div><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
-<div class="card"><h2>Skills</h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
+<div class="card"><h2>Skills <span id="skillspending" class="badge b-warn" style="display:none"></span></h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Episodes</h2>
   <div style="max-height:220px;overflow:auto"><table id="episodes"></table></div>
@@ -199,6 +199,10 @@ async function showTask(id){try{const t=await api('/api/tasks/'+id);
   $('taskdetail').style.display='block';
 }catch(e){toast(e.message)}}
 async function refreshSkills(){try{const sk=await api('/api/skills');
+  const pend=(sk||[]).filter(s=>s.status==='pending_approval').length;
+  const sp=$('skillspending');
+  if(pend){sp.style.display='inline';sp.textContent=pend+' pending approval'}
+  else sp.style.display='none';
   $('skills').innerHTML='<tr><th>name</th><th>status</th><th>source</th><th></th></tr>'+
    sk.map(s=>`<tr><td>${s.name}</td><td>${s.status==='active'?badge('b-ok','active'):badge('b-warn','pending')}</td>
     <td style="color:var(--dim);font-size:12px">${s.source||''}</td>
