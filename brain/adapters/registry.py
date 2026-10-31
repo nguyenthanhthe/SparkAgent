@@ -65,9 +65,9 @@ class AdapterRegistry:
             await adapter.close()
         if probe.get("ok") is False:
             failures = self.failure_history.setdefault(name, [])
-            stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
-            failures.append(f"{stamp} "
-                            f"{str(probe.get('detail') or 'probe failed')[:110]}")
+            failures.append({"at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                             "detail": str(probe.get("detail")
+                                           or "probe failed")[:110]})
             self.failure_history[name] = failures[-5:]
         if probe.get("latency_ms") is not None:
             history = self.latency_history.setdefault(name, [])

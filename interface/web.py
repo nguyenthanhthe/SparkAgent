@@ -346,8 +346,11 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
   if(hot){h+=kv('cache hottest',`<span title="digest of the most-hit cache key">${esc(hot.key_hash)} · ${hot.hits} hit${hot.hits===1?'':'s'}</span>`);}
   const fails=a.recent_failures||{};
   for(const[name,history]of Object.entries(fails)){
-    if(history.length)h+=kv(name+' failures',
-      `<span style="color:var(--b-warn,#c9a227);font-size:11px" title="${esc(history.join(' | '))}">${history.length} recent</span>`);
+    if(history.length){
+      const tip=history.map(f=>`${f.at} ${f.detail}`).join(' | ');
+      h+=kv(name+' failures',
+        `<span style="color:var(--b-warn,#c9a227);font-size:11px" title="${esc(tip)}">${history.length} recent</span>`);
+    }
   }
   $('adapters').innerHTML=h||'<div style="color:var(--dim);font-size:12px">no adapters</div>';
 }catch(e){}}
