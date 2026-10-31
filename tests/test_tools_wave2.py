@@ -99,6 +99,15 @@ class CsvToolTests(unittest.TestCase):
         self.assertIn("unknown operator", str(ctx.exception))
         self.assertNotIn("unknown column", str(ctx.exception))
 
+    def test_group_errors_name_the_offending_column(self):
+        table = Table.parse(CSV_TEXT)
+        with self.assertRaises(CsvError) as ctx:
+            table.group_aggregate("nope", "score")
+        self.assertIn("group_by column 'nope'", str(ctx.exception))
+        with self.assertRaises(CsvError) as ctx:
+            table.group_aggregate("region", "nope")
+        self.assertIn("value column 'nope'", str(ctx.exception))
+
     def test_aggregate_error_names_numeric_columns(self):
         from tools.csv_tool import CsvError
         table = Table.parse("name,region\nalice,emea\nbob,apac\n")

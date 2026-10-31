@@ -78,8 +78,12 @@ class Table:
                 "min": min(values), "max": max(values)}
 
     def group_aggregate(self, group_by: str, column: str) -> dict[str, dict]:
-        if group_by not in self.columns or column not in self.columns:
-            raise CsvError(f"columns must be in {self.columns}")
+        if group_by not in self.columns:
+            raise CsvError(f"unknown group_by column {group_by!r}; have "
+                           f"{self.columns}")
+        if column not in self.columns:
+            raise CsvError(f"unknown value column {column!r}; have "
+                           f"{self.columns}")
         groups: dict[str, list[float]] = {}
         for row in self.rows:
             if _maybe_num(row.get(column)):
