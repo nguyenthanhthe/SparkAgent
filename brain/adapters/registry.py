@@ -53,6 +53,22 @@ class AdapterRegistry:
     def unregister(self, name: str) -> bool:
         return self._factories.pop(name, None) is not None
 
+    def reset(self, name: str | None = None) -> None:
+        """Clear the observational histories — latency, failures, and
+        ping counts (all of them, or one adapter's). Registrations are
+        untouched; this is for tests and operator triage."""
+        targets = ([name] if name is not None
+                   else list(self.latency_history)
+                   + [n for n in self.failure_history
+                      if n not in self.latency_history]
+                   + [n for n in self.ping_counts
+                      if n not in self.latency_history
+                      and n not in self.failure_history])
+        for target in set(targets):
+            self.latency_history.pop(target, None)
+            self.failure_history.pop(target, None)
+            self.ping_counts.pop(target, None)
+
     async def ping(self, name: str, config: dict[str, Any],
                    vault: SecretVault) -> dict[str, Any]:
         """Create the named adapter, take one latency sample, release it.

@@ -281,6 +281,24 @@ class AdapterRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failures[-1]["detail"], "connection refused")
         self.assertRegex(failures[-1]["at"], r"^\d{4}-\d{2}-\d{2}T")
 
+    async def test_registry_reset_clears_histories(self):
+        registry = AdapterRegistry()
+        registry.register("x", lambda cfg, vault: MockAdapter())
+        await registry.ping("x", {}, SecretVault())
+        registry.failure_history.setdefault("x", []).append(
+            {"at": "t", "detail": "d"})
+        registry.ping_counts["x"] = 1
+
+        registry.reset("x")
+        self.assertNotIn("x", registry.latency_history)
+        self.assertNotIn("x", registry.failure_history)
+        self.assertNotIn("x", registry.ping_counts)
+        # the registration itself survives
+        self.assertIn("x", registry.available())
+        # full reset works too and never raises on empty state
+        registry.reset()
+        registry.reset()
+
 
 if __name__ == "__main__":
     unittest.main()
