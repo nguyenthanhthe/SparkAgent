@@ -58,6 +58,10 @@ class JsonToolTests(unittest.TestCase):
         self.assertEqual(len(top_keys(data, prefix="GPU")), 2)
         self.assertEqual(len(top_keys(data)), 3)
 
+    def test_top_keys_caps_huge_dicts(self):
+        big = {f"key_{i}": i for i in range(100)}
+        self.assertEqual(len(top_keys(big)), 20)   # bounded output
+
     def test_safe_dump_roundtrip(self):
         text = safe_dump({"k": [1, 2]})
         self.assertEqual(parse(text), {"k": [1, 2]})
