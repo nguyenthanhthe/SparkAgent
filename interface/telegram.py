@@ -171,6 +171,12 @@ class TelegramGateway:
             sched = status.get("scheduler", {})
             lines.append(f"episodes: {sched.get('episodes_done', 0)} done / "
                          f"{sched.get('episodes_failed', 0)} failed")
+            if sched.get("episodes_failed_transient"):
+                lines.append(f"transient (requeued): "
+                             f"{sched['episodes_failed_transient']}")
+            blocked = sched.get("blocked_tasks", 0)
+            if blocked:
+                lines.append(f"blocked tasks: {blocked} (see /blocked)")
             quarantine = status.get("quarantine")
             if quarantine is not None:
                 lines.append(f"quarantine: {quarantine.get('items', 0)} "

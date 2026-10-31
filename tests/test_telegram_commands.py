@@ -139,6 +139,19 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
             reply = send.call_args[0][1]
         self.assertIn("cache: 3 hit(s) / 10 (30%)", reply)
 
+    async def test_status_shows_transient_and_blocked_lines(self):
+        gateway = make_gateway()
+        gateway.daemon.status = lambda: {
+            "agent": "sparkagent", "version": "0.2.0", "uptime_s": 300,
+            "brain": {}, "system": {},
+            "scheduler": {"episodes_done": 4, "episodes_failed": 1,
+                          "episodes_failed_transient": 2,
+                          "blocked_tasks": 3},
+            "quarantine": {"items": 0, "bytes": 0}}
+        reply = await self._command("/status", gateway)
+        self.assertIn("transient (requeued): 2", reply)
+        self.assertIn("blocked tasks: 3 (see /blocked)", reply)
+
     async def test_status_shows_cache_hottest_key(self):
         gateway = make_gateway()
 
