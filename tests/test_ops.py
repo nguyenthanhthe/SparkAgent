@@ -519,6 +519,23 @@ class BackupTests(unittest.TestCase):
         untagged = create_backup(data, output)
         self.assertIsNone(verify_backup(untagged.archive_path).get("tag"))
 
+    def test_cli_create_tag_summary_matches_manifest(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        long_tag = "t" * 150
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["create", "--data-dir", str(data),
+                       "--output-dir", str(output), "--tag", long_tag])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        # the summary shows the SAME truncated tag the manifest stores
+        self.assertEqual(report["tag"], "t" * 100)
+        self.assertEqual(verify_backup(Path(report["archive"]))["tag"],
+                         report["tag"])
+
     def test_blank_tag_rejected(self):
         data = make_data_dir()
         output = data.parent / "backups"

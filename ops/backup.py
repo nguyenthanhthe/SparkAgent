@@ -375,7 +375,8 @@ def main(argv: list[str] | None = None) -> int:
                           "files": result.file_count,
                           "bytes": result.total_bytes,
                           "digest": result.digest,
-                          "tag": args.tag,
+                          "tag": (str(args.tag).strip()[:100]
+                                  if args.tag else None),
                           "verified": verified,
                           "retention": f"{position} of {args.keep}",
                           "pruned": pruned}))
