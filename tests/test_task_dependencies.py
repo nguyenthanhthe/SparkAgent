@@ -131,6 +131,25 @@ class DependencyGateTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_resume_of_blocked_task_stays_unclaimable(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            first = await memory.submit_task("upstream", "test")
+            second = await memory.submit_task("downstream", "test",
+                                              depends_on=[first])
+            await memory.pause_resume(second, enabled=False)
+            await memory.pause_resume(second, enabled=True)
+            row = (await memory.list_tasks(task_id=second))[0]
+            self.assertEqual(row["status"], "pending")   # resumed...
+            self.assertEqual(row["enabled"], 1)
+            # ...but the dependency gate keeps it out of due_tasks
+            due = await memory.due_tasks(now=9999999999.0)
+            self.assertEqual([t["id"] for t in due], [first])
+        finally:
+            await memory.close()
+
     async def test_failed_dependency_blocks(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)

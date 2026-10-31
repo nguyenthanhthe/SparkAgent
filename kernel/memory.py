@@ -729,6 +729,9 @@ class Memory:
         return await self._run(op)
 
     async def pause_resume(self, task_id: int, enabled: bool) -> bool:
+        # note: a resumed blocked task lands in 'pending', but the
+        # dependency gate in due_tasks() keeps it unclaimable until the
+        # upstreams settle — the resume needs no extra check here
         def op(conn: sqlite3.Connection) -> bool:
             cursor = conn.execute(
                 "UPDATE tasks SET enabled = ?, status = ?, updated_at = ? "
