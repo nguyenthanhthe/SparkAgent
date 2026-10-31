@@ -86,6 +86,11 @@ class RecallKindFilterTests(unittest.TestCase):
         hits = run(self.mem.recall("gpu thermal",
                                    exclude_kinds=["episode"]))
         self.assertEqual(hits, [])
+        # excluding the marker explicitly changes nothing — it was never
+        # in the default candidate pool
+        hits = run(self.mem.recall("gpu thermal",
+                                   exclude_kinds=["digest-marker"]))
+        self.assertEqual({h.kind for h in hits}, {"episode"})
 
     def test_created_after_keeps_only_recent_rows(self):
         async def scenario():
