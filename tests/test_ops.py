@@ -28,6 +28,24 @@ class BackupTests(unittest.TestCase):
         self.assertFalse(any("vault.bin" in name for name in names))
         self.assertIn("manifest.json", names)
 
+    def test_cli_restore_reports_file_count(self):
+        import contextlib
+        import io
+        data = make_data_dir()
+        output = data.parent / "backups"
+        created = create_backup(data, output)
+        target = data.parent / "restore-target"
+        target.mkdir()
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rc = main(["restore", str(created.archive_path),
+                       "--data-dir", str(target)])
+        self.assertEqual(rc, 0)
+        report = json.loads(buffer.getvalue())
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["restored_files"], 3)
+        self.assertGreater(report["total_bytes"], 0)
+
     def test_verify_ok(self):
         data = make_data_dir()
         result = create_backup(data, data.parent / "backups")
