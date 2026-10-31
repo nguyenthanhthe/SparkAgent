@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[491/500]** commits · **1115 tests green** · self-check passing.
+Progress counter: **[502/500] — 500-commit milestone reached** · **1119 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -94,7 +94,31 @@ Progress counter: **[491/500]** commits · **1115 tests green** · self-check pa
 9. ✅ docs: faq.md entry — what the bus overflow counter means
 10. ✅ examples: quarantine demo — source breakdown offline
 
-## Wave AV backlog (next)
+## Wave AV status (complete — 500-commit milestone reached)
+
+1. ✅ kernel: task_started event carries the task priority
+2. ✅ brain: /api/adapters pings carry a per-probe checked_at
+3. ✅ memory: recall snippet_width=0 skips the snippet windowing
+4. ✅ security: request_to_dict exposes expires_at
+5. ✅ interface: skills card header badges the pending-approval count
+6. ✅ interface: telegram /blocked --all lifts the limit to the store cap
+7. ✅ tools: csv filter validates the operator before the column
+8. ✅ ops: backup verify reports the archive byte size
+9. ✅ docs: testing.md documents the gated-commit chain verbatim
+10. ✅ examples: wildcard demo — slice ranges + spread offline
+
+## Wave AW backlog (next)
+
+1. kernel: task_finished carries the episode id it produced
+2. brain: cache snapshot gains a hit-rate trend (last vs prior window)
+3. memory: recall kinds filter accepts an empty list as no-filter
+4. security: approval counters_snapshot carries the queue ttl
+5. interface: dashboard backup panel shows would_remain after prune
+6. interface: telegram /mem --kind accepts any kind, not a fixed set
+7. tools: csv_analyze group errors name the group_by column
+8. ops: diskwatch exits ok when the data dir is empty
+9. docs: faq.md entry — what the transient split looks like from chat
+10. examples: slice demo — path slicing grammar rendered offline
 
 1. kernel: task_started event carries the task priority
 2. brain: /api/adapters pings carry a checked_at per probe
