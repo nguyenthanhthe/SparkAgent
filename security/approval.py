@@ -116,11 +116,13 @@ class ApprovalQueue:
                 self._notify(request)
 
     def counters_snapshot(self) -> dict:
-        """The lifecycle counters plus the live queue depth — a copy, so
-        callers cannot mutate the queue's bookkeeping."""
+        """The lifecycle counters plus the live queue depth and the
+        TTL the queue enforces — a copy, so callers cannot mutate the
+        queue's bookkeeping."""
         self._expire_all()
         return {**self.counters,
-                "pending_now": len(self.pending())}
+                "pending_now": len(self.pending()),
+                "ttl_seconds": self.ttl}
 
     # --------------------------------------------------------------- helpers
     def require_approval(self, kind: str, summary: str,
