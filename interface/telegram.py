@@ -437,7 +437,12 @@ class TelegramGateway:
                 return (f"no backups in {listing['dir']} — run "
                         "python -m ops.backup create")
             suffix = f" tagged '{tag_filter}'" if tag_filter else ""
-            lines = [f"backups ({len(archives)} newest){suffix}:"]
+            keep = int(daemon.cfg.get("ops.backup_keep", 10))
+            headroom = (f"{max(0, keep - len(archives))} slots free"
+                        if len(archives) < keep else
+                        f"prune would remove {len(archives) - keep}")
+            lines = [f"backups ({len(archives)} newest){suffix} — "
+                     f"keep={keep} · {headroom}"]
             for item in archives:
                 age = item["age_s"]
                 age_text = (f"{age // 3600}h{(age % 3600) // 60:02d}m"

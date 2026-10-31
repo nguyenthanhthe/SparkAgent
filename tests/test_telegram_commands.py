@@ -676,6 +676,9 @@ class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("sparkagent-backup-", reply)
         self.assertIn("nightly", reply)
         self.assertIn("old", reply)
+        # the retention headroom rides the header line
+        self.assertIn("keep=10", reply)
+        self.assertIn("slots free", reply)
 
     async def test_backup_empty_dir(self):
         import shutil
