@@ -167,6 +167,12 @@ class MemoryTests(unittest.TestCase):
             self.assertLessEqual(len(narrow[0].snippet), 76)
             self.assertGreater(len(wide[0].snippet),
                                len(narrow[0].snippet))
+            # width is a hard cap on the returned snippet (plus the
+            # body cap and the trailing ellipsis marker)
+            for width in (30, 80, 150):
+                hits = await self.mem.recall("gpu", k=1,
+                                             snippet_width=width)
+                self.assertLessEqual(len(hits[0].snippet), width + 17)
         run(scenario())
 
     def test_recall_dedupes_same_key(self):
