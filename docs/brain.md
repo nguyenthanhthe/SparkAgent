@@ -24,6 +24,10 @@ Register new providers with `adapter_registry.register(name, factory)`.
   skip the local tier this tick
 - **response cache** — identical (model, messages, params) hits the LRU
   within TTL; cache hits cost nothing and count in `saved_tokens`
+  - the snapshot (`/api/brain` → `cache`) carries `hit_rate_trend`: the
+    snapshot-to-snapshot window's hit rate minus the prior window's —
+    `None` until two windows elapsed, positive when caching is helping
+    more than it was
 - **cost tracking** — every response records tokens × pattern price table
   into per-model/tier/day ledgers; `within_budget(daily_usd)` gates spend
 
