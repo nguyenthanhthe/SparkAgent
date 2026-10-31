@@ -74,6 +74,9 @@ subsystems. This page is the map; each package has its own page.
 - Every byte of untrusted text passes the prompt guard before reaching a
   model prompt; high-risk content is quarantined, not delivered.
 - Every SQL statement is parameter-bound; no exceptions.
+- Every bus queue is bounded with drop-oldest overflow (counted in
+  `bus_overflow_total`) — a slow consumer degrades its own channel,
+  never the publisher.
 
 ## Capability → guarded path (ADR-0010)
 
