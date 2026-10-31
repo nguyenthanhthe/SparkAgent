@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[557/500] — 500-commit milestone passed** · **1142 tests green** · self-check passing.
+Progress counter: **[568/500] — 500-commit milestone passed** · **1145 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -172,7 +172,31 @@ Progress counter: **[557/500] — 500-commit milestone passed** · **1142 tests 
 9. ✅ docs: brain.md documents the cache trend field
 10. ✅ examples: submit-event demo — task_submitted fan-out offline
 
-## Wave BB backlog (next)
+## Wave BB status (complete)
+
+1. ✅ kernel: scheduler logs its enabled pending-task workload at boot
+2. ✅ brain: /api/adapters catalog carries per-adapter ping counts
+3. ✅ memory: count() accepts a validated created_after bound
+4. ✅ security: approval counters_snapshot carries the observer count
+5. ✅ interface: episode detail carries matching task_ids
+6. ✅ interface: telegram /mem prefixes hits with their score
+7. ✅ tools: json stats dict_keys counts list entries at the root
+8. ✅ ops: backup drill audit line carries the archive tag
+9. ✅ docs: api.md documents /api/backup's verification + preview
+10. ✅ examples: triage demo renders source + age columns
+
+## Wave BC backlog (next)
+
+1. kernel: task_paused/task_resumed carry the actor (operator|telegram)
+2. brain: adapter registry gains a reset() for its histories
+3. memory: recall exclude_kinds validates against known kinds at debug level
+4. security: quarantine get() exposes the record's reason_prefix helper
+5. interface: dashboard skills pending badge is clickable to filter
+6. interface: telegram /db accepts an --order flag
+7. tools: csv_analyze sort carries the sort direction in its result
+8. ops: backup verify prints the manifest's created_at stamp
+9. docs: testing.md gains the wave-cadence checklist
+10. examples: score demo — /mem-style ranked output rendered offline
 
 1. kernel: scheduler logs its poll cadence config at boot
 2. brain: /api/adapters catalog lists per-adapter ping counts
