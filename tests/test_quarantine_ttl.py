@@ -1,3 +1,4 @@
+import json
 import tempfile
 import time
 import unittest
@@ -122,6 +123,17 @@ class QuarantineStatsTests(unittest.TestCase):
         row = store.list()[0]
         import re
         self.assertRegex(row["age_human"], r"^\d+m\d{2}s$")
+
+    def test_meta_dict_is_capped(self):
+        store = QuarantineStore(Path(tempfile.mkdtemp()))
+        big_meta = {f"key_{i}": "v" * 500 for i in range(30)}
+        record = store.put("body", "reason", big_meta)
+        self.assertLessEqual(
+            len(json.dumps(record["meta"])), 2048 + 200)
+        self.assertLessEqual(len(record["meta"]), 10)
+        # typed values survive the cap
+        typed = store.put("body", "reason", {"score": 70})
+        self.assertEqual(typed["meta"]["score"], 70)
 
     def test_get_exposes_human_age(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))

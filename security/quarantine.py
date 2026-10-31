@@ -40,11 +40,22 @@ class QuarantineStore:
         data = content.encode("utf-8", errors="replace")
         if len(data) > MAX_ITEM_BYTES:
             data = data[:MAX_ITEM_BYTES]
+        # meta rides the record — cap it so a caller cannot smuggle a
+        # second blob in beside the content; values keep their types,
+        # overflow entries are dropped first-fit
+        capped_meta: dict = {}
+        meta_budget = 2048
+        for key, value in list((meta or {}).items())[:10]:
+            candidate = dict(capped_meta)
+            candidate[str(key)[:60]] = value
+            if len(json.dumps(candidate, default=str)) > meta_budget:
+                break
+            capped_meta = candidate
         record = {
             "id": item_id,
             "reason": reason[:300],
             "source": str(source)[:60],
-            "meta": meta or {},
+            "meta": capped_meta,
             "size_bytes": len(data),
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         }
