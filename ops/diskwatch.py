@@ -53,15 +53,16 @@ def dir_size(path: Path) -> int:
     return total
 
 
-def subdirs_top(path: Path, keep: int = 3) -> list[dict]:
-    """Immediate subdirectories ranked by size (top ``keep``) — the
-    prune-target hint: which child to clean when the level goes warn."""
+def subdirs_top(path: Path, keep: int | None = 3) -> list[dict]:
+    """Immediate subdirectories ranked by size (top ``keep``; ``None``
+    keeps all) — the prune-target hint: which child to clean when the
+    level goes warn."""
     sizes = []
     for child in path.iterdir():
         if child.is_dir():
             sizes.append({"dir": child.name, "bytes": dir_size(child)})
     sizes.sort(key=lambda item: -item["bytes"])
-    return sizes[:keep]
+    return sizes if keep is None else sizes[:keep]
 
 
 def check_usage(data_dir: Path, warn_mb: float = DEFAULT_WARN_MB,
@@ -94,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
                              f"(default: {DEFAULT_CRITICAL_MB:g})")
     parser.add_argument("--json", action="store_true",
                         help="emit the UsageReport as JSON")
+    parser.add_argument("--all", action="store_true",
+                        help="list every subdirectory, not just the top 3")
     args = parser.parse_args(argv)
 
     if args.critical_mb < args.warn_mb:
@@ -105,7 +108,8 @@ def main(argv: list[str] | None = None) -> int:
 
     report = check_usage(args.data_dir, warn_mb=args.warn_mb,
                          critical_mb=args.critical_mb)
-    top = subdirs_top(args.data_dir)
+    top = subdirs_top(args.data_dir,
+                      keep=None if args.all else 3)
     if args.json:
         payload = report.to_dict()
         payload["subdirs_top"] = top

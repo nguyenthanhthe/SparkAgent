@@ -101,6 +101,15 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("prune target — logs", out)
 
+    def test_all_flag_lists_every_subdir(self):
+        from ops.diskwatch import subdirs_top
+        data = self.tmp / "data"
+        for name in ("a", "b", "c", "d"):
+            (data / name).mkdir(parents=True)
+            (data / name / "f.bin").write_bytes(b"x")
+        self.assertEqual(len(subdirs_top(data)), 3)       # default cap
+        self.assertEqual(len(subdirs_top(data, keep=None)), 4)
+
 
 if __name__ == "__main__":
     unittest.main()
