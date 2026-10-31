@@ -594,6 +594,13 @@ def build_web_app(daemon) -> web.Application:
         detail["final_answer"] = daemon.vault.redact(
             detail.get("final_answer") or "")
         detail["goal"] = daemon.vault.redact(detail.get("goal") or "")
+        # episodes are goal-linked to tasks: surface the task ids whose
+        # goal matches so the drawer can navigate both ways
+        matching = [task["id"] for task in
+                    await daemon.memory.list_tasks(limit=200)
+                    if task["goal"] == detail["goal"]]
+        if matching:
+            detail["task_ids"] = matching
         return web.json_response(detail)
 
     async def api_memories(request: web.Request) -> web.Response:
