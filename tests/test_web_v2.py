@@ -337,6 +337,25 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_memory_rename_refusal_is_audited(self):
+        daemon, client = await self._setup()
+        try:
+            await daemon.memory.remember("keep", key="taken")
+            await daemon.memory.remember("move", key="typo")
+            bad = await client.post("/api/memories/rename",
+                                    json={"old": "typo", "new": "taken"})
+            self.assertEqual(bad.status, 400)
+            rows = await daemon.memory.recent_audit(limit=10)
+            entry = next(r for r in rows
+                         if r["action"] == "memory.rename_key.refused")
+            self.assertIn("new=taken", entry["detail"])
+            # both source keys are untouched
+            self.assertEqual(await daemon.memory.count(
+                key_contains="typo"), 1)
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_tasks_list_marks_blocked_rows(self):
         daemon, client = await self._setup()
         try:

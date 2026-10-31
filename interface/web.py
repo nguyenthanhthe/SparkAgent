@@ -620,6 +620,11 @@ def build_web_app(daemon) -> web.Application:
         try:
             renamed = await daemon.memory.rename_key(old, new)
         except ValueError as exc:
+            # refused merges are audited too — the operator attempt to
+            # clobber an existing key is part of the trail
+            await daemon.memory.audit(
+                "operator", "memory.rename_key.refused",
+                f"old={old[:100]} new={new[:100]} ({exc})")
             raise web.HTTPBadRequest(text=str(exc))
         await daemon.memory.audit(
             "operator", "memory.rename_key",
