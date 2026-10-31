@@ -277,7 +277,9 @@ class AdapterRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(probe["ok"])
         failures = registry.failure_history["sick"]
         self.assertEqual(len(failures), 5)
-        self.assertEqual(failures[-1], "connection refused")
+        # each entry carries its probe timestamp before the detail
+        self.assertIn("connection refused", failures[-1])
+        self.assertRegex(failures[-1], r"^\d{4}-\d{2}-\d{2}T")
 
 
 if __name__ == "__main__":

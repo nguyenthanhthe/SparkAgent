@@ -8,6 +8,7 @@ name.
 
 from __future__ import annotations
 
+import time
 from typing import Any, Callable
 
 from brain.adapters.base import ChatAdapter
@@ -64,7 +65,9 @@ class AdapterRegistry:
             await adapter.close()
         if probe.get("ok") is False:
             failures = self.failure_history.setdefault(name, [])
-            failures.append(str(probe.get("detail") or "probe failed")[:120])
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
+            failures.append(f"{stamp} "
+                            f"{str(probe.get('detail') or 'probe failed')[:110]}")
             self.failure_history[name] = failures[-5:]
         if probe.get("latency_ms") is not None:
             history = self.latency_history.setdefault(name, [])
