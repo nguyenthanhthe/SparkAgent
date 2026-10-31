@@ -91,6 +91,14 @@ class CsvToolTests(unittest.TestCase):
         # distinct skips missing cells; duplicates collapse
         self.assertEqual(info["distinct"], {"region": 2, "score": 2})
 
+    def test_filter_validates_op_before_column(self):
+        table = Table.parse(CSV_TEXT)
+        # both are wrong: the op error wins
+        with self.assertRaises(CsvError) as ctx:
+            table.filter("nope", "?=", "x")
+        self.assertIn("unknown operator", str(ctx.exception))
+        self.assertNotIn("unknown column", str(ctx.exception))
+
     def test_aggregate_error_names_numeric_columns(self):
         from tools.csv_tool import CsvError
         table = Table.parse("name,region\nalice,emea\nbob,apac\n")

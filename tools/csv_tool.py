@@ -43,11 +43,13 @@ class Table:
 
     # ------------------------------------------------------------------ ops
     def filter(self, column: str, op: str, value: str) -> "Table":
-        if column not in self.columns:
-            raise CsvError(f"unknown column {column!r}; have {self.columns}")
+        # operator first: it is about the grammar, not the data shape,
+        # so a bad op should not depend on knowing the column names
         if op not in _OPERATORS:
             raise CsvError(f"unknown operator {op!r}; have "
                            f"{sorted(_OPERATORS)}")
+        if column not in self.columns:
+            raise CsvError(f"unknown column {column!r}; have {self.columns}")
         predicate = _OPERATORS[op]
         return Table([row for row in self.rows
                       if column in row and predicate(row[column], value)])
