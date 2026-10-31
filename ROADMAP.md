@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[502/500] — 500-commit milestone reached** · **1119 tests green** · self-check passing.
+Progress counter: **[513/500] — 500-commit milestone passed** · **1122 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -107,7 +107,31 @@ Progress counter: **[502/500] — 500-commit milestone reached** · **1119 tests
 9. ✅ docs: testing.md documents the gated-commit chain verbatim
 10. ✅ examples: wildcard demo — slice ranges + spread offline
 
-## Wave AW backlog (next)
+## Wave AW status (complete)
+
+1. ✅ kernel: task_finished carries the episode_id it produced
+2. ✅ brain: cache snapshot reports a snapshot-to-snapshot hit-rate trend
+3. ✅ memory: empty-kinds-as-no-filter pinned by contract test
+4. ✅ security: approval counters_snapshot carries the queue ttl
+5. ✅ interface: /api/backup carries a prune retention preview
+6. ✅ interface: telegram /task surfaces the whitespace-goal rejection (kind filter already free-form — stale item substituted)
+7. ✅ tools: csv group errors name the offending group_by/value column
+8. ✅ ops: diskwatch --all lists every subdirectory
+9. ✅ docs: faq.md entry — the transient split from chat
+10. ✅ examples: slice demo — path-slicing grammar offline
+
+## Wave AX backlog (next)
+
+1. kernel: task dependencies gate resumes too (a paused release re-checks blockers)
+2. brain: /api/brain cache section carries the trend beside the rate
+3. memory: rename_key audits the refused merges too (with the target)
+4. security: quarantine list carries age_human per row
+5. interface: dashboard task drawer shows retry_backoff when requeued
+6. interface: telegram /status gains a blocked-tasks line
+7. tools: json_query mode=get honors a slice as the final segment
+8. ops: backup verify-all --tag verifies only matching archives
+9. docs: architecture.md invariants gain the drop-oldest overflow rule
+10. examples: trend demo — hit-rate trend rendered offline
 
 1. kernel: task_finished carries the episode id it produced
 2. brain: cache snapshot gains a hit-rate trend (last vs prior window)
