@@ -67,6 +67,8 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(report["bytes"],
                          created.archive_path.stat().st_size)
         self.assertGreater(report["bytes"], 0)
+        # the manifest's creation stamp rides the verdict
+        self.assertRegex(report["created_at"], r"^\d{4}-\d{2}-\d{2}T")
 
     def test_cli_verify_corrupt_archive_is_machine_readable(self):
         import contextlib

@@ -402,6 +402,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": True, "files": manifest["file_count"],
                           "bytes": Path(args.archive).stat().st_size,
                           "digest": manifest["digest"],
+                          "created_at": manifest.get("created_at"),
                           "tag": manifest.get("tag")}))
         return 0
     if args.cmd == "verify-all":
