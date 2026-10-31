@@ -486,6 +486,7 @@ class BackupTests(unittest.TestCase):
             conn.close()
         self.assertIsNotNone(row)
         self.assertIn("ok=True", row[0])
+        self.assertIn("tag=drill", row[0])
 
     def test_restore_drill_roundtrip_in_scratch(self):
         data = make_data_dir()

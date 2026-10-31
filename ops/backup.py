@@ -439,6 +439,7 @@ def main(argv: list[str] | None = None) -> int:
             if db_path.exists():
                 audit_log(db_path, "ops.backup", "backup.drill",
                           f"archive={Path(args.archive).name} "
+                          f"tag={result.get('tag')} "
                           f"ok={result['ok']} files={result['files']}")
         return 0 if result["ok"] else 1
     result = restore_backup(Path(args.archive), Path(args.data_dir),
