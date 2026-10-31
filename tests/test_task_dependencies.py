@@ -131,6 +131,38 @@ class DependencyGateTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_finished_event_carries_depends_on(self):
+        from kernel.bus import EventBus
+        from kernel.scheduler import Scheduler
+
+        class DoneAgent:
+            async def run(self, goal, source=None):
+                return type("R", (), {"status": "done", "answer": "ok",
+                                      "steps": 1})()
+
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            first = await memory.submit_task("upstream", "test")
+            second = await memory.submit_task("downstream", "test",
+                                              depends_on=[first])
+            await memory.mark_task_running(second)
+            bus = EventBus()
+            queue = bus.subscribe("scheduler")
+            scheduler = Scheduler(memory, lambda: DoneAgent(), bus,
+                                  poll_seconds=1)
+            task = (await memory.list_tasks(task_id=second))[0]
+            await scheduler._run_task(task)
+            events = []
+            while not queue.empty():
+                events.append(queue.get_nowait())
+            finished = [e for e in events
+                        if e["event"] == "task_finished"][0]
+            self.assertEqual(finished["depends_on"], [first])
+        finally:
+            await memory.close()
+
     async def test_resume_of_blocked_task_stays_unclaimable(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)

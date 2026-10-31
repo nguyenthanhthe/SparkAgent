@@ -143,9 +143,11 @@ class Scheduler:
                     await self._memory_shift_next_run(task_id, backoff)
                 logger.info("task %s %s in %.1fs", task_id, result.status,
                             time.monotonic() - started)
+                deps = Memory._parse_depends(task.get("depends_on"))
                 self.bus.publish("scheduler", {
                     "event": "task_finished", "task_id": task_id,
                     "source": source, "status": result.status,
+                    "depends_on": deps,
                     "steps": int(getattr(result, "steps", 0) or 0),
                     "model_tier": str(getattr(result, "tier", "") or ""),
                     "episode_id": int(getattr(result, "episode_id", 0)
