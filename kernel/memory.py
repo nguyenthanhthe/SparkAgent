@@ -792,11 +792,12 @@ class Memory:
         return await self._run(op)
 
     async def count(self, kind: str | None = None,
-                    key_contains: str | None = None) -> int:
-        """Total memory rows, optionally restricted to one kind and/or
-        rows whose ``key`` contains the given substring — the cheap
-        totals dashboards poll (e.g. count episode-tagged rows whose key
-        carries an episode id)."""
+                    key_contains: str | None = None,
+                    created_after: str | None = None) -> int:
+        """Total memory rows, optionally restricted to one kind, rows
+        whose ``key`` contains the given substring, and rows stamped
+        after ``created_after`` (same format as recall's bound) — the
+        cheap totals dashboards poll."""
         def op(conn: sqlite3.Connection) -> int:
             clauses, params = [], []
             if kind is not None:
@@ -805,6 +806,18 @@ class Memory:
             if key_contains:
                 clauses.append("key LIKE ?")
                 params.append("%" + key_contains + "%")
+            if created_after:
+                raw = created_after.strip()
+                probe = raw if "T" in raw else raw + "T00:00:00"
+                try:
+                    time.strptime(probe, "%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    raise ValueError(
+                        "created_after must be YYYY-MM-DD or "
+                        f"YYYY-MM-DDTHH:MM:SS, got {created_after!r}"
+                        ) from None
+                clauses.append("created_at > ?")
+                params.append(probe)
             where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
             row = conn.execute("SELECT COUNT(*) AS n FROM memories" + where,
                                tuple(params)).fetchone()

@@ -116,6 +116,22 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(await self.mem.count(key_contains="nope"), 0)
         run(scenario())
 
+    def test_count_created_after_bound(self):
+        async def scenario():
+            await self.mem.connect()
+            old_id = await self.mem.remember("old note")
+            self.mem._conn.execute(
+                "UPDATE memories SET created_at = '2020-01-01T00:00:00' "
+                "WHERE id = ?", (old_id,))
+            self.mem._conn.commit()
+            await self.mem.remember("new note")
+            self.assertEqual(await self.mem.count(), 2)
+            self.assertEqual(await self.mem.count(created_after="2026-01-01"),
+                             1)
+            with self.assertRaises(ValueError):
+                await self.mem.count(created_after="bogus")
+        run(scenario())
+
     def test_remember_reports_created_at_stamp(self):
         async def scenario():
             await self.mem.connect()
