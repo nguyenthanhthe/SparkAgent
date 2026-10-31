@@ -261,7 +261,8 @@ class TelegramGateway:
             if not hits:
                 return "(no memories found)"
             return "\n\n".join(
-                f"[{h.kind}] {h.snippet or h.text[:250]}" for h in hits)
+                f"[{h.kind} {h.score:.2f}] {h.snippet or h.text[:250]}"
+                for h in hits)
         if command == "/skills":
             args = args.strip()
             status_filter = None

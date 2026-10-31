@@ -232,6 +232,24 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/mem nothing matches")
         self.assertIn("no memories", reply)
 
+    async def test_mem_shows_hit_scores(self):
+        gateway = make_gateway()
+
+        class Hit:
+            def __init__(self, kind, score):
+                self.kind = kind
+                self.score = score
+                self.snippet = "gpu thermal data"
+                self.text = "gpu thermal data"
+
+        async def recall(query, k=5, kinds=None, created_after=None):
+            return [Hit("note", 1.234), Hit("digest", 0.5)]
+
+        gateway.daemon.memory.recall = recall
+        reply = await self._command("/mem thermals", gateway)
+        self.assertIn("[note 1.23]", reply)
+        self.assertIn("[digest 0.50]", reply)
+
     async def test_mem_kind_filter_passed_through(self):
         gateway = make_gateway()
         seen = {}
