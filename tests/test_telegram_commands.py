@@ -120,6 +120,27 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         reply = await self._command("/health", gateway)
         self.assertIn("worst (memory): db cannot be opened", reply)
 
+    async def test_health_verbose_lifts_detail_truncation(self):
+        gateway = make_gateway()
+        long_detail = "x" * 100
+
+        class LongHealth:
+            async def check_all(self):
+                return {"status": "warn", "checks": [
+                    {"name": "disk", "status": "warn",
+                     "detail": long_detail}]}
+
+        gateway.daemon.health = LongHealth()
+        short = await self._command("/health", gateway)
+        short_line = next(l for l in short.splitlines()
+                          if l.startswith("disk:"))
+        self.assertIn("x" * 40, short_line)       # 40-char per-check cap
+        self.assertNotIn("x" * 100, short_line)
+        verbose = await self._command("/health --verbose", gateway)
+        verbose_line = next(l for l in verbose.splitlines()
+                            if l.startswith("disk:"))
+        self.assertIn("x" * 100, verbose_line)    # 200-char cap covers it
+
     async def test_status(self):
         reply = await self._command("/status")
         self.assertIn("uptime: 5 min", reply)
