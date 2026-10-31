@@ -145,16 +145,21 @@ class QuarantineStore:
                                   key=lambda kv: -kv[1])[:3])
         oldest_human = self._human_age(oldest) if oldest else None
         by_source: dict[str, int] = {}
+        bytes_by_source: dict[str, int] = {}
         for item in items:
             source = str(item.get("source", "unknown"))[:40] or "unknown"
             by_source[source] = by_source.get(source, 0) + 1
+            bytes_by_source[source] = (bytes_by_source.get(source, 0)
+                                       + item.get("size_bytes", 0))
         return {"items": len(items),
                 "bytes": sum(item.get("size_bytes", 0) for item in items),
                 "oldest_age_s": oldest_age_s,
                 "oldest_human": oldest_human,
                 "top_reasons": top_reasons,
                 "by_source": dict(sorted(by_source.items(),
-                                         key=lambda kv: -kv[1]))}
+                                         key=lambda kv: -kv[1])),
+                "bytes_by_source": dict(sorted(bytes_by_source.items(),
+                                               key=lambda kv: -kv[1]))}
 
     def release(self, item_id: str) -> str:
         """Return sanitized content and delete the item from quarantine.

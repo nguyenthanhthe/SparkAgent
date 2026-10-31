@@ -173,12 +173,17 @@ class QuarantineStatsTests(unittest.TestCase):
 
     def test_stats_source_breakdown(self):
         store = QuarantineStore(Path(tempfile.mkdtemp()))
-        store.put("a", "r1", source="web_fetch")
-        store.put("b", "r2", source="web_fetch")
+        store.put("a" * 100, "r1", source="web_fetch")
+        store.put("b" * 50, "r2", source="web_fetch")
         store.put("c", "r3")   # default label
         stats = store.stats()
         self.assertEqual(stats["by_source"], {"web_fetch": 2,
                                               "unknown": 1})
+        # bytes split by the same key, summing to the total
+        self.assertEqual(stats["bytes_by_source"]["web_fetch"], 150)
+        self.assertEqual(stats["bytes_by_source"]["unknown"], 1)
+        self.assertEqual(sum(stats["bytes_by_source"].values()),
+                         stats["bytes"])
         # legacy records without a source roll up as unknown
         import json
         legacy = QuarantineStore(Path(tempfile.mkdtemp()))
