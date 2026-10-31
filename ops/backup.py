@@ -282,8 +282,11 @@ def _verify_all(output_dir: Path, quiet: bool = False,
         failed = [item["archive"] for item in results if not item["ok"]]
         slowest = max(results, key=lambda item: item.get("seconds", 0)) \
             if results else None
+        tags = sorted({str(item.get("tag")) for item in results
+                       if item.get("tag")})
         print(json.dumps({"ok": ok, "count": len(results),
                           "failed": failed, "checked_at": checked_at,
+                          "tags": tags,
                           "slowest": {"archive": slowest["archive"],
                                       "seconds": slowest["seconds"]}
                           if slowest else None}))

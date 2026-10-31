@@ -221,6 +221,14 @@ class BackupTests(unittest.TestCase):
         report = json.loads(buffer.getvalue())
         self.assertEqual(report["count"], 1)
         self.assertEqual(report["archives"][0]["tag"], "nightly")
+        # the quiet summary lists the distinct tags it verified
+        buffer_q = io.StringIO()
+        with contextlib.redirect_stdout(buffer_q):
+            rc = main(["verify-all", "--output-dir", str(output),
+                       "--tag", "nightly", "--quiet"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(json.loads(buffer_q.getvalue())["tags"],
+                         ["nightly"])
         # no match -> honest failure exit with the tag echoed
         buffer2 = io.StringIO()
         with contextlib.redirect_stdout(buffer2):
@@ -318,6 +326,8 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(report["failed"], [])
         self.assertEqual(report["slowest"]["archive"],
                          Path(report["slowest"]["archive"]).name)
+        # untagged archives leave the tags list empty, not None
+        self.assertEqual(report["tags"], [])
         self.assertGreaterEqual(report["slowest"]["seconds"], 0)
         self.assertNotIn("archives", report)
 
