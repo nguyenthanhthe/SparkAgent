@@ -1,7 +1,7 @@
 # SparkAgent v2 — Enterprise Evolution Roadmap
 
 Goal: evolve the v1 kernel into a world-class autonomous agent framework.
-Progress counter: **[535/500] — 500-commit milestone passed** · **1133 tests green** · self-check passing.
+Progress counter: **[546/500] — 500-commit milestone passed** · **1139 tests green** · self-check passing.
 
 ## Wave AO status (complete)
 
@@ -146,7 +146,31 @@ Progress counter: **[535/500] — 500-commit milestone passed** · **1133 tests 
 9. ✅ docs: faq.md entry — what a refused rename means
 10. ✅ examples: failure-ledger demo — stamped probe failures offline
 
-## Wave AZ backlog (next)
+## Wave AZ status (complete)
+
+1. ✅ kernel: submit publishes task_submitted with id/source/deps
+2. ✅ brain: failure ledger entries are structured {at, detail} records
+3. ✅ memory: graph boost computes the query side once, skips entity-less queries
+4. ✅ security: quarantine meta is size-capped with types preserved
+5. ✅ interface: backup panel shows the keep setting with headroom
+6. ✅ interface: telegram /skills annotates each skill's source
+7. ✅ tools: top_keys 20-entry cap pinned by contract test
+8. ✅ ops: restore file-count contract pinned by test
+9. ✅ docs: quarantine runbook cross-links ADR-0012
+10. ✅ examples: retry-audit demo — the task.retry trail offline
+
+## Wave BA backlog (next)
+
+1. kernel: task_finished carries the task's depends_on for tracing
+2. brain: cache invalidate() reports whether the key existed
+3. memory: recall snippet_width accepts a cap argument alongside width
+4. security: quarantine stats gains a bytes-by-source breakdown
+5. interface: dashboard task drawer links the episode it produced
+6. interface: telegram /backup shows the retention headroom line
+7. tools: csv_analyze filter reports the row count alongside matches
+8. ops: backup verify-all carries per-archive tags in the quiet summary
+9. docs: brain.md documents the cache trend field
+10. examples: submit-event demo — task_submitted fan-out offline
 
 1. kernel: task submit returns the audited task id in the scheduler channel event
 2. brain: /api/adapters recent_failures decode into structured entries
