@@ -152,6 +152,27 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                                "path": "x", "in_keys": False,
                                "in_values": False}, self.ctx)
 
+    async def test_json_query_search_path_needle(self):
+        import json as json_lib
+        data = ('{"items": [{"name": "a", "tag": "b"},'
+                ' {"name": "c", "tag": "d"}]}')
+        # a dotted-path needle locates list positions literal-substring
+        # style (regex=False — nothing is compiled, '.' is not a wildcard)
+        result = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "items.0", "in_path": True,
+                           "in_keys": False, "in_values": False},
+            self.ctx))
+        self.assertIn("items.0.name", result["matches"])
+        self.assertIn("items.0.tag", result["matches"])
+        self.assertNotIn("items.1.name", result["matches"])
+        # without in_path the index needle matches nothing (indexes are
+        # not keys), preserving the old contract
+        plain = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "items.0"}, self.ctx))
+        self.assertEqual(plain["matches"], [])
+
     async def test_csv_sort_carries_direction(self):
         import json as json_lib
         result = json_lib.loads(await self.registry.call(

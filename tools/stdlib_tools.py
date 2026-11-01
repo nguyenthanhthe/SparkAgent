@@ -83,6 +83,7 @@ def register_tools(registry: ToolRegistry,
                          max_depth: int = 0,
                          in_keys: bool = True,
                          in_values: bool = True,
+                         in_path: bool = False,
                          default_json: str = "") -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
@@ -112,12 +113,14 @@ def register_tools(registry: ToolRegistry,
                 raise ToolFailure(f"path {path!r} failed") from None
         if mode == "search":
             needle = require_str(path, "needle", min_len=1)
-            if not in_keys and not in_values:
+            if not in_keys and not in_values and not in_path:
                 raise ToolFailure(
-                    "search needs at least one of in_keys/in_values")
+                    "search needs at least one of in_keys/in_values/"
+                    "in_path")
             matches = json_mod.search(parsed, needle,
                                       in_keys=in_keys,
-                                      in_values=in_values)
+                                      in_values=in_values,
+                                      in_path=in_path)
             return {"matches": matches, "count": len(matches)}
         if mode == "shape":
             depth = max(1, min(int(max_depth), 12)) if max_depth else 4
@@ -219,6 +222,11 @@ def register_tools(registry: ToolRegistry,
                     "in_values": {"type": "boolean", "required": False,
                                   "desc": "search mode: match string "
                                           "values (default true)"},
+                    "in_path": {"type": "boolean", "required": False,
+                                "desc": "search mode: also match the "
+                                        "needle against the dotted path "
+                                        "itself, literal substring "
+                                        "(default false)"},
                     "default_json": {"type": "string", "required": False,
                                      "desc": "get mode: JSON literal "
                                              "returned (with "

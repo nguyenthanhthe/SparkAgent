@@ -103,19 +103,31 @@ def _split_path(path: str) -> list[str]:
 
 
 def search(data: Any, needle: str, *, in_keys: bool = True,
-           in_values: bool = True) -> list[str]:
-    """Return dotted paths whose key or value contains ``needle``."""
+           in_values: bool = True, in_path: bool = False) -> list[str]:
+    """Return dotted paths whose key or value contains ``needle``.
+
+    With ``in_path`` the needle is additionally matched (literal
+    substring, regex=False — a needle like ``items.0`` is plain text,
+    never compiled) against the accumulated dotted path, so list
+    positions and multi-segment fragments like ``items.0.name`` can be
+    located directly.
+    """
     hits: list[str] = []
+    needle_l = needle.lower()
 
     def walk(node: Any, prefix: str) -> None:
+        if prefix and in_path and needle_l in prefix.lower() \
+                and prefix not in hits:
+            hits.append(prefix)
         if isinstance(node, dict):
             for key, value in node.items():
                 here = f"{prefix}.{key}" if prefix else str(key)
-                if in_keys and needle.lower() in str(key).lower():
-                    hits.append(here)
+                if in_keys and needle_l in str(key).lower():
+                    if here not in hits:
+                        hits.append(here)
                 if isinstance(value, str) and in_values and \
-                        needle.lower() in value.lower():
-                    if not (in_keys and needle.lower() in str(key).lower()):
+                        needle_l in value.lower():
+                    if here not in hits:
                         hits.append(here)
                 walk(value, here)
         elif isinstance(node, list):
