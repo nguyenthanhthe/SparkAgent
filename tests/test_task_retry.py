@@ -83,7 +83,7 @@ class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
             scheduler = Scheduler(memory, lambda: None, bus,
                                   poll_seconds=1)
             upstream = await memory.submit_task("upstream", "test")
-            task_id = await scheduler.submit("downstream", "cron",
+            task_id = await scheduler.submit("  downstream  ", "cron",
                                              depends_on=[upstream])
             events = []
             while not queue.empty():
@@ -92,6 +92,9 @@ class SubmitGuardTests(unittest.IsolatedAsyncioTestCase):
                          if e["event"] == "task_submitted"]
             self.assertEqual(len(submitted), 1)
             self.assertEqual(submitted[0]["task_id"], task_id)
+            # the event carries the trimmed goal so log correlation can
+            # match it against the stored row without a re-trim
+            self.assertEqual(submitted[0]["goal"], "downstream")
             self.assertEqual(submitted[0]["source"], "cron")
             self.assertEqual(submitted[0]["depends_on"], [upstream])
         finally:

@@ -202,6 +202,7 @@ class Scheduler:
         # dashboards learn about the new task without re-polling
         self.bus.publish("scheduler", {"event": "task_submitted",
                                        "task_id": task_id,
+                                       "goal": trimmed,
                                        "source": source,
                                        "depends_on": list(deps) if deps
                                        else []})
