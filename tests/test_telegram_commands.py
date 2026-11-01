@@ -441,9 +441,16 @@ class TelegramBlockedCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_blocked_lists_stalled_tasks(self):
         reply = await self._reply_with(
             [{"id": 12, "goal": "digest telemetry",
-              "blocked_by": [7, 9]}])
-        self.assertIn("#12 blocked by #7, #9", reply)
+              "blocked_by": [7, 9],
+              "blocker_status": {"7": "pending", "9": "running"}}])
+        self.assertIn("#12 blocked by #7 (pending), #9 (running)", reply)
         self.assertIn("digest telemetry", reply)
+
+    async def test_blocked_missing_status_falls_back(self):
+        reply = await self._reply_with(
+            [{"id": 12, "goal": "digest telemetry",
+              "blocked_by": [7], "blocker_status": {}}])
+        self.assertIn("#7 (?)", reply)
 
     async def test_blocked_empty(self):
         reply = await self._reply_with([])

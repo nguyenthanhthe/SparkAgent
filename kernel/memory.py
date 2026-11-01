@@ -726,6 +726,12 @@ class Memory:
             done = {row["id"] for row in conn.execute(
                 f"SELECT id FROM tasks WHERE id IN ({placeholders}) "
                 f"AND status = 'done'", tuple(dep_ids))}
+            # blocker statuses ride along so surfaces (telegram /blocked)
+            # can show why each blocker still holds without re-querying
+            status_rows = conn.execute(
+                f"SELECT id, status FROM tasks WHERE id IN ({placeholders})",
+                tuple(dep_ids)).fetchall()
+            statuses = {row["id"]: row["status"] for row in status_rows}
             blocked = []
             for row in rows:
                 deps = parsed.get(row["id"])
@@ -734,7 +740,10 @@ class Memory:
                 unsatisfied = [d for d in deps if d not in done]
                 if unsatisfied:
                     blocked.append({"id": row["id"], "goal": row["goal"],
-                                    "blocked_by": unsatisfied})
+                                    "blocked_by": unsatisfied,
+                                    "blocker_status":
+                                    {str(d): statuses.get(d, "?")
+                                     for d in unsatisfied}})
                     if len(blocked) >= limit:
                         break
             return blocked

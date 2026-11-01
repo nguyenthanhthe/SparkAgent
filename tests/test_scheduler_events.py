@@ -226,6 +226,9 @@ class ShutdownDrainTests(unittest.IsolatedAsyncioTestCase):
             blocked = await memory.blocked_pending_tasks()
             self.assertEqual([t["id"] for t in blocked], [second])
             self.assertEqual(blocked[0]["blocked_by"], [first])
+            # the blocker's own status rides along (paused upstream)
+            self.assertEqual(blocked[0]["blocker_status"],
+                             {str(first): "paused"})
         finally:
             await memory.close()
 

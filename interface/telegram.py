@@ -426,11 +426,14 @@ class TelegramGateway:
                 limit = 200   # store cap for the blocked scan
             stalled = await daemon.memory.blocked_pending_tasks(limit=limit)
             if not stalled:
-                return "(no dependency-stalled tasks)"
+                return "(no dependency-stalled task)"
+            # each blocker id carries its status so the operator can
+            # tell a running dependency from a stuck pending one
             return "\n".join(
                 f"#{t['id']} blocked by "
-                f"{', '.join('#' + str(d) for d in t['blocked_by'])} — "
-                f"{t['goal'][:50]}" for t in stalled)
+                + ", ".join(f"#{d} ({t['blocker_status'].get(str(d), '?')})"
+                            for d in t['blocked_by'])
+                + f" — {t['goal'][:50]}" for t in stalled)
         if command == "/backup":
             from ops.backup import list_backups, verify_backup, BackupError
             backup_dir = daemon.cfg.root / daemon.cfg.get(
