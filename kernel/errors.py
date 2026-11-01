@@ -61,8 +61,16 @@ class RateLimitedError(SparkError):
 
 
 class ApprovalRequired(SparkError):
-    """An action needs operator approval before proceeding."""
+    """An action needs operator approval before proceeding.
 
-    def __init__(self, message: str, approval_id: str):
+    Carries the request summary and kind so handlers (telegram notice,
+    audit line, agent retry logic) can render the request without a
+    queue lookup by approval_id.
+    """
+
+    def __init__(self, message: str, approval_id: str,
+                 kind: str | None = None, summary: str | None = None):
         super().__init__(message)
         self.approval_id = approval_id
+        self.kind = kind
+        self.summary = summary

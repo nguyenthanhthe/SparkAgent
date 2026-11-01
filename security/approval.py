@@ -131,7 +131,8 @@ class ApprovalQueue:
         """Submit and return the error to raise (agent-side convenience)."""
         request = self.submit(kind, summary, detail)
         return ApprovalRequired(
-            f"{kind} requires operator approval: {summary}", request.id)
+            f"{kind} requires operator approval: {summary}", request.id,
+            kind=kind, summary=summary)
 
     def observe(self, observer: Observer) -> None:
         self._observers.append(observer)

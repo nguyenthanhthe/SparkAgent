@@ -96,6 +96,10 @@ class ApprovalQueueTests(unittest.TestCase):
         err = self.queue.require_approval("skill", "needs review")
         self.assertIsInstance(err, ApprovalRequired)
         self.assertIn(err.approval_id, self.queue._requests)
+        # the error object mirrors the request's kind and summary so
+        # handlers render it without a queue lookup
+        self.assertEqual(err.kind, "skill")
+        self.assertEqual(err.summary, "needs review")
 
     def test_observer_notified(self):
         events = []
