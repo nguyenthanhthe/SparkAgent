@@ -955,7 +955,7 @@ def build_web_app(daemon) -> web.Application:
         health = await daemon.brain.health()
         return web.json_response({
             "health": health,
-            "tier_stats": daemon.brain.stats(),
+            "tier_stats": daemon.brain.tier_details(),
             "lifecycle": {"shutdown_drained_tasks": int(
                 REGISTRY.counter("shutdown_drained_tasks")),
                 "bus_overflow_total": int(

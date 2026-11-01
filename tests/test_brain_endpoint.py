@@ -44,6 +44,11 @@ class BrainEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("T", body["lifecycle"]["scheduler_started_at"])
             self.assertIn("hit_rate", body["cache"])
             self.assertIn("bridge_hits", body["cache"])
+            # tier_stats is tier_details now: per-tier latency (last_ms)
+            # rides beside the counters so /api/brain is the one-stop
+            # report without a separate adapters call
+            self.assertIn("last_ms", body["tier_stats"]["local"])
+            self.assertIn("last_success_at", body["tier_stats"]["local"])
             # the snapshot-to-snapshot trend rides the cache section
             # (a None here just means fewer than two windows elapsed)
             self.assertIn("hit_rate_trend", body["cache"])
