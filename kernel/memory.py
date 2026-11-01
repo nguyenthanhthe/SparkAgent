@@ -342,6 +342,15 @@ class Memory:
         pool to explicit row ids (direct re-ranking lookups).
         Filtering happens in SQL, parameter-bound. Digest markers stay
         excluded unless explicitly asked for via ``kinds``.
+
+        Caveat on ``created_after``: the comparison is lexicographic —
+        the bound is compared as text against ``created_at`` (ISO local
+        time, fixed format). A date-only bound becomes
+        ``YYYY-MM-DDT00:00:00``, so "after Jan 15" means "after
+        midnight on Jan 15", not "any stamp dated Jan 15". A malformed
+        bound raises ValueError before any SQL runs, so the caveat can
+        never silently mis-apply: only well-formed bounds reach the
+        comparison, and fixed-format ISO sorts correctly as text.
         """
         # an explicit k=0 is honored (pool probe: scan happens, the
         # pool size lands in last_recall_pool_size, no hits returned);
