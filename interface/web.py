@@ -373,7 +373,8 @@ async function refreshBackup(){try{const b=await api('/api/backup');
   const items=b.archives||[];
   if(!items.length){$('backups').innerHTML=
     '<div style="color:var(--dim);font-size:12px">no backups found in '+
-    esc(b.dir)+' — run python -m ops.backup create</div>';return}
+    esc(b.dir)+' — run python -m ops.backup create</div>'+
+    '<div style="margin-top:6px;font-size:11px"><a href="/api/docs/runbook-backups">backups runbook</a></div>';return}
   const newest=items[0];
   const age=newest.age_s<3600?Math.round(newest.age_s/60)+' min'
     :Math.round(newest.age_s/3600)+' h';
@@ -395,7 +396,8 @@ async function refreshBackup(){try{const b=await api('/api/backup');
     (v?vbadge+' ':'')+
     (newest.tag?kv('tag',esc(newest.tag)):'')+
     ppline+
-    '<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+rows+'</div>';
+    '<div style="margin-top:6px;font-size:12px;color:var(--dim)">'+rows+'</div>'+
+    '<div style="margin-top:6px;font-size:11px"><a href="/api/docs/runbook-backups">backups runbook</a></div>';
 }catch(e){}}
 
 const log=$('log');const lines=[];
