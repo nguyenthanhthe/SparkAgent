@@ -59,6 +59,7 @@ class _TierState:
     failures: int = 0
     last_error: str | None = None
     last_success_at: float | None = None
+    last_ms: float | None = None
 
 
 @dataclass
@@ -171,6 +172,7 @@ class Brain:
                 state.consecutive_failures = 0
                 state.cooldown_until = 0.0
                 state.last_success_at = time.time()
+                state.last_ms = round((time.monotonic() - started) * 1000, 1)
                 model = self.local.model if tier is Tier.LOCAL \
                     else self.remote.model
                 usage = getattr(self.local if tier is Tier.LOCAL
@@ -327,6 +329,7 @@ class Brain:
             "cooldown_remaining_s": round(max(0.0, st.cooldown_until - now),
                                           1),
             "last_error": st.last_error,
+            "last_ms": st.last_ms,
             "last_success_at": (time.strftime(
                 "%Y-%m-%dT%H:%M:%S", time.localtime(st.last_success_at))
                 if st.last_success_at is not None else None),
