@@ -132,6 +132,17 @@ class MemoryTests(unittest.TestCase):
                 await self.mem.count(created_after="bogus")
         run(scenario())
 
+    def test_count_by_kind_breakdown(self):
+        async def scenario():
+            await self.mem.connect()
+            await self.mem.remember("note one", kind="note")
+            await self.mem.remember("note two", kind="note")
+            await self.mem.remember("a fact", kind="fact")
+            # one GROUP BY: per-kind totals beside count()'s grand total
+            self.assertEqual(await self.mem.count_by_kind(),
+                             {"note": 2, "fact": 1})
+        run(scenario())
+
     def test_remember_reports_created_at_stamp(self):
         async def scenario():
             await self.mem.connect()

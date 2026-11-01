@@ -851,6 +851,16 @@ class Memory:
             return int(row["n"])
         return await self._run(op)
 
+    async def count_by_kind(self) -> dict[str, int]:
+        """Per-kind row counts (one GROUP BY, the cheap composition
+        dashboards poll beside count()'s grand total)."""
+        def op(conn: sqlite3.Connection) -> dict[str, int]:
+            rows = conn.execute(
+                "SELECT kind, COUNT(*) AS n FROM memories "
+                "GROUP BY kind ORDER BY n DESC").fetchall()
+            return {row["kind"]: int(row["n"]) for row in rows}
+        return await self._run(op)
+
     async def digest_markers(self) -> list[dict]:
         """All digest-marker memories (``[digested] <goal>`` rows) — the
         consolidation dedupe's view of what was already distilled."""
