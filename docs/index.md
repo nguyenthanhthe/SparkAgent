@@ -15,6 +15,7 @@ swarm coordination, and hybrid memory.
 | [Swarm](swarm.md) | roles, topologies, consensus |
 | [Topology catalog](topologies.md) | the five composition shapes with mermaid diagrams |
 | [Operations](operations.md) | services, Docker, monitoring, backups |
+| [ADR index](adr/README.md) | architecture decision records — the why behind the layers |
 | [Failover runbook](runbook-failover.md) | GPU tier failover: signals, actions, verification |
 | [Dependency runbook](runbook-dependencies.md) | task chains: blocked semantics, manual release, failures |
 | [Backup runbook](runbook-backups.md) | monthly drill: create, tag, verify-all, scratch restore |
