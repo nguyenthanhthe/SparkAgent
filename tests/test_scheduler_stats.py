@@ -11,6 +11,29 @@ from kernel.scheduler import Scheduler
 
 
 class SchedulerStatsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_boot_log_carries_poll_cadence(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            scheduler = Scheduler(memory, lambda: None, EventBus(),
+                                  poll_seconds=2, concurrency=3)
+            # a pre-set stop makes run_forever a boot-only pass: the
+            # startup lines log, the tick loop never runs
+            scheduler.stop()
+            with self.assertLogs("sparkagent.scheduler",
+                                 level="INFO") as captured:
+                await scheduler.run_forever()
+            boot = next(line for line in captured.output
+                        if "scheduler started" in line)
+            # the poll cadence config is visible at boot, so an
+            # operator can tell a mis-tuned cadence without opening
+            # the config
+            self.assertIn("poll=2s", boot)
+            self.assertIn("concurrency=3", boot)
+        finally:
+            await memory.close()
+
     async def test_stats_carry_started_at_from_construction(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)
