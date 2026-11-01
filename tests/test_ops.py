@@ -306,6 +306,9 @@ class BackupTests(unittest.TestCase):
         report = json.loads(buffer.getvalue())
         self.assertTrue(report["ok"])
         self.assertIn("T", report["checked_at"])
+        # the quiet summary names the dir it checked, so a cron mail
+        # is self-locating without cross-referencing the config
+        self.assertEqual(report["dir"], str(output))
 
     def test_cli_verify_all_quiet_slowest(self):
         import contextlib

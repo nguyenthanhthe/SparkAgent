@@ -286,6 +286,7 @@ def _verify_all(output_dir: Path, quiet: bool = False,
                        if item.get("tag")})
         print(json.dumps({"ok": ok, "count": len(results),
                           "failed": failed, "checked_at": checked_at,
+                          "dir": str(output_dir),
                           "tags": tags,
                           "slowest": {"archive": slowest["archive"],
                                       "seconds": slowest["seconds"]}
@@ -293,6 +294,7 @@ def _verify_all(output_dir: Path, quiet: bool = False,
         return 0 if ok else 1
     print(json.dumps({"ok": ok, "count": len(results),
                       "checked_at": checked_at,
+                      "dir": str(output_dir),
                       "archives": results}))
     return 0 if ok else 1
 
