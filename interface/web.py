@@ -521,12 +521,16 @@ def build_web_app(daemon) -> web.Application:
         status = request.query.get("status")
         if status is not None and status not in ("pending", "running",
                                                  "done", "failed",
-                                                 "cancelled"):
+                                                 "cancelled", "paused"):
             raise web.HTTPBadRequest(
                 text="status must be one of pending, running, done, "
-                     "failed, cancelled")
+                     "failed, cancelled, paused")
+        enabled_raw = request.query.get("enabled")
+        enabled = (None if enabled_raw is None
+                   else enabled_raw.strip() in ("1", "true", "yes"))
         tasks = await daemon.memory.list_tasks(limit=offset + limit + 1,
-                                               status=status)
+                                               status=status,
+                                               enabled=enabled)
         blocked = {t["id"]: t["blocked_by"] for t in
                    await daemon.memory.blocked_pending_tasks(limit=100)}
         for row in tasks:

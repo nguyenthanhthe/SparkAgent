@@ -539,6 +539,27 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_tasks_list_enabled_filter(self):
+        daemon, client = await self._setup()
+        try:
+            paused = await daemon.memory.submit_task("parked", "test")
+            live = await daemon.memory.submit_task("running free", "test")
+            await daemon.memory.pause_resume(paused, enabled=False)
+            active = (await (await client.get(
+                "/api/tasks?enabled=1")).json())["items"]
+            self.assertEqual([t["goal"] for t in active],
+                             ["running free"])
+            stopped = (await (await client.get(
+                "/api/tasks?enabled=0")).json())["items"]
+            self.assertEqual([t["goal"] for t in stopped], ["parked"])
+            # 'paused' is now an allowlisted status too
+            rows = (await (await client.get(
+                "/api/tasks?status=paused")).json())["items"]
+            self.assertEqual([t["goal"] for t in rows], ["parked"])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_docs_endpoint_allowlisted(self):
         daemon, client = await self._setup()
         try:
