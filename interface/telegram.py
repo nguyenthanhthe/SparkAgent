@@ -134,7 +134,8 @@ class TelegramGateway:
                     "/mem <query> [--kind X] [--after YYYY-MM-DD] "
                     "[--limit 1-50] — memory\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
-                    "/skills [filter] — list skills (name substring)\n"
+                    "/skills [filter] [--limit 1-100] — list skills "
+                    "(name substring)\n"
                     "plain text — submit a task")
         if command == "/health":
             verbose = "--verbose" in args
@@ -283,6 +284,14 @@ class TelegramGateway:
                             "[status=active|pending_approval]")
                 status_filter = wanted
                 args = args.rstrip()
+            shown = 20
+            if "--limit" in args:
+                args, _, rest = args.partition("--limit")
+                try:
+                    shown = min(100, max(1, int(rest.strip().split()[0])))
+                except (ValueError, IndexError):
+                    return "usage: /skills [filter] [status=…] --limit 1-100"
+            args = args.rstrip()
             filter_name = args.lower()
             skills = daemon.forge.list_skills()
             if status_filter:
@@ -306,9 +315,9 @@ class TelegramGateway:
                       if s["status"] != "pending_approval"]
             lines.extend(f"{s['name']} — {s['status']}"
                          + (f" ({s['source']})" if s.get("source") else "")
-                         for s in active[:20])
-            if len(active) > 20:
-                lines.append(f"…and {len(active) - 20} more")
+                         for s in active[:shown])
+            if len(active) > shown:
+                lines.append(f"…and {len(active) - shown} more")
             return "\n".join(lines)
         if command == "/audit":
             args = args.strip()

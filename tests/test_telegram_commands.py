@@ -690,6 +690,35 @@ class TelegramSkillsCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("skill_19", reply)
         self.assertNotIn("skill_24", reply)
 
+    async def test_limit_flag_raises_the_window(self):
+        skills = [{"name": f"skill_{i:02d}", "status": "active"}
+                  for i in range(25)]
+        reply = await self._reply_with(skills, text="/skills --limit 30")
+        # 25 skills all fit under the raised window — no more-hint
+        self.assertNotIn("…and", reply)
+        self.assertIn("skill_24", reply)
+
+    async def test_limit_flag_clamps_and_keeps_hint(self):
+        skills = [{"name": f"skill_{i:02d}", "status": "active"}
+                  for i in range(30)]
+        reply = await self._reply_with(skills, text="/skills --limit 5")
+        self.assertIn("skill_04", reply)
+        self.assertNotIn("skill_05\n", reply)
+        self.assertIn("…and 25 more", reply)
+        bogus = await self._reply_with(skills, text="/skills --limit x")
+        self.assertIn("usage:", bogus)
+
+    async def test_limit_flag_applies_after_filter(self):
+        skills = [{"name": f"web_{i}", "status": "active"}
+                  for i in range(8)] \
+            + [{"name": f"db_{i}", "status": "active"} for i in range(8)]
+        reply = await self._reply_with(
+            skills, text="/skills web --limit 3")
+        self.assertIn("web_2", reply)
+        self.assertNotIn("web_3", reply)
+        self.assertNotIn("db_0", reply)
+        self.assertIn("…and 5 more", reply)
+
     async def test_name_filter_substring_case_insensitive(self):
         skills = [{"name": "word_count", "status": "active"},
                   {"name": "disk_watch", "status": "active"}]
