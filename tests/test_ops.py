@@ -197,6 +197,26 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(removed, 2)
         self.assertEqual(len(list(output.glob("*.zip"))), 1)
 
+    def test_list_backups_reports_oldest_age(self):
+        import os
+        import time
+
+        from ops.backup import list_backups
+        data = make_data_dir()
+        output = data.parent / "backups"
+        output.mkdir(parents=True, exist_ok=True)
+        # no archives yet — the retention horizon is unknown
+        self.assertIsNone(list_backups(output)["oldest_age_s"])
+        result = create_backup(data, output)
+        os.utime(result.archive_path,
+                 (time.time() - 3600, time.time() - 3600))
+        listing = list_backups(output)
+        self.assertGreaterEqual(listing["oldest_age_s"], 3600)
+        # the per-archive ages agree with the horizon
+        self.assertEqual(listing["archives"][0]["name"],
+                         result.archive_path.name)
+        self.assertGreaterEqual(listing["archives"][0]["age_s"], 3600)
+
     def test_cli_verify_all_tag_filter(self):
         import contextlib
         import io

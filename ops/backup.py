@@ -199,13 +199,15 @@ def restore_drill(archive_path: Path, work_dir: Path | None = None,
 
 def list_backups(backup_dir: Path, limit: int = 20) -> dict:
     """Backup-window listing: name, age, size, manifest tag per archive,
-    newest first. Listing is best-effort (a corrupt archive shows with
-    no tag) — hash verification stays in verify_backup/verify-all."""
+    newest first, plus the oldest archive's age across the whole dir (the
+    retention horizon). Listing is best-effort (a corrupt archive shows
+    with no tag) — hash verification stays in verify_backup/verify-all."""
     archives = []
+    oldest: int | None = None
     for path in sorted(backup_dir.glob("sparkagent-backup-*.zip"),
                        reverse=True):
-        entry = {"name": path.name,
-                 "age_s": round(time.time() - path.stat().st_mtime),
+        age = round(time.time() - path.stat().st_mtime)
+        entry = {"name": path.name, "age_s": age,
                  "bytes": path.stat().st_size, "tag": None}
         try:
             with zipfile.ZipFile(path) as archive:
@@ -215,7 +217,10 @@ def list_backups(backup_dir: Path, limit: int = 20) -> dict:
         except (OSError, zipfile.BadZipFile, ValueError):
             pass
         archives.append(entry)
-    return {"dir": str(backup_dir), "archives": archives[:limit]}
+        if oldest is None or age > oldest:
+            oldest = age
+    return {"dir": str(backup_dir), "archives": archives[:limit],
+            "oldest_age_s": oldest}
 
 
 def audit_log(db_path: Path, actor: str, action: str, detail: str) -> bool:
