@@ -14,7 +14,7 @@ observation the model can react to, never a crash.
 | `calculate` | AST-interpreted math (no eval): functions, constants, DoS guards |
 | `text_analysis` | summary / word frequencies / URL-email-date-number extraction / slugify |
 | `json_query` | dotted-path get, needle search, shape/stats over JSON |
-| `csv_analyze` | typed describe, filter (`== != > < >= <= contains`), sort, aggregate, group |
+| `csv_analyze` | typed describe (missing/distinct/complete rows), filter (`== != > < >= <= contains ^= $=`), sort, aggregate, group, count, head |
 | `statistics` | summary, quantiles, pearson, regression, moving average, robust outliers |
 | `remember` / `recall_memory` | long-term memory write + hybrid semantic recall |
 | `ask_human` | queue a question for the operator (approval workflow) |
