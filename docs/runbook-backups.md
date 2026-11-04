@@ -32,6 +32,14 @@ the next backup overwrites the evidence.
 | `manifest digest mismatch — tampered backup` | file list edited after creation | treat as compromise; check quarantine/audit before restoring |
 | `no backups found` | wrong `--output-dir` or pruning wiped the window | fix the path; check the retention `--keep` value |
 | backup panel age on the dashboard grows | the scheduled create stopped running | check the cron/systemd timer and its exit code |
+| `oldest archive` age stops growing | pruning is deleting the deep history | decide if the shallow window is intended; raise `--keep` if not |
+| `oldest archive` age far beyond the keep window | archives exist that prune never touched (tagged keeps, manual copies) | count them with `verify-all`; archive off-box or delete deliberately |
+
+The **retention horizon** (`oldest_age_s` in `/api/backup`, the "oldest
+archive" line on telegram `/backup`) is how far back a restore can
+actually reach. Drills should stay inside it: a drill against an
+archive older than the horizon is drilling a file that no longer
+exists.
 
 ## Restore for real (incident day)
 
