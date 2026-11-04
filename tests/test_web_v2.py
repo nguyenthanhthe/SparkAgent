@@ -120,6 +120,9 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             response = await client.get("/api/approvals")
             body = await response.json()
             self.assertEqual(len(body["pending"]), 1)
+            # the oldest pending age rides the listing for the badge
+            self.assertIsNotNone(body["oldest_pending_age_s"])
+            self.assertGreaterEqual(body["oldest_pending_age_s"], 0.0)
 
             response = await client.post(
                 f"/api/approvals/{request.id}/approve")
@@ -129,6 +132,9 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
             response = await client.post(
                 f"/api/approvals/{request.id}/deny")
             self.assertEqual(response.status, 400)  # already decided
+            # queue drained — the horizon disappears again
+            body = await (await client.get("/api/approvals")).json()
+            self.assertIsNone(body["oldest_pending_age_s"])
         finally:
             await client.close()
             await daemon.memory.close()

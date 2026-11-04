@@ -107,7 +107,7 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   <div id="ephead"></div>
   <div id="epsteps" style="max-height:320px;overflow:auto;margin-top:8px"></div>
 </div>
-<div class="card" style="margin-bottom:12px"><h2>Operator approvals <span id="apcount" class="badge b-warn" style="display:none"></span></h2>
+<div class="card" style="margin-bottom:12px"><h2>Operator approvals <span id="apcount" class="badge b-warn" style="display:none"></span> <span id="apage" class="badge b-warn" style="display:none"></span></h2>
   <div style="max-height:180px;overflow:auto"><table id="approvals"></table></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Quarantine</h2>
@@ -245,6 +245,10 @@ async function refreshApprovals(){try{const data=await api('/api/approvals');
   const pend=data.pending||[];
   $('apcount').style.display=pend.length?'inline-block':'none';
   $('apcount').textContent=pend.length;
+  const ageEl=$('apage'), oldest=data.oldest_pending_age_s;
+  if(oldest!=null){ageEl.style.display='inline-block';
+    ageEl.textContent='oldest '+oldest+'s';}
+  else{ageEl.style.display='none';}
   $('approvals').innerHTML='<tr><th>id</th><th>kind</th><th>summary</th><th></th></tr>'+
    (pend.length?pend.map(a=>`<tr><td>${a.id.slice(0,8)}</td><td>${a.kind}</td>
      <td>${a.summary.slice(0,70)}</td>
@@ -822,11 +826,13 @@ def build_web_app(daemon) -> web.Application:
 
     async def api_approvals(_request: web.Request) -> web.Response:
         from security.approval import request_to_dict
+        snapshot = daemon.approvals.counters_snapshot()
         return web.json_response(
             {"pending": [request_to_dict(r)
                          for r in daemon.approvals.pending()],
              "recent": [request_to_dict(r)
-                        for r in daemon.approvals.recent(limit=30)]})
+                        for r in daemon.approvals.recent(limit=30)],
+             "oldest_pending_age_s": snapshot["oldest_pending_age_s"]})
 
     async def api_approval_decide(request: web.Request) -> web.Response:
         approval_id = request.match_info["id"]
