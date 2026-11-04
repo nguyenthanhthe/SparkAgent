@@ -325,6 +325,7 @@ async function refreshCost(){try{const b=await api('/api/brain');
     kv('today','$'+today.toFixed(4))+kv('7-day avg','$'+avg.toFixed(4))+arrow+
     kv('total','$'+b.costs.total_usd.toFixed(4))+
     kv('cache hits',`${cache.hits||0} of ${(cache.hits||0)+(cache.misses||0)} · ${Math.round((cache.hit_rate||0)*100)}%`)+
+    (cache.distinct_models?kv('cache models',`${cache.distinct_models} live`):'')+
     (()=>{const saved=cache.saved_tokens_by_model||{};
       const total=Object.values(saved).reduce((a,v)=>a+v,0);
       return total?kv('tokens saved',total.toLocaleString()+' ('+

@@ -50,6 +50,12 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("showTask", _DASHBOARD_HTML)
         self.assertIn("blocked_by", _DASHBOARD_HTML)
 
+    async def test_dashboard_cache_card_shows_distinct_models(self):
+        from interface.web import _DASHBOARD_HTML
+        # the cache card surfaces how many models hold live entries
+        self.assertIn("distinct_models", _DASHBOARD_HTML)
+        self.assertIn("cache models", _DASHBOARD_HTML)
+
     async def test_task_detail_endpoint(self):
         daemon, client = await self._setup()
         try:
