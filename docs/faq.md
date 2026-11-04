@@ -141,3 +141,14 @@ empty string. When a numeric summary is what you want, `group` (per-key
 sum/avg) and `aggregate` (whole-column) still take over from there.
 Unknown `group_by` columns fail with a tool error naming the real
 columns.
+
+**How far back can a restore actually reach?**
+As far as the **retention horizon** — the oldest surviving archive
+(`oldest_age_s` on `/api/backup`, the "oldest archive" line on telegram
+`/backup`). Pruning keeps the newest `keep` archives, so the horizon
+shrinks every time a create+prune cycle runs without you noticing. If
+the horizon keeps resetting to ~0, your creates are failing and only
+recent archives remain; if it grows past the keep window, tagged keeps
+or manual copies are accumulating — archive them off-box or delete
+deliberately. Restore drills should stay inside the horizon: drilling
+an archive older than it is drilling a file that no longer exists.
