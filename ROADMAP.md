@@ -244,18 +244,37 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
 9. ✅ examples: csv count mode rendered in csv_demo.py [609]
 10. ✅ docs: api.md documents the episode detail's task_ids linkage [610]
 
-## Wave BG backlog (next)
+## Wave BG status (complete)
 
-1. kernel: daemon.status() scheduler block carries task_status_counts
-2. interface: telegram /status shows the task board line (pending/done/failed)
-3. interface: dashboard cache card shows distinct_models
-4. interface: telegram /backup shows the oldest-age retention horizon line
-5. tools: csv describe gains complete_rows — rows without missing cells
-6. docs: brain.md cache section documents distinct_models
-7. docs: runbook-backups.md documents the retention horizon (oldest_age_s)
-8. docs: api.md approvals row documents oldest_pending_age_s
-9. interface: openapi description for /api/approvals mentions the age field
-10. docs: testing.md gains the ast.parse-before-pytest edit-corruption lesson
+1. ✅ kernel: scheduler tick refreshes task_status_counts into its stats
+   (status surfaces read the board without re-querying; the tick claims
+   due work before snapshotting, so the board is honest) [611]
+2. ✅ interface: telegram /status shows the task board line [612]
+3. ✅ interface: dashboard cache card shows distinct_models [613]
+4. ✅ interface: telegram /backup shows the oldest-age horizon line [614]
+5. ✅ tools: csv describe gains complete_rows [615]
+6. ✅ docs: brain.md cache section documents distinct_models [616]
+7. ✅ docs: runbook-backups.md documents the retention horizon + drift
+   signals [617]
+8. ✅ docs: api.md approvals row documents oldest_pending_age_s [618]
+9. ✅ interface: openapi description for /api/approvals mentions the age
+   field [619]
+10. ✅ docs: testing.md gains the ast.parse-before-pytest lesson [620]
+  (+ [621] de-flaked the board tick test: the background episode runner
+  raced the test's finish_task — stub the runner)
+
+## Wave BH backlog (next)
+
+1. interface: dashboard tasks panel shows the task board (via /api/status)
+2. interface: telegram /cost — today's spend, budget state, per-model
+3. security: request_to_dict carries waited_s for decided requests
+4. tools: json keys mode reports truncation when the 20-key cap bites
+5. interface: dashboard adapters card shows last_success_at
+6. ops: diskwatch TEXT output gains the scanned-dirs line
+7. docs: api.md /api/status row documents the task board
+8. docs: faq.md entry — how far back a restore can reach (retention horizon)
+9. examples: task board demo rendered offline
+10. docs: tools.md csv row updates — count mode + ^= $= operators
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
