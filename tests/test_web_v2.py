@@ -63,6 +63,12 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("task_status_counts", _DASHBOARD_HTML)
         self.assertIn("task board", _DASHBOARD_HTML)
 
+    async def test_dashboard_adapters_card_shows_last_success(self):
+        from interface.web import _DASHBOARD_HTML
+        # per-tier last_success_at from tier_details rides the card
+        self.assertIn("last_success_at", _DASHBOARD_HTML)
+        self.assertIn("last ok", _DASHBOARD_HTML)
+
     async def test_task_detail_endpoint(self):
         daemon, client = await self._setup()
         try:

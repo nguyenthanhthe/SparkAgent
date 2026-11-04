@@ -362,6 +362,9 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
         esc(String(st.last_error||'').slice(0,40))+
         (String(st.last_error||'').length>40?'…':'')+'</span>');
     }
+    if(st.last_success_at){
+      h+=kv(tier+' last ok', st.last_success_at);
+    }
   }
   h+=`<div style="margin-top:4px;font-size:11px;color:var(--dim)">${esc(checked.trim())}</div>`;
   const hot=(a.cache||{}).hottest_key;
