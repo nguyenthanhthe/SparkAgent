@@ -131,7 +131,8 @@ class TelegramGateway:
                     "/deny <id> — deny an approval request\n"
                     "agent:\n"
                     "/task <goal> — submit a task\n"
-                    "/mem <query> [--kind X] [--after YYYY-MM-DD] — memory\n"
+                    "/mem <query> [--kind X] [--after YYYY-MM-DD] "
+                    "[--limit 1-50] — memory\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
                     "/skills [filter] — list skills (name substring)\n"
                     "plain text — submit a task")
@@ -249,12 +250,19 @@ class TelegramGateway:
             if "--after" in args:
                 args, _, rest = args.partition("--after")
                 after = rest.strip().split()[0] if rest.strip() else None
+            limit = 5
+            if "--limit" in args:
+                args, _, rest = args.partition("--limit")
+                try:
+                    limit = min(50, max(1, int(rest.strip().split()[0])))
+                except (ValueError, IndexError):
+                    return "usage: /mem <query> --limit 1-50"
             if not args.strip():
                 return ("usage: /mem <query> [--kind note|fact|digest] "
-                        "[--after YYYY-MM-DD]")
+                        "[--after YYYY-MM-DD] [--limit 1-50]")
             try:
                 hits = await daemon.memory.recall(
-                    args, k=5, kinds=[kind] if kind else None,
+                    args, k=limit, kinds=[kind] if kind else None,
                     created_after=after)
             except ValueError as exc:
                 return f"error: {exc}"

@@ -277,6 +277,37 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
                                    "text": "/mem thermals --after 2026-01-01"})
         self.assertEqual(seen["after"], "2026-01-01")
 
+    async def test_mem_limit_passed_through(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def recall(query, k=5, kinds=None, created_after=None):
+            seen["k"] = k
+            return []
+
+        gateway.daemon.memory.recall = recall
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/mem thermals --limit 12"})
+        self.assertEqual(seen["k"], 12)
+
+    async def test_mem_limit_clamped_and_usage(self):
+        gateway = make_gateway()
+        calls = []
+
+        async def recall(query, k=5, kinds=None, created_after=None):
+            calls.append(k)
+            return []
+
+        gateway.daemon.memory.recall = recall
+        with mock.patch.object(TelegramGateway, "_send"):
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/mem thermals --limit 99"})
+            self.assertEqual(calls, [50])  # clamped to the ceiling
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/mem thermals --limit bogus"})
+            self.assertEqual(calls, [50])  # usage error, recall untouched
+
     async def test_task_whitespace_goal_rejected_cleanly(self):
         gateway = make_gateway()
 
