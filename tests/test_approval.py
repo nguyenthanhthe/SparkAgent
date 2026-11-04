@@ -139,6 +139,16 @@ class ApprovalQueueTests(unittest.TestCase):
         self.assertEqual(payload["kind"], "skill")
         self.assertEqual(payload["detail"], {"a": 1})
         self.assertEqual(payload["status"], PENDING)
+        # pending requests have no decision to measure against
+        self.assertNotIn("waited_s", payload)
+
+    def test_to_dict_waited_s_after_decision(self):
+        request = self.queue.submit("skill", "s")
+        self.clock.advance(12)
+        self.queue.approve(request.id, decided_by="op")
+        payload = request_to_dict(request)
+        self.assertEqual(payload["waited_s"], 12.0)
+        self.assertEqual(payload["decided_by"], "op")
 
 
 if __name__ == "__main__":

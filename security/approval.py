@@ -153,10 +153,18 @@ class ApprovalQueue:
 
 
 def request_to_dict(request: Request) -> dict:
-    return {"id": request.id, "kind": request.kind, "summary": request.summary,
-            "detail": request.detail, "requested_by": request.requested_by,
-            "status": request.status, "created_at": request.created_at,
-            "expires_at": request.expires_at,
-            "decided_by": request.decided_by,
-            "decided_at": request.decided_at,
-            "expire_reason": request.expire_reason}
+    payload = {"id": request.id, "kind": request.kind,
+               "summary": request.summary,
+               "detail": request.detail,
+               "requested_by": request.requested_by,
+               "status": request.status, "created_at": request.created_at,
+               "expires_at": request.expires_at,
+               "decided_by": request.decided_by,
+               "decided_at": request.decided_at,
+               "expire_reason": request.expire_reason}
+    if request.decided_at is not None:
+        # how long the request waited for its decision — only exists
+        # once there is a decision to measure against
+        payload["waited_s"] = round(request.decided_at
+                                    - request.created_at, 1)
+    return payload
