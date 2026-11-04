@@ -69,6 +69,29 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("last_success_at", _DASHBOARD_HTML)
         self.assertIn("last ok", _DASHBOARD_HTML)
 
+    async def test_episodes_endpoint_goal_search(self):
+        daemon, client = await self._setup()
+        try:
+            for goal in ("audit the GPU", "write docs"):
+                eid = await daemon.memory.start_episode(goal, "test")
+                await daemon.memory.finish_episode(eid, "done", "ok",
+                                                   "local", 1)
+            unfiltered = await (await client.get(
+                "/api/episodes")).json()
+            self.assertEqual(len(unfiltered["items"]), 2)
+            # ?q= narrows to a case-insensitive goal substring
+            filtered = await (await client.get(
+                "/api/episodes?q=gpu")).json()
+            self.assertEqual([e["goal"] for e in filtered["items"]],
+                             ["audit the GPU"])
+            # combining with ?tag= keeps AND semantics end to end
+            none = await (await client.get(
+                "/api/episodes?q=quantum")).json()
+            self.assertEqual(none["items"], [])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_task_detail_endpoint(self):
         daemon, client = await self._setup()
         try:

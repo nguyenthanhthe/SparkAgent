@@ -607,7 +607,8 @@ def build_web_app(daemon) -> web.Application:
             raise web.HTTPBadRequest(text=str(exc))
         episodes = await daemon.memory.recent_episodes(
             limit=offset + limit + 1,
-            tag=request.query.get("tag"))
+            tag=request.query.get("tag"),
+            goal_contains=request.query.get("q"))
         return web.json_response(paginate(episodes, offset, limit).envelope())
 
     async def api_episode_detail(request: web.Request) -> web.Response:
