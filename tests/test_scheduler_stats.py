@@ -34,6 +34,28 @@ class SchedulerStatsTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_boot_log_carries_workload_seed(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            await memory.submit_task("due immediately", source="test")
+            await memory.submit_task("parked", source="test")
+            await memory.pause_resume(2, enabled=False)
+            scheduler = Scheduler(memory, lambda: None, EventBus(),
+                                  poll_seconds=2)
+            scheduler.stop()
+            with self.assertLogs("sparkagent.scheduler",
+                                 level="INFO") as captured:
+                await scheduler.run_forever()
+            boot = next(line for line in captured.output
+                        if "workload at boot" in line)
+            # the board seed counts only enabled pending tasks — a
+            # paused task does not inflate the boot number
+            self.assertIn("1 enabled pending task(s)", boot)
+        finally:
+            await memory.close()
+
     async def test_stats_carry_started_at_from_construction(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)
