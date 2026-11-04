@@ -59,6 +59,16 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual(body["level"], "ok")
         self.assertIn("total_mb", body)
 
+    def test_json_payload_counts_scanned_dirs(self):
+        (self.tmp / "data" / "logs").mkdir()
+        (self.tmp / "data" / "logs" / "nested").mkdir()
+        code, out = run_main("--data-dir", str(self.tmp / "data"),
+                             "--json")
+        self.assertEqual(code, 0)
+        body = json.loads(out)
+        # logs + logs/nested, root excluded
+        self.assertEqual(body["scanned_dirs"], 2)
+
     def test_missing_data_dir_is_error(self):
         code, out = run_main("--data-dir", str(self.tmp / "nope"))
         self.assertEqual(code, 3)

@@ -65,6 +65,12 @@ def subdirs_top(path: Path, keep: int | None = 3) -> list[dict]:
     return sizes if keep is None else sizes[:keep]
 
 
+def count_dirs(path: Path) -> int:
+    """Directories under ``path`` (children only, the root excluded) —
+    the scale hint for the JSON report: how much tree the sizes cover."""
+    return sum(1 for item in path.rglob("*") if item.is_dir())
+
+
 def check_usage(data_dir: Path, warn_mb: float = DEFAULT_WARN_MB,
                 critical_mb: float = DEFAULT_CRITICAL_MB) -> UsageReport:
     total = dir_size(data_dir) if data_dir.exists() else 0
@@ -113,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         payload = report.to_dict()
         payload["subdirs_top"] = top
+        payload["scanned_dirs"] = count_dirs(args.data_dir)
         print(json.dumps(payload, indent=2))
     else:
         print(f"data dir : {args.data_dir}")
