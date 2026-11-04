@@ -8,7 +8,7 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 | GET | `/api/tasks?status=&limit=` · POST `/api/tasks` | list (allowlisted `status` filter) / submit goals (`interval_seconds` ≥ 60 for recurring, `depends_on` for chains) |
 | GET | `/api/tasks/{id}` | task detail with `blocked_by` |
 | POST | `/api/tasks/{id}/{cancel\|pause\|resume}` | task control (emits scheduler events) |
-| GET | `/api/episodes?limit=` | recent episodes with outcomes |
+| GET | `/api/episodes?limit=&q=` | recent episodes with outcomes (`q` narrows by case-insensitive goal substring) |
 | GET | `/api/episodes/{id}` | episode detail + step replay + `step_count` (+ `task_ids`: tasks whose goal matches, navigate both ways) |
 | GET | `/api/memories?q=` | hybrid semantic recall |
 | DELETE | `/api/memories/{key}` | operator forget (audited) |
