@@ -541,7 +541,12 @@ class TelegramGateway:
                 if skill["status"] == "pending_approval":
                     lines.append(f"[skill] {skill['name']}")
             for request in daemon.approvals.pending():
+                age = max(0, int(daemon.approvals.clock.now()
+                                 - request.created_at))
+                human = (f"{age // 3600}h{(age % 3600) // 60:02d}m"
+                         if age >= 3600 else f"{age // 60}m{age % 60:02d}s")
                 lines.append(f"[{request.kind}] {request.id[:8]} "
+                             f"(waiting {human}) "
                              f"{request.summary[:60]}")
             return "\n".join(lines) or "(nothing pending)"
         if command == "/approve":

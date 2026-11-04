@@ -265,6 +265,14 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("[skill] disk_tool", reply)
         self.assertIn("[question]", reply)
 
+    async def test_pending_shows_waiting_age(self):
+        gateway = make_gateway()
+        gateway.daemon.approvals.submit("question", "reboot the server?")
+        reply = await self._command("/pending", gateway)
+        # the queue's own clock measures the wait; a fresh request
+        # reads minutes:seconds
+        self.assertRegex(reply, r"\[question\] \w+ \(waiting \d+m\d+s\)")
+
     async def test_approve_skill_by_name(self):
         reply = await self._command("/approve disk_tool")
         self.assertIn("disk_tool: active", reply)
