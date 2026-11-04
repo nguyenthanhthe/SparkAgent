@@ -227,19 +227,35 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
 9. ✅ docs: brain.md documents the tier_details observability fields [599]
 10. ✅ examples: in_path search demo — locating list positions offline [600]
 
-## Wave BF backlog (next)
+## Wave BF status (complete)
 
-1. interface: dashboard approvals panel consumes the new
-   oldest_pending_age_s counter (nothing reads it yet)
-2. tools: csv filter gains a ^= starts-with operator (mirror of $=)
-3. tools: json search gains a limit cap on returned paths
-4. kernel: memory gains task_status_counts() — per-status task tallies
-5. interface: telegram /skills accepts a --limit N flag
-6. brain: cache snapshot carries distinct_models (models with cached entries)
-7. ops: diskwatch --json payload carries scanned_dirs
-8. docs: faq.md entry — csv count mode for non-numeric tallies
-9. examples: csv count mode rendered in csv_demo.py
-10. docs: api.md documents the episode detail's task_ids linkage
+1. ✅ interface: dashboard approvals panel consumes oldest_pending_age_s
+   (badge beside the pending count; the queue drains → badge hides) [601]
+2. ✅ tools: csv filter gains ^= and $= string operators (json-grammar
+   parity; the "mirror of $=" premise was stale — the mirror lives in the
+   json filter, csv had neither) [602]
+3. ✅ tools: json search gains a limit cap on returned paths (truncated
+   flag kept honest — count stays the full tally) [603]
+4. ✅ kernel: memory gains task_status_counts() — per-status tallies [604]
+5. ✅ interface: telegram /skills accepts a --limit 1-100 flag [605]
+6. ✅ brain: cache snapshot carries distinct_models (live models) [606]
+7. ✅ ops: diskwatch --json payload carries scanned_dirs [607]
+8. ✅ docs: faq.md entry — csv count mode for non-numeric tallies [608]
+9. ✅ examples: csv count mode rendered in csv_demo.py [609]
+10. ✅ docs: api.md documents the episode detail's task_ids linkage [610]
+
+## Wave BG backlog (next)
+
+1. kernel: daemon.status() scheduler block carries task_status_counts
+2. interface: telegram /status shows the task board line (pending/done/failed)
+3. interface: dashboard cache card shows distinct_models
+4. interface: telegram /backup shows the oldest-age retention horizon line
+5. tools: csv describe gains complete_rows — rows without missing cells
+6. docs: brain.md cache section documents distinct_models
+7. docs: runbook-backups.md documents the retention horizon (oldest_age_s)
+8. docs: api.md approvals row documents oldest_pending_age_s
+9. interface: openapi description for /api/approvals mentions the age field
+10. docs: testing.md gains the ast.parse-before-pytest edit-corruption lesson
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
