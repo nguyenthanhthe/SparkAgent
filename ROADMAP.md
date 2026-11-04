@@ -263,18 +263,31 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
   (+ [621] de-flaked the board tick test: the background episode runner
   raced the test's finish_task — stub the runner)
 
-## Wave BH backlog (next)
+## Wave BH status (complete)
 
-1. interface: dashboard tasks panel shows the task board (via /api/status)
-2. interface: telegram /cost — today's spend, budget state, per-model
-3. security: request_to_dict carries waited_s for decided requests
-4. tools: json keys mode reports truncation when the 20-key cap bites
-5. interface: dashboard adapters card shows last_success_at
-6. ops: diskwatch TEXT output gains the scanned-dirs line
-7. docs: api.md /api/status row documents the task board
-8. docs: faq.md entry — how far back a restore can reach (retention horizon)
-9. examples: task board demo rendered offline
-10. docs: tools.md csv row updates — count mode + ^= $= operators
+1. ✅ interface: dashboard scheduler panel renders the task board [622]
+2. ✅ interface: telegram /cost — today's spend, budget state, per-model [623]
+3. ✅ security: request_to_dict carries waited_s for decided requests [624]
+4. ✅ tools: json keys mode reports total_keys + truncated [625]
+5. ✅ interface: adapters card shows last_success_at [626]
+6. ✅ ops: diskwatch TEXT output gains the dirs line [627]
+7. ✅ docs: api.md /api/status row documents the board [628]
+8. ✅ docs: faq.md entry — how far back a restore can reach [629]
+9. ✅ examples: task board demo rendered offline [630]
+10. ✅ docs: tools.md csv row covers count mode + string operators [631]
+
+## Wave BI backlog (next)
+
+1. kernel: memory.recent_episodes gains a goal substring filter
+2. interface: /api/episodes passes ?q= through
+3. interface: POST /api/cache/clear — evict everything, evicted count returned
+4. interface: dashboard cache card gains a clear button
+5. interface: telegram /pending shows each request's waiting age
+6. kernel: boot log shows the daily budget (veto threshold) at startup
+7. docs: api.md /api/episodes row documents ?q=
+8. docs: faq.md entry — clearing the response cache (what it costs)
+9. docs: tools.md json_query row covers search limit + keys truncation
+10. examples: cache_demo gains distinct_models + clear-count rendering
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
