@@ -86,6 +86,37 @@ class EpisodeDetailEndpointTests(unittest.IsolatedAsyncioTestCase):
             await client.close()
             await daemon.memory.close()
 
+    async def test_endpoint_links_tasks_by_goal(self):
+        # Wave BE stale item: the goal→task_ids linkage already exists in
+        # the endpoint (web.py matches task goals); pin it as a contract
+        from pathlib import Path
+
+        import tempfile
+
+        from kernel.config import Config
+        from kernel.daemon import AgentDaemon
+        from interface.web import build_web_app
+        from aiohttp.test_utils import TestClient, TestServer
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")}},
+            root=Path(tempfile.mkdtemp())))
+        await daemon.memory.connect()
+        client = TestClient(TestServer(build_web_app(daemon)))
+        await client.start_server()
+        try:
+            task_id = await daemon.memory.submit_task("match my goal",
+                                                      source="test")
+            eid = await daemon.memory.start_episode("match my goal", "test")
+            await daemon.memory.finish_episode(eid, "done", "answer",
+                                               "local", 0)
+            response = await client.get(f"/api/episodes/{eid}")
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertEqual(body["task_ids"], [task_id])
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()
