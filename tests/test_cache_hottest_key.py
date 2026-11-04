@@ -73,6 +73,24 @@ class HottestKeyTests(unittest.TestCase):
         cache.get("old")     # now the stale one gets a hit too
         self.assertEqual(cache.snapshot()["oldest_hit_age_s"], 50.0)
 
+    def test_distinct_models_tracks_live_entries(self):
+        cache = ResponseCache(clock=FakeClock())
+        self.assertEqual(cache.snapshot()["distinct_models"], 0)
+        cache.put("a", "text", {"model": "m1"})
+        cache.put("b", "text", {"model": "m2"})
+        cache.put("c", "text", {"model": "m1"})
+        self.assertEqual(cache.snapshot()["distinct_models"], 2)
+        # entries without model metadata count under "unknown"
+        cache.put("d", "text")
+        self.assertEqual(cache.snapshot()["distinct_models"], 3)
+
+    def test_distinct_models_after_eviction(self):
+        # only live entries count — an LRU eviction drops the model
+        cache = ResponseCache(max_entries=1, clock=FakeClock())
+        cache.put("a", "text", {"model": "m1"})
+        cache.put("b", "text", {"model": "m2"})
+        self.assertEqual(cache.snapshot()["distinct_models"], 1)
+
     def test_invalidate_reports_key_existence(self):
         cache = ResponseCache(clock=FakeClock())
         cache.put("k", "text", {"model": "m"})

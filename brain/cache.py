@@ -144,10 +144,15 @@ class ResponseCache:
                         for entry in self._entries.values()
                         if entry.hits > 0]
             oldest_hit_age = max(hit_ages, default=None)
+            # how many distinct models hold live entries — a cached
+            # remote answer must never be served for the local tier
+            distinct_models = len({str(entry.usage.get("model") or "unknown")
+                                   for entry in self._entries.values()})
         avg_age = (round(sum(ages) / len(ages), 1) if ages else None)
         total_hits = sum(self._hits_by_model.values())
         return {**self.stats, "size": self.size,
                 "hit_rate": round(self.hit_rate(), 3),
+                "distinct_models": distinct_models,
                 "oldest_entry_age_s": (round(oldest, 1)
                                        if oldest is not None else None),
                 "average_entry_age_s": avg_age,
