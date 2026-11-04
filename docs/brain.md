@@ -31,6 +31,9 @@ Register new providers with `adapter_registry.register(name, factory)`.
   - `distinct_models` counts the live models holding cached entries — a
     cached remote answer must never be served for the local tier, and a
     sudden model-count change on the card flags a routing drift
+  - operator reset: `POST /api/cache/clear` evicts every entry (audited
+    as `brain.cache.clear` with the evicted count); the section in
+    [operations.md](operations.md) carries the read/reset/tune surface
 - **cost tracking** — every response records tokens × pattern price table
   into per-model/tier/day ledgers; `within_budget(daily_usd)` gates spend
 - **per-tier observability** — `/api/brain` (and `/api/adapters`) expose
