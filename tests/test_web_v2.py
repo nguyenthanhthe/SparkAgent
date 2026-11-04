@@ -82,6 +82,13 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         # last_error surfaces even when the breaker is not in cooldown
         self.assertIn("last error", _DASHBOARD_HTML)
 
+    async def test_dashboard_episodes_search_box(self):
+        from interface.web import _DASHBOARD_HTML
+        # the episodes card wires a debounced search box to ?q=
+        self.assertIn('id="epq"', _DASHBOARD_HTML)
+        self.assertIn("encodeURIComponent", _DASHBOARD_HTML)
+        self.assertIn("no episodes matching", _DASHBOARD_HTML)
+
     async def test_cache_clear_endpoint(self):
         daemon, client = await self._setup()
         try:

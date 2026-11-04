@@ -100,7 +100,9 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
 <div class="card"><h2>Tasks</h2><div id="taskdetail" style="display:none;margin-bottom:8px;font:12px var(--mono)"></div><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
 <div class="card"><h2>Skills <span id="skillspending" class="badge b-warn" style="display:none"></span></h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
-<div class="card" style="margin-bottom:12px"><h2>Episodes</h2>
+<div class="card" style="margin-bottom:12px"><h2>Episodes
+  <input id="epq" placeholder="search goals…" style="font-size:11px;max-width:140px"
+         oninput="clearTimeout(window._epqT);window._epqT=setTimeout(refreshEpisodes,250)"></h2>
   <div style="max-height:220px;overflow:auto"><table id="episodes"></table></div>
 </div>
 <div class="card" id="epdetail" style="margin-bottom:12px;display:none">
@@ -293,7 +295,9 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function epBadge(st){return st==='success'?badge('b-ok',st):
   st==='failed'?badge('b-err',st):badge('b-warn',st)}
-async function refreshEpisodes(){try{const payload=await api('/api/episodes?limit=15');
+async function refreshEpisodes(){try{
+  const q=($('epq')&&$('epq').value.trim())||'';
+  const payload=await api('/api/episodes?limit=15'+(q?'&q='+encodeURIComponent(q):''));
   const eps=payload.items||payload||[];
   $('episodes').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th>steps</th><th>tags</th><th></th></tr>'+
    (eps.length?eps.map(e=>`<tr><td>${e.id}</td><td>${esc(e.goal.slice(0,80))}</td>
@@ -301,7 +305,7 @@ async function refreshEpisodes(){try{const payload=await api('/api/episodes?limi
     <td style="color:var(--dim)">${e.steps??'—'}</td>
     <td>${(e.tags||[]).map(t=>badge('b-dim',esc(t))).join(' ')||'<span style="color:var(--dim)">—</span>'}</td>
     <td><button class="small" onclick="showEpisode(${e.id})">view</button></td></tr>`).join('')
-    :'<tr><td colspan="6" style="color:var(--dim)">no episodes yet</td></tr>');
+    :`<tr><td colspan="6" style="color:var(--dim)">${q?'no episodes matching '+esc(q):'no episodes yet'}</td></tr>`);
 }catch(e){}}
 async function showEpisode(id){try{const d=await api('/api/episodes/'+id);
   $('epdetail').style.display='block';
