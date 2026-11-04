@@ -83,6 +83,14 @@ class Scheduler:
             runner.add_done_callback(self._inflight.discard)
         REGISTRY.gauge("scheduler_inflight", len(self._inflight))
         REGISTRY.gauge("scheduler_blocked", self.stats["blocked_tasks"])
+        # the task board rides the poll cadence: status surfaces
+        # (/status, /api/status, the dashboard) read fresh tallies
+        # without issuing their own queries
+        try:
+            self.stats["task_status_counts"] = \
+                await self.memory.task_status_counts()
+        except Exception as exc:   # noqa: BLE001 — the board is best-effort
+            logger.debug("task-status scan failed: %r", exc)
 
     async def _publish_block_changes(self) -> None:
         """Emit task_blocked / task_released transitions on the

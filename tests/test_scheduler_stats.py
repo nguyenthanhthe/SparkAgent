@@ -55,6 +55,29 @@ class SchedulerStatsTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await memory.close()
 
+    async def test_tick_refreshes_task_status_counts(self):
+        memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
+                        embed_dim=64)
+        await memory.connect()
+        try:
+            scheduler = Scheduler(memory, lambda: None, EventBus(),
+                                  poll_seconds=1)
+            # before the first tick the board key simply isn't there yet
+            self.assertNotIn("task_status_counts", scheduler.stats)
+            task_id = await memory.submit_task("count me", source="test")
+            await scheduler._tick()
+            # the tick claims due work before snapshotting the board,
+            # so an immediately-due one-shot shows as running
+            self.assertEqual(scheduler.stats["task_status_counts"],
+                             {"running": 1})
+            # the board tracks lifecycle transitions on later ticks
+            await memory.finish_task(task_id, success=True)
+            await scheduler._tick()
+            self.assertEqual(scheduler.stats["task_status_counts"],
+                             {"done": 1})
+        finally:
+            await memory.close()
+
     async def test_started_at_unchanged_by_ticks(self):
         memory = Memory(Path(tempfile.mkdtemp()) / "t.db", embedder_fn=None,
                         embed_dim=64)
