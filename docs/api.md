@@ -4,7 +4,7 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/status` | daemon status (uptime, brain tiers, tools, approvals, quarantine stats) |
+| GET | `/api/status` | daemon status (uptime, brain tiers, tools, approvals, quarantine stats, scheduler `task_status_counts` board) |
 | GET | `/api/tasks?status=&limit=` · POST `/api/tasks` | list (allowlisted `status` filter) / submit goals (`interval_seconds` ≥ 60 for recurring, `depends_on` for chains) |
 | GET | `/api/tasks/{id}` | task detail with `blocked_by` |
 | POST | `/api/tasks/{id}/{cancel\|pause\|resume}` | task control (emits scheduler events) |
