@@ -40,9 +40,17 @@ class DaemonV2WiringTests(unittest.IsolatedAsyncioTestCase):
         daemon = AgentDaemon(Config.load())
         status = daemon.status()
         for key in ("approvals_pending", "guard_stats", "executor",
-                    "sandbox_profile", "version"):
+                    "sandbox_profile", "version",
+                    "brain_budget_daily_usd"):
             self.assertIn(key, status)
         self.assertEqual(status["version"], "0.2.0")
+
+    async def test_status_budget_mirrors_config(self):
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")},
+             "brain": {"daily_budget_usd": 2.5}},
+            root=Path(tempfile.mkdtemp())))
+        self.assertEqual(daemon.status()["brain_budget_daily_usd"], 2.5)
 
     async def test_boot_log_announces_the_daily_budget(self):
         daemon = AgentDaemon(Config(

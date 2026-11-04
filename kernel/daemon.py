@@ -471,6 +471,7 @@ class AgentDaemon:
                              else f"{minutes}m{uptime % 60:02d}s"),
             "system": self._snapshot,
             "brain": self._brain_health or self.brain.stats(),
+            "brain_budget_daily_usd": self.daily_budget,
             "scheduler": {**dict(self.scheduler.stats),
                           "started_at_human": time.strftime(
                               "%Y-%m-%dT%H:%M:%S",
