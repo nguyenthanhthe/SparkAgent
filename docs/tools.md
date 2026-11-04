@@ -13,7 +13,7 @@ observation the model can react to, never a crash.
 | `web_fetch` | SSRF-guarded fetch of public http(s); HTML→text; prompt-guarded |
 | `calculate` | AST-interpreted math (no eval): functions, constants, DoS guards |
 | `text_analysis` | summary / word frequencies / URL-email-date-number extraction / slugify |
-| `json_query` | dotted-path get, needle search, shape/stats over JSON |
+| `json_query` | dotted-path get, needle search (limit cap + truncated flag), shape/stats, keys with a truncation report, filter/sort/group rows |
 | `csv_analyze` | typed describe (missing/distinct/complete rows), filter (`== != > < >= <= contains ^= $=`), sort, aggregate, group, count, head |
 | `statistics` | summary, quantiles, pearson, regression, moving average, robust outliers |
 | `remember` / `recall_memory` | long-term memory write + hybrid semantic recall |
