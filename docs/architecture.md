@@ -57,7 +57,8 @@ subsystems. This page is the map; each package has its own page.
    SSRF-guarded fetch, approval workflow, quarantine.
 2. **Brain** — provider-agnostic `ChatAdapter`s behind a tier router with
    per-tier circuit breakers, response cache, cost accounting, and a VRAM
-   veto for the local GPU tier.
+   veto for the local GPU tier. The cache's read/reset/tune surface lives
+   in [operations.md](operations.md#response-cache).
 3. **Tools & swarm** — the agent's hands. The registry validates and
    audits every call; SkillForge lets the agent extend itself; the swarm
    package composes planner/worker/critic/synthesizer pipelines.
