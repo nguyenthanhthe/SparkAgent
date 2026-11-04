@@ -1044,6 +1044,15 @@ def build_web_app(daemon) -> web.Application:
                         "ping_counts": dict(adapter_registry.ping_counts)},
         })
 
+    async def api_cache_clear(_request: web.Request) -> web.Response:
+        """Operator cache reset: evict every cached response. The
+        evicted count is audited so the post-clear spend bump (every
+        cached answer re-fires as a paid miss) has a paper trail."""
+        count = daemon.brain.cache.clear()
+        await daemon.memory.audit("operator", "brain.cache.clear",
+                                  f"evicted={count}")
+        return web.json_response({"ok": True, "evicted": count})
+
     async def api_tools(_request: web.Request) -> web.Response:
         specs = daemon.registry.specs()
         return web.json_response({
@@ -1058,6 +1067,7 @@ def build_web_app(daemon) -> web.Application:
     app.router.add_get("/api/version", api_version)
     app.router.add_get("/api/brain", api_brain)
     app.router.add_get("/api/adapters", api_adapters)
+    app.router.add_post("/api/cache/clear", api_cache_clear)
     async def api_websocket(request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse(heartbeat=15)
         await ws.prepare(request)

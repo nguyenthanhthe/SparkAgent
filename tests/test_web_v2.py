@@ -69,6 +69,27 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("last_success_at", _DASHBOARD_HTML)
         self.assertIn("last ok", _DASHBOARD_HTML)
 
+    async def test_cache_clear_endpoint(self):
+        daemon, client = await self._setup()
+        try:
+            brain = daemon.brain
+            brain.cache.put("k1", "answer", {"model": "m"})
+            brain.cache.put("k2", "answer", {"model": "m"})
+            self.assertEqual(brain.cache.size, 2)
+            response = await client.post("/api/cache/clear")
+            self.assertEqual(response.status, 200)
+            body = await response.json()
+            self.assertTrue(body["ok"])
+            self.assertEqual(body["evicted"], 2)
+            self.assertEqual(brain.cache.size, 0)
+            # the reset is audited for the post-clear spend bump
+            rows = await daemon.memory.recent_audit(limit=5)
+            self.assertTrue(any(row["action"] == "brain.cache.clear"
+                                for row in rows))
+        finally:
+            await client.close()
+            await daemon.memory.close()
+
     async def test_episodes_endpoint_goal_search(self):
         daemon, client = await self._setup()
         try:
