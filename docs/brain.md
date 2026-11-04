@@ -30,6 +30,12 @@ Register new providers with `adapter_registry.register(name, factory)`.
     more than it was
 - **cost tracking** — every response records tokens × pattern price table
   into per-model/tier/day ledgers; `within_budget(daily_usd)` gates spend
+- **per-tier observability** — `/api/brain` (and `/api/adapters`) expose
+  `tier_details` per tier: `requests`/`served`/`failures`,
+  `consecutive_failures`, `cooldown_active` + `cooldown_remaining_s`,
+  the `last_error` string, the last call's `last_ms` latency, and
+  `last_success_at` (local time, `None` until the first served call) —
+  the dashboard adapters card reads exactly these keys
 
 ## Context budgeting
 
