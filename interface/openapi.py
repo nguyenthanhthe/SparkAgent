@@ -144,6 +144,12 @@ def build_spec() -> dict[str, Any]:
                 "responses": {"200": _json_response(
                     "Evicted count; audited as brain.cache.clear so the "
                     "post-clear miss bump has a paper trail")}}},
+            "/api/backup": {"get": {
+                "summary": "Backup window listing",
+                "responses": {"200": _json_response(
+                    "Archives (name/age/bytes/tag) plus oldest_age_s — "
+                    "the retention horizon, the newest archive's verified "
+                    "state, and the prune retention preview")}}},
             "/api/approvals/{id}/{decision}": {"post": {
                 "summary": "Approve or deny a request (operator)",
                 "parameters": [
