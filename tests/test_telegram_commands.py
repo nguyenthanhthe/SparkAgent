@@ -813,6 +813,20 @@ class TelegramBackupCommandTests(unittest.IsolatedAsyncioTestCase):
         # the retention headroom rides the header line
         self.assertIn("keep=10", reply)
         self.assertIn("slots free", reply)
+        # the oldest archive names the retention horizon
+        self.assertIn("oldest archive", reply)
+        self.assertIn("retention horizon", reply)
+        # a minutes-old archive reads in minutes, not days
+        self.assertRegex(reply, r"oldest archive \d+m old")
+
+    async def test_backup_horizon_reads_days_when_old(self):
+        import os
+        import time
+        archive = next((self.root / "backups").glob("*.zip"))
+        os.utime(archive, (time.time() - 3 * 86400,
+                           time.time() - 3 * 86400))
+        reply = await self._command("/backup")
+        self.assertIn("oldest archive 3d old", reply)
 
     async def test_backup_empty_dir(self):
         import shutil

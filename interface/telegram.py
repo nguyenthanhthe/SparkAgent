@@ -481,6 +481,14 @@ class TelegramGateway:
                         f"prune would remove {len(archives) - keep}")
             lines = [f"backups ({len(archives)} newest){suffix} — "
                      f"keep={keep} · {headroom}"]
+            oldest = listing.get("oldest_age_s")
+            if oldest is not None:
+                human = (f"{oldest // 86400}d"
+                         if oldest >= 86400 else
+                         f"{oldest // 3600}h" if oldest >= 3600 else
+                         f"{oldest // 60}m")
+                lines.append(f"oldest archive {human} old — retention "
+                             "horizon; restore drills should stay inside it")
             for item in archives:
                 age = item["age_s"]
                 age_text = (f"{age // 3600}h{(age % 3600) // 60:02d}m"
