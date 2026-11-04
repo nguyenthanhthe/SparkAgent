@@ -89,6 +89,13 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("encodeURIComponent", _DASHBOARD_HTML)
         self.assertIn("no episodes matching", _DASHBOARD_HTML)
 
+    async def test_dashboard_tasks_paused_toggle(self):
+        from interface.web import _DASHBOARD_HTML
+        # the tasks card toggles between all tasks and enabled=0 only
+        self.assertIn("togglePaused", _DASHBOARD_HTML)
+        self.assertIn("enabled=0", _DASHBOARD_HTML)
+        self.assertIn("show paused", _DASHBOARD_HTML)
+
     async def test_cache_clear_endpoint(self):
         daemon, client = await self._setup()
         try:

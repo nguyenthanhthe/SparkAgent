@@ -97,7 +97,9 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   </div>
 </div>
 <div class="grid">
-<div class="card"><h2>Tasks</h2><div id="taskdetail" style="display:none;margin-bottom:8px;font:12px var(--mono)"></div><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
+<div class="card"><h2>Tasks
+  <button class="small" id="pausedtoggle" onclick="togglePaused()">show paused</button></h2>
+  <div id="taskdetail" style="display:none;margin-bottom:8px;font:12px var(--mono)"></div><div style="max-height:240px;overflow:auto"><table id="tasks"></table></div></div>
 <div class="card"><h2>Skills <span id="skillspending" class="badge b-warn" style="display:none"></span></h2><div style="max-height:240px;overflow:auto"><table id="skills"></table></div></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Episodes
@@ -181,7 +183,12 @@ async function refreshStatus(){try{const s=await api('/api/status');
     +kv('tools',s.tools?s.tools.length:0)
     +kv('skills pending',(s.skills_pending||[]).length);
 }catch(e){$('uptime').textContent='· offline'}}
-async function refreshTasks(){try{const payload=await api('/api/tasks');
+let pausedOnly=false;
+function togglePaused(){pausedOnly=!pausedOnly;
+  $('pausedtoggle').textContent=pausedOnly?'show all':'show paused';
+  refreshTasks()}
+async function refreshTasks(){try{
+  const payload=await api('/api/tasks'+(pausedOnly?'?enabled=0':''));
   const tasks=payload.items||[];
   $('tasks').innerHTML='<tr><th>#</th><th>goal</th><th>status</th><th></th></tr>'+
    tasks.map(t=>{const blk=(t.blocked_by||[]).length
