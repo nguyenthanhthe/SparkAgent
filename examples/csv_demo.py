@@ -51,6 +51,20 @@ def main() -> None:
         print(f"  {region}: n={agg['count']} avg={agg['avg']:g} "
               f"sum={agg['sum']:g}")
 
+    print("\ncount rows per region (non-numeric tally, "
+          "empty cells included):")
+    for region, n in table.group_count("region").items():
+        print(f"  {region}: {n}")
+    total = sum(table.group_count("region").values())
+    print(f"  total: {total}")
+
+    print("\nstring operators beyond equality — hosts ending .01 "
+          "($=) or starting web (^=):")
+    for row in table.filter("host", "$=", "01").rows:
+        print(f"  ends .01: {row['host']}")
+    for row in table.filter("host", "^=", "web").rows:
+        print(f"  starts web: {row['host']}")
+
 
 if __name__ == "__main__":
     main()
