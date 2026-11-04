@@ -27,7 +27,15 @@ async def main() -> None:
     await daemon.memory.connect()
     try:
         await daemon.memory.submit_task("demo task", "demo")
+        await daemon.memory.submit_task("second errand", "demo")
+        await daemon.memory.finish_task(1, success=True)
         daemon.quarantine.put("suspicious body", "prompt-injection risk")
+        # the board rides the scheduler tick; drive one manually with a
+        # stubbed runner so the demo shows it without executing episodes
+        async def _no_run(task):
+            pass
+        daemon.scheduler._run_task = _no_run
+        await daemon.scheduler._tick()
         status = daemon.status()
         print(f"agent     : {status['agent']} v{status['version']}")
         print(f"uptime    : {status['uptime_s']}s")
@@ -35,6 +43,13 @@ async def main() -> None:
         print(f"scheduler : {sched['episodes_done']} done / "
               f"{sched['episodes_failed']} failed, "
               f"{sched.get('blocked_tasks', 0)} blocked")
+        counts = sched.get("task_status_counts")
+        if counts:
+            board = " / ".join(f"{n} {s}"
+                               for s, n in sorted(counts.items()))
+            print(f"task board: {board}")
+        print(f"budget    : ${status.get('brain_budget_daily_usd', 0):g}/day "
+              "veto threshold")
         q = status["quarantine"]
         print(f"quarantine: {q['items']} item(s), {q['bytes']} bytes, "
               f"oldest {q['oldest_age_s']}s")
