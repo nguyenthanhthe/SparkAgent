@@ -29,6 +29,8 @@ class DiskwatchCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("level    : ok", out)
         self.assertIn("0.0 MB", out)
+        # the tree scale rides the TEXT output too
+        self.assertIn("dirs     : 0", out)
 
     def test_warn_exit_code(self):
         code, out = run_main("--data-dir", str(self.tmp / "data"),

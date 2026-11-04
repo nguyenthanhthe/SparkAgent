@@ -127,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"warn at  : {report.warn_threshold_mb:g} MB")
         print(f"critical : {report.critical_threshold_mb:g} MB")
         print(f"level    : {report.level}")
+        print(f"dirs     : {count_dirs(args.data_dir)}")
         for item in top:
             print(f"  {item['dir']:20s} {item['bytes'] / MB:8.1f} MB")
         if report.level == "warn" and top:
