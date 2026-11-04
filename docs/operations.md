@@ -55,6 +55,21 @@ Archives are zip + manifest with per-file SHA-256 and a set digest;
 restore verifies every hash before writing (`restore_backup`). The vault
 file is excluded — carry the master key separately.
 
+## Response cache
+
+The cache sits in front of both tiers (`brain/cache.py`): identical
+(model, messages, params) requests inside the TTL are served from the
+LRU and cost nothing. Operator surface:
+
+- read the snapshot: `GET /api/brain` → `cache` (hit rate, trend,
+  distinct models, hottest key)
+- reset it: `POST /api/cache/clear` — evicts every entry and is audited
+  (`brain.cache.clear`) with the evicted count. Expect a spend bump on
+  the next identical calls; check `/api/brain` → `budget.today_usd` and
+  telegram `/cost` before assuming a leak.
+- tune via config: `brain.cache_responses` (off by default),
+  `brain.cache_entries`, `brain.cache_ttl`
+
 ## Quarantined content
 
 Inspect, release, and expire parked blobs via the operator drill:
