@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ops.diskwatch import MB, check_usage, subdirs_top   # noqa: E402
+from ops.diskwatch import MB, check_usage, count_dirs, subdirs_top   # noqa: E402
 
 
 def main() -> None:
@@ -22,11 +22,14 @@ def main() -> None:
         child = root / name
         child.mkdir(parents=True)
         (child / "blob.bin").write_bytes(b"x" * kb * 1024)
+    (root / "logs" / "nested").mkdir()
+    (root / "logs" / "nested" / "deep").mkdir()
 
     report = check_usage(root)
     print(f"data dir : {root}")
     print(f"usage    : {report.total_mb:.1f} MB "
           f"(level: {report.level})")
+    print(f"dirs     : {count_dirs(root)} under the root")
     print(f"warn at  : {report.warn_threshold_mb:g} MB")
     print(f"critical : {report.critical_threshold_mb:g} MB")
     print("largest subdirs:")
