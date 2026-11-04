@@ -47,6 +47,28 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(counts, {"done": 1, "failed": 1})
         run(scenario())
 
+    def test_list_tasks_enabled_filter(self):
+        async def scenario():
+            await self.mem.connect()
+            paused = await self.mem.submit_task("paused one", source="test")
+            await self.mem.submit_task("active one", source="test")
+            await self.mem.pause_resume(paused, enabled=False)
+            active = await self.mem.list_tasks(enabled=True)
+            self.assertEqual([t["goal"] for t in active],
+                             ["active one"])
+            stopped = await self.mem.list_tasks(enabled=False)
+            self.assertEqual([t["goal"] for t in stopped],
+                             ["paused one"])
+            # composing with status keeps AND semantics: a paused task
+            # carries status='paused', so pending+disabled is empty
+            stopped_paused = await self.mem.list_tasks(
+                enabled=False, status="paused")
+            self.assertEqual(len(stopped_paused), 1)
+            self.assertEqual(
+                await self.mem.list_tasks(enabled=False,
+                                          status="pending"), [])
+        run(scenario())
+
     def test_remember_and_recall_ranking(self):
         async def scenario():
             await self.mem.connect()

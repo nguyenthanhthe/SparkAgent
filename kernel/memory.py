@@ -663,20 +663,28 @@ class Memory:
 
     async def list_tasks(self, task_id: int | None = None,
                          limit: int = 50,
-                         status: str | None = None) -> list[dict]:
+                         status: str | None = None,
+                         enabled: bool | None = None) -> list[dict]:
+        """``enabled`` filters the pause state when given — the
+        dashboard's paused-view and the blocked-scan both need it."""
         def op(conn: sqlite3.Connection) -> list[dict]:
             if task_id is not None:
                 rows = conn.execute("SELECT * FROM tasks WHERE id = ?",
                                     (task_id,)).fetchall()
-            elif status is not None:
-                rows = conn.execute(
-                    "SELECT * FROM tasks WHERE status = ? "
-                    "ORDER BY enabled DESC, priority ASC, id DESC LIMIT ?",
-                    (status, limit)).fetchall()
             else:
+                clauses, params = [], []
+                if status is not None:
+                    clauses.append("status = ?")
+                    params.append(status)
+                if enabled is not None:
+                    clauses.append("enabled = ?")
+                    params.append(int(enabled))
+                where = (" WHERE " + " AND ".join(clauses)) if clauses \
+                    else ""
                 rows = conn.execute(
-                    "SELECT * FROM tasks ORDER BY enabled DESC, priority ASC, "
-                    "id DESC LIMIT ?", (limit,)).fetchall()
+                    "SELECT * FROM tasks" + where
+                    + " ORDER BY enabled DESC, priority ASC, id DESC "
+                      "LIMIT ?", (*params, limit)).fetchall()
             return [dict(row) for row in rows]
         return await self._run(op)
 
