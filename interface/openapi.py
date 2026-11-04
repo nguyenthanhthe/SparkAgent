@@ -128,7 +128,10 @@ def build_spec() -> dict[str, Any]:
                               "400": error_response}}},
             "/api/approvals": {"get": {
                 "summary": "Approval queue", "responses": {
-                    "200": _json_response("Pending + recent approvals",
+                    "200": _json_response("Pending + recent approvals, "
+                                          "plus oldest_pending_age_s — how "
+                                          "long the longest-waiting request "
+                                          "has waited",
                                           "Approval")}}},
             "/api/approvals/{id}/{decision}": {"post": {
                 "summary": "Approve or deny a request (operator)",
