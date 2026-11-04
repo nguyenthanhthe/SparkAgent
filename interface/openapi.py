@@ -104,6 +104,15 @@ def build_spec() -> dict[str, Any]:
                                 "description": "case-insensitive goal "
                                                "substring"}],
                 "responses": {"200": _json_response("Episode list")}}},
+            "/api/episodes/{id}": {"get": {
+                "summary": "Episode detail with step replay",
+                "parameters": [{"name": "id", "in": "path",
+                                "required": True,
+                                "schema": {"type": "integer"}}],
+                "responses": {"200": _json_response(
+                    "Detail + step_log + step_count, plus task_ids — "
+                    "tasks whose goal matches, navigating both ways"),
+                              "404": error_response}}},
             "/api/memories": {"get": {
                 "summary": "Semantic memory recall",
                 "parameters": [{"name": "q", "in": "query", "required": True,
