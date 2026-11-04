@@ -74,8 +74,22 @@ def build_spec() -> dict[str, Any]:
                 "responses": {"200": _json_response("Current status",
                                                     "Status")}}},
             "/api/tasks": {
-                "get": {"summary": "List tasks", "responses": {
-                    "200": _json_response("Task list")}},
+                "get": {"summary": "List tasks",
+                        "parameters": [{"name": "status", "in": "query",
+                                        "schema": {"type": "string",
+                                                   "enum": ["pending",
+                                                            "running",
+                                                            "done",
+                                                            "failed",
+                                                            "cancelled",
+                                                            "paused"]}},
+                                       {"name": "enabled", "in": "query",
+                                        "schema": {"type": "string"},
+                                        "description": "1/true → enabled "
+                                                       "tasks only, 0/false "
+                                                       "→ paused only"}],
+                        "responses": {
+                            "200": _json_response("Task list")}},
                 "post": {"summary": "Submit a task", "requestBody": {
                     "required": True,
                     "content": {"application/json": {"schema": {
