@@ -246,15 +246,21 @@ class TelegramGateway:
                 wanted = rest.strip().split()[0].lower() if rest.strip() \
                     else ""
                 if wanted not in ("pending", "running", "done", "failed",
-                                  "cancelled"):
+                                  "cancelled", "paused"):
                     return ("usage: /tasks [--limit N] [--status "
-                            "pending|running|done|failed|cancelled]")
+                            "pending|running|done|failed|cancelled|"
+                            "paused] [--paused]")
                 status = wanted
+            enabled = False if "--paused" in args else None
+            if "--paused" in args:
+                args, _, _ = args.partition("--paused")
             tasks = await daemon.memory.list_tasks(limit=limit,
-                                                   status=status)
+                                                   status=status,
+                                                   enabled=enabled)
             if not tasks:
                 return (f"(no {status} tasks)" if status
-                        else "(no tasks)")
+                        else ("(no paused tasks)" if enabled is False
+                              else "(no tasks)"))
             blocked = {t["id"]: t["blocked_by"] for t in
                        await daemon.memory.blocked_pending_tasks(limit=50)}
             lines = []

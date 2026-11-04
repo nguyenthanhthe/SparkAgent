@@ -26,7 +26,7 @@ class FakeDaemon:
                 return {"skill": name, "status": "active"}
 
         class FakeMemory:
-            async def list_tasks(self, limit=10, status=None):
+            async def list_tasks(self, limit=10, status=None, enabled=None):
                 return [{"id": 1, "status": "pending", "goal": "g",
                          "enabled": 1}]
 
@@ -486,7 +486,7 @@ class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         seen = {}
 
-        async def list_tasks(limit=10, status=None):
+        async def list_tasks(limit=10, status=None, enabled=None):
             seen["limit"] = limit
             seen["status"] = status
             return []
@@ -505,7 +505,7 @@ class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
         gateway = make_gateway()
         seen = {}
 
-        async def list_tasks(limit=10, status=None):
+        async def list_tasks(limit=10, status=None, enabled=None):
             seen["status"] = status
             return [{"id": 2, "status": "done", "goal": "finished",
                      "enabled": 1}]
@@ -533,6 +533,26 @@ class TelegramTasksLimitTests(unittest.IsolatedAsyncioTestCase):
             reply = send.call_args[0][1]
         self.assertIn("#1 [pending] g", reply)
         self.assertIn("blocked by #7", reply)
+
+    async def test_tasks_paused_flag_passes_enabled_false(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def list_tasks(limit=10, status=None, enabled=None):
+            seen["enabled"] = enabled
+            seen["status"] = status
+            return []
+
+        gateway.daemon.memory.list_tasks = list_tasks
+        with mock.patch.object(TelegramGateway, "_send") as send:
+            await gateway._handle({"chat": {"id": 42},
+                                   "text": "/tasks --paused"})
+            reply = send.call_args[0][1]
+            self.assertIs(seen["enabled"], False)
+            self.assertIn("(no paused tasks)", reply)
+            await gateway._handle({"chat": {"id": 42}, "text": "/tasks"})
+            # plain /tasks keeps the old contract: no enabled filter
+            self.assertIsNone(seen["enabled"])
 
 
 class TelegramDbCommandTests(unittest.IsolatedAsyncioTestCase):
