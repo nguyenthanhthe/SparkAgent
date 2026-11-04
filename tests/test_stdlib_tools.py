@@ -192,6 +192,30 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                            "path": "items.0"}, self.ctx))
         self.assertEqual(plain["matches"], [])
 
+    async def test_json_query_search_limit_cap(self):
+        import json as json_lib
+        data = '{"a": "x", "b": "x", "c": "x", "d": "x", "e": "x"}'
+        result = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "x", "limit": 2}, self.ctx))
+        # the report keeps the full tally and flags the truncation
+        self.assertEqual(result["count"], 5)
+        self.assertEqual(len(result["matches"]), 2)
+        self.assertTrue(result["truncated"])
+        # under the cap nothing is trimmed, truncated stays false
+        under = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "x", "limit": 10}, self.ctx))
+        self.assertEqual(under["count"], 5)
+        self.assertEqual(len(under["matches"]), 5)
+        self.assertFalse(under["truncated"])
+        # no limit argument — the shape stays exactly as before
+        bare = json_lib.loads(await self.registry.call(
+            "json_query", {"data": data, "mode": "search",
+                           "path": "x"}, self.ctx))
+        self.assertEqual(bare["count"], 5)
+        self.assertFalse(bare["truncated"])
+
     async def test_csv_sort_carries_direction(self):
         import json as json_lib
         result = json_lib.loads(await self.registry.call(

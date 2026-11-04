@@ -84,6 +84,7 @@ def register_tools(registry: ToolRegistry,
                          in_keys: bool = True,
                          in_values: bool = True,
                          in_path: bool = False,
+                         limit: int = 0,
                          default_json: str = "") -> dict:
         data = require_str(data, "data", max_len=MAX_TEXT_INPUT)
         require_enum(mode, "mode",
@@ -121,7 +122,14 @@ def register_tools(registry: ToolRegistry,
                                       in_keys=in_keys,
                                       in_values=in_values,
                                       in_path=in_path)
-            return {"matches": matches, "count": len(matches)}
+            count = len(matches)
+            truncated = False
+            if limit:
+                cap = max(1, min(int(limit), 200))
+                truncated = count > cap
+                matches = matches[:cap]
+            return {"matches": matches, "count": count,
+                    "truncated": truncated}
         if mode == "shape":
             depth = max(1, min(int(max_depth), 12)) if max_depth else 4
             return {"shape": json_mod.shape(parsed, max_depth=depth)}
@@ -227,6 +235,10 @@ def register_tools(registry: ToolRegistry,
                                         "needle against the dotted path "
                                         "itself, literal substring "
                                         "(default false)"},
+                    "limit": {"type": "integer", "required": False,
+                              "desc": "search mode: cap returned paths "
+                                      "(1-200; report includes "
+                                      "truncated=true when more existed)"},
                     "default_json": {"type": "string", "required": False,
                                      "desc": "get mode: JSON literal "
                                              "returned (with "
