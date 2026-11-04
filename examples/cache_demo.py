@@ -34,10 +34,16 @@ def main() -> None:
           f"hit_rate={cache.hit_rate():.2f})")
 
     cache.put("k2", "fresh answer", {"model": "glm-5.3"})
+    cache.put("k3", "local answer", {"model": "nemotron"})
     snapshot = cache.snapshot()
     print(f"snapshot: size={snapshot['size']} "
           f"oldest_age={snapshot['oldest_entry_age_s']}s "
+          f"distinct_models={snapshot['distinct_models']} "
           f"hits_by_model={snapshot['hits_by_model']}")
+
+    evicted = cache.clear()
+    print(f"clear   : evicted={evicted}, size={cache.size} — the audit "
+          "row (brain.cache.clear) is what explains tomorrow's miss bump")
 
 
 if __name__ == "__main__":
