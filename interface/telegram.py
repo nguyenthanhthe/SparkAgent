@@ -175,6 +175,11 @@ class TelegramGateway:
             sched = status.get("scheduler", {})
             lines.append(f"episodes: {sched.get('episodes_done', 0)} done / "
                          f"{sched.get('episodes_failed', 0)} failed")
+            counts = sched.get("task_status_counts") or {}
+            if counts:
+                board = " / ".join(f"{n} {s}"
+                                   for s, n in sorted(counts.items()))
+                lines.append(f"tasks: {board}")
             if sched.get("episodes_failed_transient"):
                 lines.append(f"transient (requeued): "
                              f"{sched['episodes_failed_transient']}")

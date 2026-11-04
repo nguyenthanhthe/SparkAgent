@@ -173,6 +173,29 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("transient (requeued): 2", reply)
         self.assertIn("blocked tasks: 3 (see /blocked)", reply)
 
+    async def test_status_shows_task_board_line(self):
+        gateway = make_gateway()
+        gateway.daemon.status = lambda: {
+            "agent": "sparkagent", "version": "0.2.0", "uptime_s": 300,
+            "brain": {}, "system": {},
+            "scheduler": {"episodes_done": 4, "episodes_failed": 1,
+                          "task_status_counts": {"pending": 2, "done": 5,
+                                                 "running": 1}},
+            "quarantine": {"items": 0, "bytes": 0}}
+        reply = await self._command("/status", gateway)
+        # sorted by status name for a stable, diffable board
+        self.assertIn("tasks: 5 done / 2 pending / 1 running", reply)
+
+    async def test_status_omits_board_line_without_counts(self):
+        gateway = make_gateway()
+        gateway.daemon.status = lambda: {
+            "agent": "sparkagent", "version": "0.2.0", "uptime_s": 300,
+            "brain": {}, "system": {},
+            "scheduler": {"episodes_done": 4, "episodes_failed": 1},
+            "quarantine": {"items": 0, "bytes": 0}}
+        reply = await self._command("/status", gateway)
+        self.assertNotIn("tasks:", reply)
+
     async def test_status_shows_cache_hottest_key(self):
         gateway = make_gateway()
 
