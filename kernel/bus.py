@@ -44,6 +44,12 @@ class EventBus:
             return len(self._subscribers.get(channel, ()))
         return sum(len(queues) for queues in self._subscribers.values())
 
+    def channels(self) -> list[str]:
+        """Channel names that currently hold at least one subscriber —
+        the diagnostics answer to "which channels are live?"."""
+        return sorted(name for name, queues in self._subscribers.items()
+                      if queues)
+
     # ---------------------------------------------------------------- publish
     def publish(self, channel: str, data: Any) -> None:
         """Publish from inside the event loop thread."""

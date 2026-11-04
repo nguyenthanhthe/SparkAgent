@@ -29,6 +29,19 @@ class SubscriberCountTests(unittest.TestCase):
         bus.unsubscribe("never-subscribed", queue)   # must not raise
         self.assertEqual(bus.subscriber_count(), 0)
 
+    def test_channels_lists_live_channel_names(self):
+        bus = EventBus()
+        self.assertEqual(bus.channels(), [])
+        q1 = bus.subscribe("audit")
+        bus.subscribe("logs")
+        self.assertEqual(bus.channels(), ["audit", "logs"])
+        # a channel whose last listener left disappears from the listing
+        bus.unsubscribe("audit", q1)
+        self.assertEqual(bus.channels(), ["logs"])
+        # the set can hold several queues — still one live channel
+        bus.subscribe("logs")
+        self.assertEqual(bus.channels(), ["logs"])
+
 
 class OverflowCounterTests(unittest.TestCase):
     def test_drop_oldest_overflow_is_counted(self):
