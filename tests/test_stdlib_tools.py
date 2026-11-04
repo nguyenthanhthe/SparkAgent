@@ -119,6 +119,21 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("alice", result)
         self.assertNotIn("bob", result)
 
+    async def test_json_keys_mode_reports_truncation(self):
+        import json as json_lib
+        big = json_lib.dumps({f"key_{i:02d}": i for i in range(26)})
+        result = json_lib.loads(await self.registry.call(
+            "json_query", {"data": big, "mode": "keys"}, self.ctx))
+        # top_keys caps at 20 — the report says so and keeps the tally
+        self.assertEqual(len(result["keys"]), 20)
+        self.assertEqual(result["total_keys"], 26)
+        self.assertTrue(result["truncated"])
+        small = json_lib.loads(await self.registry.call(
+            "json_query", {"data": '{"a": 1, "b": 2}', "mode": "keys"},
+            self.ctx))
+        self.assertEqual(small["total_keys"], 2)
+        self.assertFalse(small["truncated"])
+
     async def test_csv_describe_reports_complete_rows(self):
         import json as json_lib
         # one row lacks score — it is the only incomplete one

@@ -190,8 +190,16 @@ def register_tools(registry: ToolRegistry,
         if mode == "help":
             return {"where_filter": json_mod.where_help()}
         if mode == "keys":
-            # path doubles as the (optional, case-insensitive) prefix
-            return {"keys": json_mod.top_keys(parsed, prefix=path)}
+            # path doubles as the (optional, case-insensitive) prefix;
+            # top_keys caps at 20 — say so when more exist
+            keys = json_mod.top_keys(parsed, prefix=path)
+            needle = path.lower()
+            total = (sum(1 for key in parsed
+                         if not needle
+                         or str(key).lower().startswith(needle))
+                     if isinstance(parsed, dict) else 0)
+            return {"keys": keys, "total_keys": total,
+                    "truncated": total > len(keys)}
         return json_mod.stats(parsed)
 
     registry.register(Tool(
