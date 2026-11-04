@@ -303,21 +303,37 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
 10. (merged into [642]) — episodes q/tag openapi params shipped with the
     cache-clear entry in one spec commit
 
-## Wave BK backlog (next)
+## Wave BK status (complete)
 
-1. kernel: memory recall gains a kind-facet breakdown in the result?
-   (verify first — exclude_kinds and kind filters exist; the gap is a
-   per-kind hit count for the caller)
-2. interface: dashboard episodes viewer gains a search box wired to ?q=
-3. interface: telegram /episodes N — recent episodes with outcomes
-4. ops: backup create --verify flag — hash-check right after creation
-5. tools: statistics gains a median operation? (verify — quantile covers
-   p50; the gap is a named median alias)
-6. kernel: EventBus gains a subscriber_names() listing for diagnostics
-7. docs: architecture.md cross-links the new cache ops section
-8. docs: faq.md entry — why the task board line can be missing
-9. examples: episodes search demo — goal_contains rendered offline
-10. interface: dashboard episodes viewer shows step_count badges
+1. ✅ interface: episodes viewer gains a debounced search box wired to ?q= [651]
+2. ✅ interface: telegram /episodes [N] — outcome marks, limit 1-20 [652]
+3. ✅ interface: openapi documents GET /api/backup (was missing entirely) [653]
+4. ✅ kernel: EventBus.channels() lists live channel names [654]
+5. ✅ interface: openapi documents GET /api/episodes/{id} [655]
+6. ✅ docs: architecture.md cross-links the cache ops section [656]
+7. ✅ docs: faq.md — why the board line can be missing after boot [657]
+8. ✅ examples: episodes search demo [658]
+9. ✅ kernel: list_tasks gains an enabled= filter composing with status [659]
+10. ✅ interface: /api/tasks ?enabled= passthrough + status=paused [660]
+  (substitutions: create --verify-immediately already existed and was
+  tested; statistics summary already carried count+median)
+
+## Wave BL backlog (next)
+
+1. kernel: scheduler boot log shows the task board seed (enabled pending)
+2. interface: dashboard tasks panel gains a paused-status filter toggle
+3. interface: telegram /tasks gains a --paused flag (enabled=0 listing)
+4. brain: adapter ping already carries checked_at — verify per-adapter
+   checked_at rides /api/adapters "ping.checked_at" (contract test if stale)
+5. ops: backup drill prints the restore target dir in its JSON
+6. docs: testing.md wave-cadence checklist gains the de-flake rule
+   (stub background runners before ticking)
+7. docs: faq.md entry — what "paused" means for a task
+8. examples: episodes_search_demo gains a limit rendering? (verify —
+   may be stale; substitute with an openapi sanity check)
+9. kernel: memory.episode_detail pins task_ids contract at the memory
+   layer? (verify — the linkage lives in the web layer; likely stale)
+10. interface: openapi documents GET /api/tasks?enabled= param
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
