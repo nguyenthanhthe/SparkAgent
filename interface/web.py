@@ -367,6 +367,11 @@ async function refreshAdapters(){try{const a=await api('/api/adapters');
         esc(String(st.last_error||'').slice(0,40))+
         (String(st.last_error||'').length>40?'…':'')+'</span>');
     }
+    else if(st.last_error){
+      const err=esc(String(st.last_error));
+      h+=kv(tier+' last error',
+        `<span style="color:var(--b-warn,#c9a227);font-size:11px" title="${err}">${err.slice(0,40)}${err.length>40?'…':''}</span>`);
+    }
     if(st.last_success_at){
       h+=kv(tier+' last ok', st.last_success_at);
     }

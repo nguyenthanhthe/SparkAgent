@@ -77,6 +77,11 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("clear cache", _DASHBOARD_HTML)
         self.assertIn("/api/cache/clear", _DASHBOARD_HTML)
 
+    async def test_dashboard_adapters_card_shows_last_error(self):
+        from interface.web import _DASHBOARD_HTML
+        # last_error surfaces even when the breaker is not in cooldown
+        self.assertIn("last error", _DASHBOARD_HTML)
+
     async def test_cache_clear_endpoint(self):
         daemon, client = await self._setup()
         try:
