@@ -25,9 +25,12 @@ Register new providers with `adapter_registry.register(name, factory)`.
 - **response cache** — identical (model, messages, params) hits the LRU
   within TTL; cache hits cost nothing and count in `saved_tokens`
   - the snapshot (`/api/brain` → `cache`) carries `hit_rate_trend`: the
-    snapshot-to-snapshot window's hit rate minus the prior window's —
-    `None` until two windows elapsed, positive when caching is helping
-    more than it was
+    snapshot-to-snapshot window's hit rate after subtracting the prior
+    window's — `None` until two windows elapsed, positive when caching
+    is helping more than it was
+  - `distinct_models` counts the live models holding cached entries — a
+    cached remote answer must never be served for the local tier, and a
+    sudden model-count change on the card flags a routing drift
 - **cost tracking** — every response records tokens × pattern price table
   into per-model/tier/day ledgers; `within_budget(daily_usd)` gates spend
 - **per-tier observability** — `/api/brain` (and `/api/adapters`) expose
