@@ -96,7 +96,13 @@ def build_spec() -> dict[str, Any]:
                 "summary": "Recent episodes",
                 "parameters": [{"name": "limit", "in": "query",
                                 "schema": {"type": "integer",
-                                           "default": 20}}],
+                                           "default": 20}},
+                               {"name": "tag", "in": "query",
+                                "schema": {"type": "string"}},
+                               {"name": "q", "in": "query",
+                                "schema": {"type": "string"},
+                                "description": "case-insensitive goal "
+                                               "substring"}],
                 "responses": {"200": _json_response("Episode list")}}},
             "/api/memories": {"get": {
                 "summary": "Semantic memory recall",
@@ -133,6 +139,11 @@ def build_spec() -> dict[str, Any]:
                                           "long the longest-waiting request "
                                           "has waited",
                                           "Approval")}}},
+            "/api/cache/clear": {"post": {
+                "summary": "Evict every cached response (operator)",
+                "responses": {"200": _json_response(
+                    "Evicted count; audited as brain.cache.clear so the "
+                    "post-clear miss bump has a paper trail")}}},
             "/api/approvals/{id}/{decision}": {"post": {
                 "summary": "Approve or deny a request (operator)",
                 "parameters": [
