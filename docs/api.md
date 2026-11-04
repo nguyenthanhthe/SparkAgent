@@ -15,7 +15,7 @@ Machine-readable spec: `GET /api/openapi.json` (OpenAPI 3.0). Summary:
 | POST | `/api/memories/rename` | operator key repair (audited, refuses an existing target) |
 | GET | `/api/skills` · POST `/api/skills` | list / create (operator source) |
 | POST | `/api/skills/{name}/approve` | activate a pending skill |
-| GET | `/api/approvals` | operator approval queue |
+| GET | `/api/approvals` | operator approval queue (+ `oldest_pending_age_s`: how long the longest-waiting request has waited) |
 | POST | `/api/approvals/{id}/{approve\|deny}` | decide |
 | GET | `/api/quarantine?reason=` | quarantined content (reason contains-filter, comma-separated OR) |
 | GET | `/api/quarantine?reason_prefix=` | family filter — reasons starting with the prefix (e.g. `prompt-injection` excludes `re-prompt-injection`) |
