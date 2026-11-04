@@ -749,6 +749,16 @@ class Memory:
             return blocked
         return await self._run(op)
 
+    async def task_status_counts(self) -> dict[str, int]:
+        """Per-status task tallies (pending/done/failed/…) for the board
+        and the dashboard's pipeline card — one GROUP BY, no row scan."""
+        def op(conn: sqlite3.Connection) -> dict[str, int]:
+            rows = conn.execute(
+                "SELECT status, COUNT(*) AS n FROM tasks GROUP BY status "
+                "ORDER BY status").fetchall()
+            return {row["status"]: row["n"] for row in rows}
+        return await self._run(op)
+
     async def cancel_task(self, task_id: int) -> bool:
         def op(conn: sqlite3.Connection) -> bool:
             cursor = conn.execute(

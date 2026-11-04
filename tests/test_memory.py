@@ -32,6 +32,21 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(episodes[0]["final_answer"], "answer")
         run(scenario())
 
+    def test_task_status_counts(self):
+        async def scenario():
+            await self.mem.connect()
+            self.assertEqual(await self.mem.task_status_counts(), {})
+            a = await self.mem.submit_task("first goal", source="test")
+            b = await self.mem.submit_task("second goal", source="test")
+            await self.mem.finish_task(a, success=True)
+            counts = await self.mem.task_status_counts()
+            self.assertEqual(counts, {"pending": 1, "done": 1})
+            self.assertEqual(counts["pending"], 1)
+            await self.mem.finish_task(b, success=False)
+            counts = await self.mem.task_status_counts()
+            self.assertEqual(counts, {"done": 1, "failed": 1})
+        run(scenario())
+
     def test_remember_and_recall_ranking(self):
         async def scenario():
             await self.mem.connect()
