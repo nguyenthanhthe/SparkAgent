@@ -117,6 +117,24 @@ git add <files> && git commit -m "..." && git push
 Read `RC` before committing. Chaining `git commit` with `;` after the
 check re-creates the red-commit bug this page already documents.
 
+## After any multi-line edit: ast.parse before pytest
+
+Multi-line Edit operations on test files have twice corrupted tails
+(nonsense tokens appended mid-block, a half-typed replacement, a
+missing bracket) — every one of them surfaced as a `SyntaxError` at
+collection, not as a test failure. So the cheap gate before paying for
+a test run:
+
+```bash
+python -c "import ast; ast.parse(open('tests/test_x.py', encoding='utf-8').read())"
+```
+
+Run it after every block-level edit (new test method, edited class),
+before pytest/unittest. It catches the corruption in milliseconds and
+keeps the failure mode a syntax error you fix immediately, not a
+confusing collection abort later. Pair it with the gated-commit chain
+above.
+
 ## Wave-cadence checklist
 
 The autonomous build runs in ten-item waves (see ROADMAP.md). Per
