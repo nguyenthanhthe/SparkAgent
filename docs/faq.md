@@ -161,3 +161,12 @@ every identical request that used to hit the LRU now re-fires as a paid
 miss. Locally the tier is free, so after a clear the spend bump only
 shows where the remote tier was serving cached traffic — check `/cost`
 the next day before assuming a leak.
+
+**Why is the `tasks:` board line missing from /status?**
+The board (`task_status_counts`) rides the scheduler's poll tick: it is
+refreshed once per cycle, claims-first, so the numbers include whatever
+the tick just claimed. Before the very first tick — a daemon that just
+booted — the key does not exist yet, and the surfaces (telegram
+`/status`, the dashboard scheduler panel) deliberately omit the line
+instead of showing zeros that could read like an empty queue. Wait one
+poll interval (default a few seconds) and it appears.
