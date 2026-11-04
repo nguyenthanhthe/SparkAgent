@@ -152,3 +152,12 @@ recent archives remain; if it grows past the keep window, tagged keeps
 or manual copies are accumulating — archive them off-box or delete
 deliberately. Restore drills should stay inside the horizon: drilling
 an archive older than it is drilling a file that no longer exists.
+
+**What does clearing the response cache cost?**
+Nothing at the moment you click **clear cache** (`POST
+/api/cache/clear`): the reset itself is free and audited
+(`brain.cache.clear`) with the evicted count. The bill arrives later:
+every identical request that used to hit the LRU now re-fires as a paid
+miss. Locally the tier is free, so after a clear the spend bump only
+shows where the remote tier was serving cached traffic — check `/cost`
+the next day before assuming a leak.
