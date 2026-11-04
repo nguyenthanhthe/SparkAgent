@@ -14,6 +14,8 @@ _OPERATORS = {
     ">=": lambda a, b: _num(a) >= _num(b),
     "<=": lambda a, b: _num(a) <= _num(b),
     "contains": lambda a, b: str(b).lower() in str(a).lower(),
+    "^=": lambda a, b: str(a).lower().startswith(str(b).lower()),
+    "$=": lambda a, b: str(a).lower().endswith(str(b).lower()),
 }
 
 

@@ -283,7 +283,8 @@ def register_tools(registry: ToolRegistry,
     registry.register(Tool(
         name="csv_analyze",
         description=("Analyze CSV text: describe (columns+types), filter "
-                     "(column/op/value with == != > < >= <= contains), sort, "
+                     "(column/op/value with == != > < >= <= contains "
+                     "^= $=), sort, "
                      "aggregate (sum/avg/min/max of a column), group "
                      "(group_by + column averages), count (rows per value of "
                      "group_by — the tally for non-numeric columns), head."),

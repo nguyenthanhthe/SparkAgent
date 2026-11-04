@@ -119,6 +119,25 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("alice", result)
         self.assertNotIn("bob", result)
 
+    async def test_csv_filter_starts_and_ends_with(self):
+        # operator parity with the json filter grammar (^= starts-with,
+        # $= ends-with, both case-insensitive string ops)
+        import json as json_lib
+        csv_data = "file,size\na.log,10\nb.txt,20\nc.LOG,30\n"
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_data, "operation": "filter",
+                            "column": "file", "op": "^=", "value": "a"},
+            self.ctx))
+        self.assertEqual(result["matched"], 1)
+        self.assertEqual(result["rows"][0]["file"], "a.log")
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_data, "operation": "filter",
+                            "column": "file", "op": "$=", "value": ".log"},
+            self.ctx))
+        self.assertEqual(result["matched"], 2)  # .LOG matches too (ci)
+        self.assertEqual({row["file"] for row in result["rows"]},
+                         {"a.log", "c.LOG"})
+
     async def test_statistics_summary(self):
         result = await self.registry.call(
             "statistics", {"values": "1 2 3 4 5",
