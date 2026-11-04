@@ -5,6 +5,7 @@ IDs in ``interface.telegram.allowed_chat_ids`` may interact; everyone else
 is ignored (and logged). Commands:
 
     /status          daemon status summary
+    /cost            today's spend vs the daily budget
     /tasks           recent tasks
     /task <goal>     submit a one-shot task
     /mem <query>     semantic memory recall
@@ -121,6 +122,7 @@ class TelegramGateway:
             return ("SparkAgent commands\n"
                     "operator:\n"
                     "/status — daemon health\n"
+                    "/cost — today's spend vs the daily budget\n"
                     "/health — subsystem checks\n"
                     "/tasks — recent tasks\n"
                     "/blocked — dependency-stalled tasks\n"
@@ -202,6 +204,25 @@ class TelegramGateway:
                 if hot:
                     lines.append(f"cache hottest: {hot['key_hash']} "
                                  f"({hot['hits']} hit(s))")
+            return "\n".join(lines)
+        if command == "/cost":
+            costs = getattr(daemon, "costs", None)
+            if costs is None:
+                return "(no cost tracker attached)"
+            today = costs.today_total()
+            budget = float(daemon.cfg.get("brain.daily_budget_usd", 5.0))
+            lines = [f"today: ${today:.4f} of ${budget:g} budget"]
+            if not costs.within_budget(budget):
+                lines.append("  ⚠ over budget — the veto guard has the "
+                             "remote tier disabled")
+            by_model = {model: row["cost_usd"]
+                        for model, row in costs.report()["by_model"].items()
+                        if row["cost_usd"] > 0}
+            for model, usd in sorted(by_model.items(),
+                                     key=lambda item: -item[1]):
+                lines.append(f"  {model}: ${usd:.4f}")
+            if not by_model:
+                lines.append("(no spend recorded — local tier is free)")
             return "\n".join(lines)
         if command == "/tasks":
             limit = 10

@@ -189,12 +189,60 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_status_omits_board_line_without_counts(self):
         gateway = make_gateway()
         gateway.daemon.status = lambda: {
-            "agent": "sparkagent", "version": "0.2.0", "uptime_s": 300,
-            "brain": {}, "system": {},
+            "status": "ok", "agent": "sparkagent", "version": "0.2.0",
+            "uptime_s": 300, "brain": {}, "system": {},
             "scheduler": {"episodes_done": 4, "episodes_failed": 1},
             "quarantine": {"items": 0, "bytes": 0}}
         reply = await self._command("/status", gateway)
         self.assertNotIn("tasks:", reply)
+
+    async def test_cost_today_vs_budget(self):
+        gateway = make_gateway()
+
+        class FakeCosts:
+            def today_total(self):
+                return 0.42
+
+            def within_budget(self, budget):
+                return True
+
+            def report(self):
+                return {"by_model": {"glm-5.3": {"cost_usd": 0.30},
+                                     "nemotron": {"cost_usd": 0.12}}}
+
+        gateway.daemon.costs = FakeCosts()
+        gateway.daemon.cfg = SimpleNamespace(
+            get=lambda dotted, default=None: default)
+        reply = await self._command("/cost", gateway)
+        self.assertIn("today: $0.4200 of $5 budget", reply)
+        # biggest spender first
+        self.assertLess(reply.index("glm-5.3"), reply.index("nemotron"))
+        self.assertIn("glm-5.3: $0.3000", reply)
+
+    async def test_cost_flags_over_budget(self):
+        gateway = make_gateway()
+
+        class FakeCosts:
+            def today_total(self):
+                return 6.0
+
+            def within_budget(self, budget):
+                return False
+
+            def report(self):
+                return {"by_model": {}}
+
+        gateway.daemon.costs = FakeCosts()
+        gateway.daemon.cfg = SimpleNamespace(
+            get=lambda dotted, default=None: default)
+        reply = await self._command("/cost", gateway)
+        self.assertIn("over budget", reply)
+        self.assertIn("no spend recorded", reply)
+
+    async def test_cost_without_tracker(self):
+        gateway = make_gateway()   # FakeDaemon has no costs attribute
+        reply = await self._command("/cost", gateway)
+        self.assertIn("(no cost tracker attached)", reply)
 
     async def test_status_shows_cache_hottest_key(self):
         gateway = make_gateway()
