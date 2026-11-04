@@ -9,6 +9,7 @@ is ignored (and logged). Commands:
     /tasks           recent tasks
     /task <goal>     submit a one-shot task
     /mem <query>     semantic memory recall
+    /episodes [N]    recent episodes with outcomes
     /skills [filter] list skills by name or status= filter
     /audit           recent audit trail (redacted)
     /backup          backup window listing (newest, age, tag)
@@ -135,6 +136,7 @@ class TelegramGateway:
                     "/task <goal> — submit a task\n"
                     "/mem <query> [--kind X] [--after YYYY-MM-DD] "
                     "[--limit 1-50] — memory\n"
+                    "/episodes [N] — recent episodes with outcomes\n"
                     "/db <table> [col=value ...] — read-only db lookup\n"
                     "/skills [filter] [--limit 1-100] — list skills "
                     "(name substring)\n"
@@ -273,6 +275,20 @@ class TelegramGateway:
             except ValueError as exc:
                 return f"error: {exc}"
             return f"Task #{task_id} submitted."
+        if command == "/episodes":
+            limit = 5
+            token = args.strip().split()[0] if args.strip() else ""
+            if token:
+                if not token.isdigit():
+                    return "usage: /episodes [1-20]"
+                limit = min(20, max(1, int(token)))
+            episodes = await daemon.memory.recent_episodes(limit=limit)
+            if not episodes:
+                return "(no episodes yet)"
+            return "\n".join(
+                f"{'✓' if e['status'] == 'done' else '✗' if e['status'] == 'failed' else '…'} "
+                f"#{e['id']} [{e['source']}] {e['goal'][:60]}"
+                for e in episodes)
         if command == "/mem":
             args = args.strip()
             kind = None

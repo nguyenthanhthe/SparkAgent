@@ -36,6 +36,11 @@ class FakeDaemon:
             async def recall(self, query, k=5, kinds=None, created_after=None):
                 return []
 
+            async def recent_episodes(self, limit=20, tag=None,
+                                      goal_contains=None):
+                return [{"id": 7, "status": "done", "source": "cron",
+                         "goal": "nightly digest"}]
+
             async def recent_audit(self, limit=15):
                 return [{"created_at": "2026-10-24T10:00:00", "actor":
                          "executor", "action": "exec.start",
@@ -329,6 +334,26 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_mem_empty(self):
         reply = await self._command("/mem nothing matches")
         self.assertIn("no memories", reply)
+
+    async def test_episodes_lists_recent(self):
+        reply = await self._command("/episodes")
+        # status mark, id, source, goal
+        self.assertIn("✓ #7 [cron] nightly digest", reply)
+
+    async def test_episodes_limit_and_usage(self):
+        gateway = make_gateway()
+        seen = {}
+
+        async def recent_episodes(limit=20, tag=None, goal_contains=None):
+            seen["limit"] = limit
+            return []
+
+        gateway.daemon.memory.recent_episodes = recent_episodes
+        reply = await self._command("/episodes 3", gateway)
+        self.assertEqual(seen["limit"], 3)
+        self.assertIn("(no episodes yet)", reply)
+        bogus = await self._command("/episodes ten", gateway)
+        self.assertIn("usage:", bogus)
 
     async def test_mem_shows_hit_scores(self):
         gateway = make_gateway()
