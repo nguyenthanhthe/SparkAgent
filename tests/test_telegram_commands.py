@@ -186,6 +186,25 @@ class TelegramCommandTests(unittest.IsolatedAsyncioTestCase):
         # sorted by status name for a stable, diffable board
         self.assertIn("tasks: 5 done / 2 pending / 1 running", reply)
 
+    async def test_status_shows_budget_line(self):
+        gateway = make_gateway()
+
+        class FakeCosts:
+            def today_total(self):
+                return 1.25
+
+            def within_budget(self, budget):
+                return True
+
+        gateway.daemon.costs = FakeCosts()
+        gateway.daemon.status = lambda: {
+            "agent": "sparkagent", "version": "0.2.0", "uptime_s": 300,
+            "brain": {}, "system": {}, "brain_budget_daily_usd": 5,
+            "scheduler": {"episodes_done": 4, "episodes_failed": 1},
+            "quarantine": {"items": 0, "bytes": 0}}
+        reply = await self._command("/status", gateway)
+        self.assertIn("budget: $1.2500 of $5/day (ok)", reply)
+
     async def test_status_omits_board_line_without_counts(self):
         gateway = make_gateway()
         gateway.daemon.status = lambda: {

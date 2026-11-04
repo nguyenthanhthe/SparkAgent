@@ -204,6 +204,13 @@ class TelegramGateway:
                 if hot:
                     lines.append(f"cache hottest: {hot['key_hash']} "
                                  f"({hot['hits']} hit(s))")
+            budget = status.get("brain_budget_daily_usd")
+            if budget is not None:
+                spent = daemon.costs.today_total()
+                mark = ("ok" if daemon.costs.within_budget(budget)
+                        else "VETOED")
+                lines.append(f"budget: ${spent:.4f} of ${budget:g}/day "
+                             f"({mark})")
             return "\n".join(lines)
         if command == "/cost":
             costs = getattr(daemon, "costs", None)
