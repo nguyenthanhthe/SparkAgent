@@ -78,7 +78,9 @@ details{margin-bottom:8px}summary{cursor:pointer;color:var(--dim)}
   <div class="card"><h2>Scheduler</h2><div id="sched"></div></div>
   <div class="card"><h2>Adapters</h2><div id="adapters"></div></div>
 </div>
-<div class="card" style="margin-bottom:12px"><h2>Spend today</h2>
+<div class="card" style="margin-bottom:12px"><h2>Spend today
+  <button class="small" onclick="clearCache()"
+          title="evict every cached response — the next identical calls re-fire as paid misses">clear cache</button></h2>
   <div id="cost"><span style="color:var(--dim)">loading…</span></div>
 </div>
 <div class="card" style="margin-bottom:12px"><h2>Backups
@@ -337,6 +339,9 @@ async function refreshCost(){try{const b=await api('/api/brain');
       byModel+'</div>':'<div style="color:var(--dim);font-size:12px">'+
       'no spend recorded yet (local tier is free)</div>');
 }catch(e){}}
+async function clearCache(){try{const r=await api('/api/cache/clear',{method:'POST'});
+  toast(`cache cleared — ${r.evicted} entr${r.evicted===1?'y':'ies'} evicted`);refreshCost()}
+  catch(e){toast(e.message)}}
 
 async function refreshAdapters(){try{const a=await api('/api/adapters');
   const ping=a.ping||{};let h='';

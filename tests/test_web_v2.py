@@ -69,6 +69,14 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("last_success_at", _DASHBOARD_HTML)
         self.assertIn("last ok", _DASHBOARD_HTML)
 
+    async def test_dashboard_cache_clear_button(self):
+        from interface.web import _DASHBOARD_HTML
+        # the spend card carries the operator reset: button, handler,
+        # and the toast wording that names the evicted count
+        self.assertIn("clearCache", _DASHBOARD_HTML)
+        self.assertIn("clear cache", _DASHBOARD_HTML)
+        self.assertIn("/api/cache/clear", _DASHBOARD_HTML)
+
     async def test_cache_clear_endpoint(self):
         daemon, client = await self._setup()
         try:
