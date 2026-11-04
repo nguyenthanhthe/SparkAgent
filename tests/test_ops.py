@@ -217,6 +217,40 @@ class BackupTests(unittest.TestCase):
                          result.archive_path.name)
         self.assertGreaterEqual(listing["archives"][0]["age_s"], 3600)
 
+    def test_verify_all_limit_caps_the_sweep(self):
+        import contextlib
+        import io
+        import json as json_lib
+        from unittest import mock
+
+        data = make_data_dir()
+        output = data.parent / "backups"
+        counter = {"n": 0}
+
+        def fake_strftime(fmt, t=None):
+            if "T" in fmt:
+                return "2026-01-01T00:00:00"
+            counter["n"] += 1
+            return f"20260101-0000{counter['n']:02d}"
+
+        with mock.patch("ops.backup.time.strftime", fake_strftime):
+            for _ in range(4):
+                create_backup(data, output)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = main(["verify-all", "--output-dir", str(output),
+                         "--limit", "2"])
+        report = json_lib.loads(buffer.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(report["count"], 2)
+        # the cap is honest: the skipped archives stay visible
+        self.assertEqual(report["skipped"], 2)
+        # the newest two are the ones verified
+        names = [r["archive"] for r in report["archives"]]
+        self.assertIn("sparkagent-backup-20260101-000004.zip", names)
+        self.assertIn("sparkagent-backup-20260101-000003.zip", names)
+        self.assertNotIn("sparkagent-backup-20260101-000001.zip", names)
+
     def test_cli_verify_all_tag_filter(self):
         import contextlib
         import io

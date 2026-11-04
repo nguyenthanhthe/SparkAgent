@@ -246,10 +246,12 @@ def audit_log(db_path: Path, actor: str, action: str, detail: str) -> bool:
 
 
 def _verify_all(output_dir: Path, quiet: bool = False,
-                tag: str | None = None) -> int:
+                tag: str | None = None,
+                limit: int | None = None) -> int:
     """Verify every archive in the retention window (or only those
-    tagged ``tag`` when given); exit 1 if any fails. ``quiet`` prints a
-    single-line summary (cron mail friendly)."""
+    tagged ``tag`` when given), capped to the newest ``limit`` when
+    given; exit 1 if any fails. ``quiet`` prints a single-line summary
+    (cron mail friendly)."""
     archives = sorted(output_dir.glob("sparkagent-backup-*.zip"))
     if tag:
         wanted = tag.strip().lower()
@@ -268,6 +270,12 @@ def _verify_all(output_dir: Path, quiet: bool = False,
                           "dir": str(output_dir),
                           "tag": tag}))
         return 1
+    # newest-first, cap the sweep — skipped stays visible so a capped
+    # run can never read like a full one
+    skipped = 0
+    if limit is not None and limit > 0 and len(archives) > limit:
+        skipped = len(archives) - limit
+        archives = sorted(archives, reverse=True)[:limit]
     results = []
     for archive in archives:
         started = time.monotonic()
@@ -290,6 +298,7 @@ def _verify_all(output_dir: Path, quiet: bool = False,
         tags = sorted({str(item.get("tag")) for item in results
                        if item.get("tag")})
         print(json.dumps({"ok": ok, "count": len(results),
+                          "skipped": skipped,
                           "failed": failed, "checked_at": checked_at,
                           "dir": str(output_dir),
                           "tags": tags,
@@ -298,6 +307,7 @@ def _verify_all(output_dir: Path, quiet: bool = False,
                           if slowest else None}))
         return 0 if ok else 1
     print(json.dumps({"ok": ok, "count": len(results),
+                      "skipped": skipped,
                       "checked_at": checked_at,
                       "dir": str(output_dir),
                       "archives": results}))
@@ -334,6 +344,10 @@ def main(argv: list[str] | None = None) -> int:
                                    "contains this substring")
     p_verify_all.add_argument("--quiet", action="store_true",
                               help="single-line summary (cron-friendly)")
+    p_verify_all.add_argument("--limit", type=int, default=None,
+                              help="cap the sweep to the newest N "
+                                   "archives (skipped ones stay "
+                                   "visible in the summary)")
     p_prune = sub.add_parser("prune", help="apply retention to the dir")
     p_prune.add_argument("--data-dir", default=None,
                          help="data dir whose sparkagent.db receives "
@@ -414,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "verify-all":
         return _verify_all(Path(args.output_dir), quiet=args.quiet,
-                           tag=args.tag)
+                           tag=args.tag, limit=args.limit)
     if args.cmd == "prune":
         output_dir = Path(args.output_dir)
         total = len(list(output_dir.glob("sparkagent-backup-*.zip")))
