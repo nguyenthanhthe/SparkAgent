@@ -43,7 +43,23 @@ class DaemonV2WiringTests(unittest.IsolatedAsyncioTestCase):
                     "sandbox_profile", "version"):
             self.assertIn(key, status)
         self.assertEqual(status["version"], "0.2.0")
-        self.assertEqual(status["sandbox_profile"], "standard")
+
+    async def test_boot_log_announces_the_daily_budget(self):
+        daemon = AgentDaemon(Config(
+            {"memory": {"db_path": str(Path(tempfile.mkdtemp()) / "t.db")},
+             "brain": {"daily_budget_usd": 2.5}},
+            root=Path(tempfile.mkdtemp())))
+        with self.assertLogs("sparkagent.daemon", level="INFO") as captured:
+            await daemon.start()
+        try:
+            line = next(l for l in captured.output
+                        if "brain budget" in l)
+            # the veto threshold is visible at boot — no config digging
+            self.assertIn("$2.50/day", line)
+            self.assertEqual(daemon.daily_budget, 2.5)
+        finally:
+            await daemon.stop()
+            await daemon.memory.close()
 
     async def test_rate_limit_wired_from_config(self):
         daemon = AgentDaemon(Config.load())

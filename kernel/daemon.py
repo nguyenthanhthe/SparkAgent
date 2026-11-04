@@ -91,10 +91,11 @@ class AgentDaemon:
 
         # Brain + memory
         self.costs = CostTracker()
-        daily_budget = float(self.cfg.get("brain.daily_budget_usd", 5.0))
+        self.daily_budget = float(
+            self.cfg.get("brain.daily_budget_usd", 5.0))
 
         async def _budget_guard() -> bool:
-            return self.costs.within_budget(daily_budget)
+            return self.costs.within_budget(self.daily_budget)
 
         self.brain = Brain(self.cfg, self.vault, self.bus,
                            resource_guard=self._vram_guard,
@@ -279,6 +280,8 @@ class AgentDaemon:
             logger.warning("telegram enabled but TELEGRAM_BOT_TOKEN is not set")
         logger.info("SparkAgent daemon up (uptime reference %s)",
                     time.strftime("%Y-%m-%d %H:%M:%S"))
+        logger.info("brain budget: $%.2f/day (the veto guard disables the "
+                    "remote tier above it)", self.daily_budget)
 
     def _spawn(self, name: str, factory) -> None:
         async def supervised() -> None:
