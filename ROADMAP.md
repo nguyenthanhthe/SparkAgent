@@ -211,18 +211,35 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
 9. ✅ docs: index.md links the ADR index
 10. ✅ examples: submit-trim demo — whitespace goal handling rendered offline
 
-## Wave BE backlog (next)
+## Wave BE status (complete)
 
-1. kernel: scheduler logs its poll cadence config at boot
-2. brain: /api/brain tier_stats switches to tier_details (last_ms visible)
-3. memory: count() gains an optional per-kind breakdown
-4. security: approval counters_snapshot carries the newest pending age
-5. interface: dashboard episode detail links back to tasks by goal
-6. interface: telegram /mem accepts a --limit N flag
-7. tools: csv_analyze gains a group-count mode for non-numeric columns
-8. ops: list_backups carries the oldest archive age (retention horizon)
-9. docs: brain.md documents the tier_details last_ms field
-10. examples: in_path search demo — locating list positions offline
+1. ✅ kernel: scheduler logs its poll cadence config at boot (stale —
+   feature existed; pinned as a boot-log contract test [591])
+2. ✅ brain: /api/brain tier_stats switches to tier_details (last_ms visible) [592]
+3. ✅ memory: count() gains an optional per-kind breakdown [593]
+4. ✅ security: approval counters_snapshot carries the oldest pending age
+   (oldest_pending_age_s; created_at now rides the queue clock) [594]
+5. ✅ interface: dashboard episode detail links back to tasks by goal (stale —
+   goal→task_ids linkage existed; pinned as an endpoint contract test [595])
+6. ✅ interface: telegram /mem accepts a --limit 1-50 flag [596]
+7. ✅ tools: csv_analyze gains a count mode for non-numeric columns [597]
+8. ✅ ops: list_backups carries the oldest archive age (retention horizon) [598]
+9. ✅ docs: brain.md documents the tier_details observability fields [599]
+10. ✅ examples: in_path search demo — locating list positions offline [600]
+
+## Wave BF backlog (next)
+
+1. interface: dashboard approvals panel consumes the new
+   oldest_pending_age_s counter (nothing reads it yet)
+2. tools: csv filter gains a ^= starts-with operator (mirror of $=)
+3. tools: json search gains a limit cap on returned paths
+4. kernel: memory gains task_status_counts() — per-status task tallies
+5. interface: telegram /skills accepts a --limit N flag
+6. brain: cache snapshot carries distinct_models (models with cached entries)
+7. ops: diskwatch --json payload carries scanned_dirs
+8. docs: faq.md entry — csv count mode for non-numeric tallies
+9. examples: csv count mode rendered in csv_demo.py
+10. docs: api.md documents the episode detail's task_ids linkage
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
