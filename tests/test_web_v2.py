@@ -56,6 +56,13 @@ class WebV2EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("distinct_models", _DASHBOARD_HTML)
         self.assertIn("cache models", _DASHBOARD_HTML)
 
+    async def test_dashboard_scheduler_panel_shows_task_board(self):
+        from interface.web import _DASHBOARD_HTML
+        # the scheduler panel renders the per-status board from
+        # /api/status's scheduler block (task_status_counts)
+        self.assertIn("task_status_counts", _DASHBOARD_HTML)
+        self.assertIn("task board", _DASHBOARD_HTML)
+
     async def test_task_detail_endpoint(self):
         daemon, client = await self._setup()
         try:

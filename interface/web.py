@@ -171,6 +171,9 @@ async function refreshStatus(){try{const s=await api('/api/status');
     +(s.scheduler.episodes_failed_transient
       ?kv('transient (requeued)',s.scheduler.episodes_failed_transient):'')
     +kv('blocked tasks',s.scheduler.blocked_tasks??0)
+    +(() => {const c=s.scheduler.task_status_counts||{};
+      const e=Object.entries(c);
+      return e.length?kv('task board', e.map(([st,n])=>`${n} ${st}`).join(' · ')):''})()
     +kv('tools',s.tools?s.tools.length:0)
     +kv('skills pending',(s.skills_pending||[]).length);
 }catch(e){$('uptime').textContent='· offline'}}
