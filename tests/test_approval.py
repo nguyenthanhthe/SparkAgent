@@ -83,6 +83,12 @@ class ApprovalQueueTests(unittest.TestCase):
         self.assertEqual(snap["pending_now"], 1)
         self.assertEqual(snap["ttl_seconds"], 60)   # the queue's TTL
         self.assertEqual(snap["observers"], 0)      # none registered here
+        # the oldest pending request's age rides the snapshot so an
+        # operator sees how long the queue has been waiting
+        self.assertEqual(snap["oldest_pending_age_s"], 0.0)
+        self.clock.advance(10)
+        snap = self.queue.counters_snapshot()
+        self.assertEqual(snap["oldest_pending_age_s"], 10.0)
         # the snapshot is a copy — mutating it must not touch the queue
         snap["submitted"] = 99
         self.assertEqual(self.queue.counters["submitted"], 2)
@@ -121,6 +127,7 @@ class ApprovalQueueTests(unittest.TestCase):
     def test_recent_listing(self):
         for i in range(5):
             self.queue.submit("generic", f"item {i}")
+            self.clock.advance(1)  # distinct created_at per submission
         recent = self.queue.recent(limit=3)
         self.assertEqual(len(recent), 3)
         # newest first

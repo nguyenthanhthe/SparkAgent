@@ -54,6 +54,7 @@ class ApprovalQueue:
                requested_by: str = "agent", ttl: float | None = None) -> Request:
         request = Request(kind=kind, summary=summary[:500],
                           detail=detail or {}, requested_by=requested_by,
+                          created_at=self.clock.now(),
                           expires_at=self.clock.now() + (ttl or self.ttl))
         self._requests[request.id] = request
         self.counters["submitted"] += 1
@@ -116,12 +117,18 @@ class ApprovalQueue:
                 self._notify(request)
 
     def counters_snapshot(self) -> dict:
-        """The lifecycle counters plus the live queue depth, the TTL
-        the queue enforces, and the registered observer count — a copy,
-        so callers cannot mutate the queue's bookkeeping."""
+        """The lifecycle counters plus the live queue depth, the age of
+        the oldest pending request, the TTL the queue enforces, and the
+        registered observer count — a copy, so callers cannot mutate
+        the queue's bookkeeping."""
         self._expire_all()
+        pending = self.pending()
+        oldest = min((request.created_at for request in pending),
+                     default=None)
         return {**self.counters,
-                "pending_now": len(self.pending()),
+                "pending_now": len(pending),
+                "oldest_pending_age_s": (round(self.clock.now() - oldest, 1)
+                                         if oldest is not None else None),
                 "ttl_seconds": self.ttl,
                 "observers": len(self._observers)}
 
