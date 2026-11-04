@@ -248,7 +248,7 @@ def register_tools(registry: ToolRegistry,
             raise ToolFailure(str(exc)) from exc
         require_enum(operation, "operation",
                      ["describe", "filter", "sort", "aggregate", "group",
-                      "head"])
+                      "count", "head"])
         try:
             if operation == "describe":
                 return table.describe()
@@ -271,6 +271,9 @@ def register_tools(registry: ToolRegistry,
                 return table.aggregate(column)
             if operation == "group":
                 return table.group_aggregate(group_by, column)
+            if operation == "count":
+                return {"counts": table.group_count(group_by),
+                        "total": len(table.rows)}
             # head: caller row count (1-50), default 25
             count = max(1, min(int(limit) if limit else 25, 50))
             return {"rows": table.head(count)}
@@ -282,7 +285,8 @@ def register_tools(registry: ToolRegistry,
         description=("Analyze CSV text: describe (columns+types), filter "
                      "(column/op/value with == != > < >= <= contains), sort, "
                      "aggregate (sum/avg/min/max of a column), group "
-                     "(group_by + column averages), head."),
+                     "(group_by + column averages), count (rows per value of "
+                     "group_by — the tally for non-numeric columns), head."),
         parameters={"data": {"type": "string", "required": True},
                     "operation": {"type": "string", "required": False},
                     "column": {"type": "string", "required": False},

@@ -94,6 +94,18 @@ class Table:
                       "avg": round(sum(vals) / len(vals), 6)}
                 for key, vals in sorted(groups.items())}
 
+    def group_count(self, group_by: str) -> dict[str, int]:
+        """Row counts per distinct value of ``group_by`` — the tally for
+        non-numeric columns where aggregate() has nothing to sum."""
+        if group_by not in self.columns:
+            raise CsvError(f"unknown group_by column {group_by!r}; have "
+                           f"{self.columns}")
+        counts: dict[str, int] = {}
+        for row in self.rows:
+            value = row.get(group_by, "")
+            counts[value] = counts.get(value, 0) + 1
+        return dict(sorted(counts.items()))
+
     def head(self, n: int = 10) -> list[dict]:
         return self.rows[:n]
 

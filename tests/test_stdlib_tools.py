@@ -247,6 +247,28 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
                             "limit": 2}, self.ctx))
         self.assertEqual(len(filtered["rows"]), 2)
 
+    async def test_csv_group_count_mode(self):
+        import json as json_lib
+        csv_data = "region,device\nnorth,sensor\nnorth,gateway\n" \
+                   "south,sensor\n"
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_data, "operation": "count",
+                            "group_by": "region"}, self.ctx))
+        self.assertEqual(result["counts"], {"north": 2, "south": 1})
+        self.assertEqual(result["total"], 3)
+        # the tally needs no numeric column at all
+        text_only = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": "label\nx\ny\nx\n",
+                            "operation": "count",
+                            "group_by": "label"}, self.ctx))
+        self.assertEqual(text_only["counts"], {"x": 2, "y": 1})
+        # unknown group_by surfaces as a tool failure
+        with self.assertRaises(ToolFailure) as caught:
+            await self.registry.call(
+                "csv_analyze", {"data": csv_data, "operation": "count",
+                                "group_by": "nope"}, self.ctx)
+        self.assertIn("unknown group_by", str(caught.exception))
+
 
 class MemoryToolTests(unittest.IsolatedAsyncioTestCase):
     async def test_remember_and_recall_via_tools(self):
