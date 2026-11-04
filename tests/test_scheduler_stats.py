@@ -65,6 +65,12 @@ class SchedulerStatsTests(unittest.IsolatedAsyncioTestCase):
             # before the first tick the board key simply isn't there yet
             self.assertNotIn("task_status_counts", scheduler.stats)
             task_id = await memory.submit_task("count me", source="test")
+            # stub the runner: the real one would execute the episode in
+            # the background (brain callable returns None → failure) and
+            # race this test's finish_task
+            async def _no_run(task):
+                pass
+            scheduler._run_task = _no_run
             await scheduler._tick()
             # the tick claims due work before snapshotting the board,
             # so an immediately-due one-shot shows as running
