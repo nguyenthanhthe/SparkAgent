@@ -59,6 +59,27 @@ class EpisodeTagTests(unittest.TestCase):
             self.assertEqual(len(docs), 1)
         run(scenario())
 
+    def test_goal_contains_filter(self):
+        async def scenario():
+            for goal in ("audit the GPU driver", "write a #docs page",
+                         "gpu fan curve tune"):
+                eid = await self.mem.start_episode(goal, "operator")
+                await self.mem.finish_episode(eid, "done", "x", "local", 1)
+            hits = await self.mem.recent_episodes(goal_contains="gpu")
+            self.assertEqual(len(hits), 2)
+            self.assertTrue(all("gpu" in e["goal"].lower()
+                                for e in hits))
+            # composes with the tag filter (AND semantics): only the
+            # #docs episode also carries "doc" in its goal
+            both = await self.mem.recent_episodes(goal_contains="doc",
+                                                  tag="docs")
+            self.assertEqual(len(both), 1)
+            # a needle that matches nothing simply returns nothing
+            self.assertEqual(
+                await self.mem.recent_episodes(goal_contains="quantum"),
+                [])
+        run(scenario())
+
     def test_untagged_episodes_have_empty_list(self):
         async def scenario():
             eid = await self.mem.start_episode("plain goal", "operator")

@@ -244,22 +244,29 @@ class Memory:
         await self._run(op)
 
     async def recent_episodes(self, limit: int = 20,
-                              tag: str | None = None) -> list[dict]:
-        """Newest episodes; ``tag`` filters on the episodes' tag list."""
+                              tag: str | None = None,
+                              goal_contains: str | None = None) \
+            -> list[dict]:
+        """Newest episodes; ``tag`` filters on the episodes' tag list,
+        ``goal_contains`` keeps episodes whose goal carries the
+        case-insensitive substring (the episode viewer's search box)."""
         wanted = (tag or "").lower().lstrip("#")
+        needle = (goal_contains or "").lower()
 
         def op(conn: sqlite3.Connection) -> list[dict]:
+            clauses, params = [], []
             if wanted:
-                rows = conn.execute(
-                    "SELECT id, created_at, source, goal, status, "
-                    "final_answer, model_tier, steps, tags FROM episodes "
-                    "WHERE tags LIKE ? ORDER BY id DESC LIMIT ?",
-                    (f'%"{wanted}"%', limit)).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT id, created_at, source, goal, status, "
-                    "final_answer, model_tier, steps, tags FROM episodes "
-                    "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+                clauses.append("tags LIKE ?")
+                params.append(f'%"{wanted}"%')
+            if needle:
+                clauses.append("LOWER(goal) LIKE ?")
+                params.append(f"%{needle}%")
+            where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+            rows = conn.execute(
+                "SELECT id, created_at, source, goal, status, "
+                "final_answer, model_tier, steps, tags FROM episodes"
+                f"{where} ORDER BY id DESC LIMIT ?", (*params, limit)
+            ).fetchall()
             results = []
             for row in rows:
                 item = dict(row)
