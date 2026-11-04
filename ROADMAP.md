@@ -276,18 +276,48 @@ Progress counter: **[590/500] — 500-commit milestone passed** · **1151 tests 
 9. ✅ examples: task board demo rendered offline [630]
 10. ✅ docs: tools.md csv row covers count mode + string operators [631]
 
-## Wave BI backlog (next)
+## Wave BI status (complete)
 
-1. kernel: memory.recent_episodes gains a goal substring filter
-2. interface: /api/episodes passes ?q= through
-3. interface: POST /api/cache/clear — evict everything, evicted count returned
-4. interface: dashboard cache card gains a clear button
-5. interface: telegram /pending shows each request's waiting age
-6. kernel: boot log shows the daily budget (veto threshold) at startup
-7. docs: api.md /api/episodes row documents ?q=
-8. docs: faq.md entry — clearing the response cache (what it costs)
-9. docs: tools.md json_query row covers search limit + keys truncation
-10. examples: cache_demo gains distinct_models + clear-count rendering
+1. ✅ kernel: memory.recent_episodes gains a goal substring filter [632]
+2. ✅ interface: /api/episodes passes ?q= through [633]
+3. ✅ interface: POST /api/cache/clear — evicted count returned, audited [634]
+4. ✅ interface: dashboard cache card gains a clear button [635]
+5. ✅ interface: telegram /pending shows each request's waiting age [636]
+6. ✅ kernel: boot log shows the daily budget (veto threshold) [637]
+7. ✅ docs: api.md /api/episodes row documents ?q= [638]
+8. ✅ docs: faq.md entry — what clearing the response cache costs [639]
+9. ✅ docs: tools.md json_query row covers search limit + keys [640]
+10. ✅ examples: cache_demo renders distinct_models + clear count [641]
+
+## Wave BJ status (complete)
+
+1. ✅ interface: openapi documents POST /api/cache/clear + episodes q/tag [642]
+2. ✅ interface: adapters card surfaces last_error even off-cooldown [643]
+3. ✅ kernel: /api/status carries brain_budget_daily_usd [644]
+4. ✅ interface: telegram /status shows the budget line [645]
+5. ✅ ops: verify-all --limit caps the sweep (skipped stays visible) [646]
+6. ✅ docs: operations.md gains the response-cache section [647]
+7. ✅ docs: brain.md links the operator reset + ops section [648]
+8. ✅ examples: status_page_demo renders the board + budget [649]
+9. ✅ examples: diskwatch_demo renders the dirs line [650]
+10. (merged into [642]) — episodes q/tag openapi params shipped with the
+    cache-clear entry in one spec commit
+
+## Wave BK backlog (next)
+
+1. kernel: memory recall gains a kind-facet breakdown in the result?
+   (verify first — exclude_kinds and kind filters exist; the gap is a
+   per-kind hit count for the caller)
+2. interface: dashboard episodes viewer gains a search box wired to ?q=
+3. interface: telegram /episodes N — recent episodes with outcomes
+4. ops: backup create --verify flag — hash-check right after creation
+5. tools: statistics gains a median operation? (verify — quantile covers
+   p50; the gap is a named median alias)
+6. kernel: EventBus gains a subscriber_names() listing for diagnostics
+7. docs: architecture.md cross-links the new cache ops section
+8. docs: faq.md entry — why the task board line can be missing
+9. examples: episodes search demo — goal_contains rendered offline
+10. interface: dashboard episodes viewer shows step_count badges
 
 1. kernel: task_finished carries the task's depends_on for tracing
 2. brain: cache invalidate() reports whether the key existed
