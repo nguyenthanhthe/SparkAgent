@@ -130,6 +130,11 @@ class Table:
         info["column_types"] = types
         info["missing"] = missing
         info["distinct"] = distinct
+        # rows without a single missing cell — the clean subset a numeric
+        # filter or aggregate can run over without hitting CsvError
+        info["complete_rows"] = sum(
+            1 for row in self.rows
+            if all(row.get(c, "") != "" for c in self.columns))
         return info
 
 

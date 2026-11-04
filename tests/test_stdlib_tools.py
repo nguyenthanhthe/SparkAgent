@@ -119,6 +119,21 @@ class RegisteredToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("alice", result)
         self.assertNotIn("bob", result)
 
+    async def test_csv_describe_reports_complete_rows(self):
+        import json as json_lib
+        # one row lacks score — it is the only incomplete one
+        csv_data = "region,host,score\nemea,web-01,90\napac,web-02,\n"
+        result = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": csv_data, "operation": "describe"},
+            self.ctx))
+        self.assertEqual(result["complete_rows"], 1)
+        self.assertEqual(result["rows"], 2)
+        # a fully-populated table: every row is complete
+        full = json_lib.loads(await self.registry.call(
+            "csv_analyze", {"data": "a,b\n1,2\n3,4\n",
+                            "operation": "describe"}, self.ctx))
+        self.assertEqual(full["complete_rows"], 2)
+
     async def test_csv_filter_starts_and_ends_with(self):
         # operator parity with the json filter grammar (^= starts-with,
         # $= ends-with, both case-insensitive string ops)
