@@ -132,3 +132,12 @@ refusal is audited (`memory.rename_key.refused`) with both keys, and
 neither key changes. If you really want the merge, `DELETE
 /api/memories/{target}` first, then rename — the audit trail shows the
 delete, the rename, and the row counts for both.
+
+**How do I tally a non-numeric column in csv_analyze?**
+`operation=count` with `group_by=<column>` returns `{"counts": {value:
+n, …}, "total": rows}` — no numeric column needed, so `region`,
+`status`, or free-text labels all work. Empty cells tally under the
+empty string. When a numeric summary is what you want, `group` (per-key
+sum/avg) and `aggregate` (whole-column) still take over from there.
+Unknown `group_by` columns fail with a tool error naming the real
+columns.
